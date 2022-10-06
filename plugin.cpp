@@ -8,15 +8,17 @@
  * Author: Estelle Chigot, Colin Constans, Akli Rahmoun
  */
 
-#include <iec61850.h>
-#include <plugin_api.h>
-#include <stdio.h>
+// C++ standard library headers
 #include <string>
-#include <logger.h>
+
+// Fledge headers
+#include <plugin_api.h>
 #include <config_category.h>
-#include <rapidjson/document.h>
-#include <version.h>
-#include <iec61850_model.h>
+#include <logger.h>
+
+// local library
+#include "version.h"
+#include "iec61850.h"
 
 typedef void (*INGEST_CB)(void *, Reading);
 

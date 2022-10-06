@@ -11,12 +11,11 @@
  * Author: Estelle Chigot, Lucas Barret
  */
 
-#include <iostream>
-#include <cstring>
-#include <reading.h>
-#include <logger.h>
-#include <cstdlib>
-#include <cstdio>
+#include <thread>
+#include <mutex>
+#include <atomic>
+
+// libiec61850 headers
 #include <iec61850_model.h>
 #include <iec61850_common.h>
 #include <iec61850_client.h>
@@ -24,9 +23,10 @@
 #include <mms_server.h>
 #include <mms_types.h>
 #include <mms_value.h>
-#include <thread>
-#include <mutex>
-#include <atomic>
+
+// Fledge headers
+#include <reading.h>
+#include <logger.h>
 
 class IEC61850Client;
 

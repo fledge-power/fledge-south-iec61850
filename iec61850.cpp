@@ -10,10 +10,7 @@
  * Contributor: Colin Constans
  */
 
-#include <iec61850.h>
-#include "iec61850_client.h"
-#include "hal_thread.h"
-#include <string>
+#include "iec61850.h"
 
 using namespace std;
 
