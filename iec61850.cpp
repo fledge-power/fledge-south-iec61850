@@ -171,11 +171,11 @@ void IEC61850::loop(){
                     Logger::getLogger()->info("No data to read");
                 }
                 guard2.unlock();
-                std::chrono::milliseconds timespan(4);
+                std::chrono::milliseconds timespan(100);
                 std::this_thread::sleep_for(timespan);
             }
         }
-        std::chrono::milliseconds timespan(4);
+        std::chrono::milliseconds timespan(500);
         std::this_thread::sleep_for(timespan);
     }
 }
