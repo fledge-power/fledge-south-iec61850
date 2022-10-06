@@ -16,13 +16,12 @@
 #include <atomic>
 
 // libiec61850 headers
-#include <iec61850_model.h>
-#include <iec61850_common.h>
-#include <iec61850_client.h>
-#include <mms_common.h>
-#include <mms_server.h>
-#include <mms_types.h>
-#include <mms_value.h>
+#include <libiec61850/iec61850_model.h>
+#include <libiec61850/iec61850_common.h>
+#include <libiec61850/iec61850_client.h>
+#include <libiec61850/mms_common.h>
+#include <libiec61850/mms_types.h>
+#include <libiec61850/mms_value.h>
 
 // Fledge headers
 #include <reading.h>

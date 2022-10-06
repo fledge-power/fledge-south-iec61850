@@ -13,11 +13,6 @@ project(iec61850)
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -O3")
-set("-I$ENV{HOME}/libiec61850/src/iec61850/inc/")
-set("-I$ENV{HOME}/libiec61850/src/common/inc/")
-set("-I$ENV{HOME}/libiec61850/src/mms/inc/")
-set("-I$ENV{HOME}/libiec61850/hal/inc/")
-set("-I$ENV{HOME}/libiec61850/src/logging/")
 
 # Generation version header file
 set_source_files_properties(version.h PROPERTIES GENERATED TRUE)
@@ -54,13 +49,6 @@ endif()
 # On success, FLEDGE_INCLUDE_DIRS and FLEDGE_LIB_DIRS variables are set 
 
 
-#Find the libiec61850 files
-if (NOT "$ENV{LIB_61850}" STREQUAL "")
-	set(LIB_61850 "$ENV{LIB_61850}")
-else()
-	set(LIB_61850 "$ENV{HOME}/libiec61850")
-endif()
-
 # Add ./include
 include_directories(include)
 # Add Fledge include dir(s)
@@ -68,27 +56,11 @@ include_directories(${FLEDGE_INCLUDE_DIRS})
 
 # Add Fledge lib path
 link_directories(${FLEDGE_LIB_DIRS})
-# Create shared library
-link_directories(${LIB_61850}/build/src)
 
 if (FLEDGE_SRC)
 	message(STATUS "Using third-party includes " ${FLEDGE_SRC}/C/thirdparty)
 	include_directories(${FLEDGE_SRC}/C/thirdparty/rapidjson/include)
 endif()
-
-# Add other include paths
-if (NOT EXISTS "${LIB_61850}/src")
-	message(FATAL_ERROR "LIB_61850 ${LIB_61850}/src \n"
-			"does not appear to be pointing at a valid libiec61850 source tree")
-	return()
-endif()
-
-
-include_directories(${LIB_61850}/src/iec61850/inc)
-include_directories(${LIB_61850}/src/common/inc)
-include_directories(${LIB_61850}/hal/inc)
-include_directories(${LIB_61850}/src/mms/inc/)
-include_directories(${LIB_61850}/src/logging/)
 
 # Create shared library
 add_library(${PROJECT_NAME} SHARED ${SOURCES} version.h)
@@ -97,21 +69,20 @@ add_library(${PROJECT_NAME} SHARED ${SOURCES} version.h)
 target_link_libraries(${PROJECT_NAME} ${NEEDED_FLEDGE_LIBS})
 
 # Add the libiec61850
-find_library(LIBIEC61850 libiec61850.a "${LIB_61850}/build/src")
+find_library(LIBIEC61850 libiec61850.a)
 if (NOT LIBIEC61850)
-	message(FATAL_ERROR "The 61850 library libiec61850 was not found in ${LIB_61850}/build/src\n"
-			"Please build the library and set the environment variable LIB_61850 to root of libiec61850 source tree")
+    message(FATAL_ERROR "The 61850 library 'libiec61850' was not found (in the standard lib dir)\n"
+			"Please build and install the libiec61850 library")
 	return()
 endif()
 
-
-target_link_libraries(${PROJECT_NAME} -L${LIB_61850}/build/src -liec61850)
+target_link_libraries(${PROJECT_NAME} -L/usr/local/lib -liec61850)
 
 
 # Add additional libraries
 target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 
-# Set the build version 
+# Set the build version
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 1)
 
 set(FLEDGE_INSTALL "" CACHE INTERNAL "")

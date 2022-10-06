@@ -37,7 +37,4 @@ if [ ! -d $directory/libiec61850 ]; then
   cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
   make
   sudo make install
-  cd ..
-  echo Set the environment variable LIB_61850 to `pwd`
-  echo export LIB_61850=`pwd`
 fi

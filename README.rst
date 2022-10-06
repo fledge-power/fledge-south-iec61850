@@ -15,26 +15,23 @@ package repository.
 Building libiec61850
 -----------------
 
-To build IEC104 C/C++ South plugin, you need to download libiec61850 at:
+To build IEC61850 C/C++ South plugin, you need to download libiec61850 at:
 https://github.com/mz-automation/libiec61850
 
 .. code-block:: console
 
   $ git clone https://github.com/mz-automation/libiec61850.git
   $ cd libiec61850
-  $ export LIB_61850=`pwd`
 
-As shown above, you need a $LIB_61850 env var set to the source tree of the
-library.
-
-Then, you can build libiec61850 with:
+Then, you can build and install libiec61850 with:
 
 .. code-block:: console
 
   $ mkdir build
   $ cd build
-  $ cmake ..
+  $ cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
   $ make
+  $ sudo make install
 
 
 Build
