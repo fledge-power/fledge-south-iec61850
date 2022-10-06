@@ -19,14 +19,14 @@ using namespace std;
  */
 
 static const char *default_config = QUOTE ({
-                                        "plugin" : {
+    "plugin" : {
         "description" : "iec61850 south plugin",
         "type" : "string",
         "default" : PLUGIN_NAME,
         "readonly" : "true"
     },
 
-                                        "asset" : {
+    "asset" : {
         "description" : "Asset name",
         "type" : "string",
         "default" : "iec61850",
@@ -35,7 +35,7 @@ static const char *default_config = QUOTE ({
         "mandatory" : "true"
     },
 
-                                        "ip" : {
+    "ip" : {
         "description" : "IP of the Server",
         "type" : "string",
         "default" : "127.0.0.1",
@@ -43,75 +43,66 @@ static const char *default_config = QUOTE ({
         "order" : "2"
     },
 
-                                        "port" : {
+    "port" : {
         "description" : "Port number of the 61850 server",
         "type" : "integer",
         "default" : "102",
         "displayName" : "61850 Server port"
-
     },
 
-                                        "IED Model" : {
+    "IED Model" : {
         "description" : "Name of the 61850 IED model",
         "type" : "string", //IedModel
         "default" : "simpleIO",
         "displayName" : "61850 Server IedModel"
-
     },
-                                        "Logical Device" : {
+    "Logical Device" : {
         "description" : "Logical device of the 61850 server",
         "type" : "string", //LogicalDevice
         "default" : "GenericIO",
         "displayName" : "61850 Server logical device"
-
     },
 
-                                        "Logical Node" : {
+    "Logical Node" : {
         "description" : "Logical node of the 61850 server",
         "type" : "string", //LogicalNode
         "default" : "GGIO1",
         "displayName" : "61850 Server logical node"
-
     },
 
-                                        "CDC" : {
+    "CDC" : {
         "description" : "CDC name of the 61850 server",
         "type" : "string", //CDC_SAV
         "default" : "SPCSO1",
         "displayName" : "61850 Server CDC_SAV"
-
     },
 
-                                       "Data Attribute" : {
+    "Data Attribute" : {
         "description" : "Data attribute of the CDC",
         "type" : "string", //dataAttribute
         "default" : "stVal",
         "displayName" : "61850 Server data attribute"
-
     },
 
-                                        "Functional Constraint" : {
+    "Functional Constraint" : {
         "description" : "Functional constraint of the 61850 server",
         "type" : "string", //FC
         "default" : "ST",
         "displayName" : "61850 Server functional constraint"
-
     }
-
-
-                                    });
+});
 
 /**
  * The 61850 plugin interface
  */
 extern "C" {
 static PLUGIN_INFORMATION info = {
-        PLUGIN_NAME,              // Name
-        VERSION,                  // Version
-        SP_ASYNC,          // Flags
-        PLUGIN_TYPE_SOUTH,        // Type
-        "1.0.0",                  // Interface version
-        default_config          // Default configuration
+    PLUGIN_NAME,              // Name
+    VERSION,                  // Version
+    SP_ASYNC,                 // Flags
+    PLUGIN_TYPE_SOUTH,        // Type
+    "1.0.0",                  // Interface version
+    default_config            // Default configuration
 };
 
 /**
@@ -131,8 +122,8 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
     string logicalNode;
     string logicalDevice;
     string cdc;
-	string attribute;
-	string fc;
+    string attribute;
+    string fc;
     uint16_t port = 8102;
 
 
@@ -161,12 +152,12 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
     if (config->itemExists("CDC")) {
         cdc = config->getValue("CDC");
     }
-	
-	if (config->itemExists("Functional Constraint")) {
+
+    if (config->itemExists("Functional Constraint")) {
         fc = config->getValue("Functional Constraint");
     }
-	
-	if (config->itemExists("Data Attribute")) {
+
+    if (config->itemExists("Data Attribute")) {
         attribute = config->getValue("Data Attribute");
     }
 
@@ -231,8 +222,8 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
     string logicalNode;
     string logicalDevice;
     string cdc;
-	string attribute;
-	string fc;
+    string attribute;
+    string fc;
     uint16_t port;
 
     iec61850->stop();
@@ -268,17 +259,17 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
         cdc = config.getValue("CDC");
         iec61850->setCdc(cdc);
     }
-	
-	if (config.itemExists("Data Attribute")) {
-		attribute = config.getValue("Data Attribute");
-		iec61850->setAttribute(attribute);
-	}
-	
-	if (config.itemExists("Functional Constraint")) {
-		fc = config.getValue("Functional Constraint");
-		iec61850->setFc(fc);
-	}
-	
+
+    if (config.itemExists("Data Attribute")) {
+        attribute = config.getValue("Data Attribute");
+        iec61850->setAttribute(attribute);
+    }
+
+    if (config.itemExists("Functional Constraint")) {
+        fc = config.getValue("Functional Constraint");
+        iec61850->setFc(fc);
+    }
+
     if (config.itemExists("asset")) {
         iec61850->setAssetName(config.getValue("asset"));
     } else {
@@ -291,13 +282,11 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
 
 /**
  * Shutdown the plugin
-*/
+ */
 void plugin_shutdown(PLUGIN_HANDLE *handle) {
     auto *iec61850 = (IEC61850 *) handle;
 
     iec61850->stop();
     delete iec61850;
 }
-
-
-}
+}  // end of 'extern "C"'

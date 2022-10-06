@@ -16,15 +16,22 @@
 using namespace std;
 
 
-IEC61850::IEC61850(const char *ip, uint16_t port, string iedModel, std::string logicalNode, std::string logicalDevice, std::string cdc, std::string attribute, std::string fc) {
+IEC61850::IEC61850(const char *ip,
+                   uint16_t port,
+                   string iedModel,
+                   std::string logicalNode,
+                   std::string logicalDevice,
+                   std::string cdc,
+                   std::string attribute,
+                   std::string fc) {
     m_ip = ip;
     m_port = port;
     m_logicalnode = logicalNode;
     m_logicaldevice = logicalDevice;
     m_iedmodel = iedModel;
     m_cdc = cdc;
-	m_attribute = attribute;
-	m_fc = fc;
+    m_attribute = attribute;
+    m_fc = fc;
     m_iedconnection = nullptr;
     m_goto="";
 }
@@ -54,7 +61,7 @@ void IEC61850::setPort(uint16_t port) {
 
 //Set the name of the asset
 void IEC61850::setAssetName(const std::string &name) {
-        m_asset = name;
+    m_asset = name;
 }
 
 //Set the name of the logical device
@@ -113,7 +120,10 @@ void IEC61850::loop(){
                 std::unique_lock<std::mutex> guard2(loopLock);
                 if (m_error == IED_ERROR_OK) {
                     /* read an analog measurement value from server */
-                    MmsValue *value = IedConnection_readObject(m_iedconnection, &m_error, m_goto.c_str(), FunctionalConstraint_fromString(m_fc.c_str())); //example : IEC61850_FC_MX
+                    MmsValue *value = IedConnection_readObject(m_iedconnection,
+                                                               &m_error,
+                                                               m_goto.c_str(),
+                                                               FunctionalConstraint_fromString(m_fc.c_str())); //example : IEC61850_FC_MX
                     /* The value should not be null */
                     if (value != nullptr) {
                         /* Test the type value */
@@ -122,7 +132,7 @@ void IEC61850::loop(){
                                 m_client->sendData("MMS_FLOAT", MmsValue_toFloat(value));
                                 break;
 
-                            case(MMS_BOOLEAN): 
+                            case(MMS_BOOLEAN):
                                 m_client -> sendData("MMS_BOOLEAN", long(MmsValue_getBoolean(value) ? 1 : 0));
                                 break;
 
@@ -137,29 +147,30 @@ void IEC61850::loop(){
                             case(MMS_UNSIGNED):
                                 m_client -> sendData("MMS_UNSIGNED", long(MmsValue_toUint32(value)));
                                 break;
-								
-							case(MMS_OCTET_STRING):
-								{
-									std::string sval(reinterpret_cast<char*>(MmsValue_getOctetStringBuffer(value)), MmsValue_getOctetStringSize(value));
-									m_client -> sendData("MMS_OCTET_STRING", sval);
-								}
-								break;
+
+                            case(MMS_OCTET_STRING):
+                                {
+                                    std::string sval(reinterpret_cast<char*>(MmsValue_getOctetStringBuffer(value)), MmsValue_getOctetStringSize(value));
+                                    m_client -> sendData("MMS_OCTET_STRING", sval);
+                                }
+                                break;
 
                             case (MMS_DATA_ACCESS_ERROR) :
                                 Logger::getLogger()->info("MMS access error, please reconfigure");
                                 break;
+
                             default :
-								Logger::getLogger()->info("Unsupported MMS data type");
+                                Logger::getLogger()->info("Unsupported MMS data type");
                                 break;
 
                         }
                         MmsValue_delete(value);
                     }
                 }
-				else
-				{
-					Logger::getLogger()->info("No data to read");
-				}
+                else
+                {
+                    Logger::getLogger()->info("No data to read");
+                }
                 guard2.unlock();
                 std::chrono::milliseconds timespan(4);
                 std::this_thread::sleep_for(timespan);
@@ -168,9 +179,7 @@ void IEC61850::loop(){
         std::chrono::milliseconds timespan(4);
         std::this_thread::sleep_for(timespan);
     }
-
 }
-
 
 
 void IEC61850::stop() {
@@ -191,10 +200,4 @@ void IEC61850::ingest(std::vector<Datapoint *> points) {
 }
 
 
-
-
 IEC61850::~IEC61850()=default;
-
-
-
-

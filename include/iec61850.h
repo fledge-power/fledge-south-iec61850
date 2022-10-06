@@ -32,27 +32,34 @@ using namespace std;
 
 class IEC61850
 {
-	public:
+    public:
 
-		IEC61850(const char *ip, uint16_t port,  string iedModel, std::string logicalNode, std::string logicalDevice, std::string CDC_SAV, std::string dataAttribute, std::string FC);
-		~IEC61850();
-        void        setIp(const char *ip);
-        void        setPort(uint16_t port);
-		void		setAssetName(const std::string& name);
-		void        setLogicalDevice(std::string logicaldevice_name);;
-		void 		setLogicalNode(std::string logicalnode_name);
-		void		setAttribute(std::string attribute_name);
-		void 		setFc(std::string fc_name);
+        IEC61850(const char *ip,
+                 uint16_t port,
+                 string iedModel,
+                 std::string logicalNode,
+                 std::string logicalDevice,
+                 std::string CDC_SAV,
+                 std::string dataAttribute,
+                 std::string FC);
+        ~IEC61850();
 
-		void		start();
-		void		stop();
-		void		ingest(std::vector<Datapoint *>  points);
-		void		registerIngest(void *data, void (*cb)(void *, Reading))
-				{
-					m_ingest = cb;
-					m_data = data;
-				}
+        void setIp(const char *ip);
+        void setPort(uint16_t port);
+        void setAssetName(const std::string& name);
+        void setLogicalDevice(std::string logicaldevice_name);;
+        void setLogicalNode(std::string logicalnode_name);
+        void setAttribute(std::string attribute_name);
+        void setFc(std::string fc_name);
 
+        void start();
+        void stop();
+        void ingest(std::vector<Datapoint *>  points);
+        void registerIngest(void *data, void (*cb)(void *, Reading))
+        {
+            m_ingest = cb;
+            m_data = data;
+        }
 
         void setModel(string model);
         void setCdc(string CDC);
@@ -62,58 +69,56 @@ class IEC61850
         std::atomic<bool> loopActivated{};
         thread loopThread;
 
-private:
+    private:
 
-		std::string			m_asset;
-		std::string         m_ip;
-		uint16_t            m_port;
-		std::string	 		m_logicaldevice;
-		std::string         m_logicalnode;
-		std::string 		m_iedmodel;
-		std::string         m_cdc;
-		std::string 		m_attribute;
-		std::string			m_fc;
-		std::string         m_goto;
-		IedConnection       m_iedconnection;
-		IedClientError 		m_error;
-		void				(*m_ingest)(void *, Reading){};
-		void				*m_data{};
+        std::string         m_asset;
+        std::string         m_ip;
+        uint16_t            m_port;
+        std::string         m_logicaldevice;
+        std::string         m_logicalnode;
+        std::string         m_iedmodel;
+        std::string         m_cdc;
+        std::string         m_attribute;
+        std::string         m_fc;
+        std::string         m_goto;
+        IedConnection       m_iedconnection;
+        IedClientError      m_error;
+        void                (*m_ingest)(void *, Reading){};
+        void                *m_data{};
 
-		IEC61850Client   	*m_client{};
-
-
-
+        IEC61850Client      *m_client{};
 };
 
 
 class IEC61850Client
 {
-	public :
+    public :
 
-		//Send the data from the MSS to fledge 
+        // Send the MMS data from the South plugin to Fledge
 
-		explicit IEC61850Client(IEC61850 *iec61850) : m_iec61850(iec61850) {};
-			
-		void sendDatafloat(std::string dataname,float a)
-		{
-       		DatapointValue value = DatapointValue(a);
-       		std::vector<Datapoint *> points;
-       		std::string name = dataname;
-       		points.push_back(new Datapoint(name,value));
-       		m_iec61850->ingest(points);
-       	}
+        explicit IEC61850Client(IEC61850 *iec61850) : m_iec61850(iec61850) {};
 
-       	template <typename T>
-       	void sendData(std::string dataname, T a){
+        void sendDatafloat(std::string dataname,float a)
+        {
             DatapointValue value = DatapointValue(a);
             std::vector<Datapoint *> points;
             std::string name = dataname;
             points.push_back(new Datapoint(name,value));
             m_iec61850->ingest(points);
-		}
-	private:
-		IEC61850    *m_iec61850;
-};
+        }
 
+        template <typename T>
+        void sendData(std::string dataname, T a)
+        {
+            DatapointValue value = DatapointValue(a);
+            std::vector<Datapoint *> points;
+            std::string name = dataname;
+            points.push_back(new Datapoint(name,value));
+            m_iec61850->ingest(points);
+        }
+
+    private:
+        IEC61850    *m_iec61850;
+};
 
 #endif
