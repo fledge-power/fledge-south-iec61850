@@ -2,7 +2,9 @@
 #define _IEC61850MMS_H
 
 /*
- * Fledge south service plugin
+ * Fledge IEC 61850 south plugin.
+ *
+ * Copyright (c) 2020, RTE (https://www.rte-france.com)
  *
  * Released under the Apache 2.0 Licence
  *

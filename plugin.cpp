@@ -1,3 +1,13 @@
+/*
+ * Fledge IEC 61850 south plugin.
+ *
+ * Copyright (c) 2020, RTE (https://www.rte-france.com)
+ *
+ * Released under the Apache 2.0 Licence
+ *
+ * Author: Estelle Chigot, Colin Constans, Akli Rahmoun
+ */
+
 #include <iec61850.h>
 #include <plugin_api.h>
 #include <stdio.h>
