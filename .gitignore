@@ -38,4 +38,6 @@ docs/*
 
 .idea/*
 
-
+# Vi(m) editor backup files
+*.swp
+*~
