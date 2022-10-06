@@ -22,7 +22,9 @@ IEC61850::IEC61850(const char *ip,
                    std::string logicalDevice,
                    std::string cdc,
                    std::string attribute,
-                   std::string fc) {
+                   std::string fc):
+    m_client(nullptr)
+{
     m_ip = ip;
     m_port = port;
     m_logicalnode = logicalNode;
@@ -182,11 +184,21 @@ void IEC61850::loop(){
 
 
 void IEC61850::stop() {
+
+    // Stop the MMS reader thread
+    loopActivated = false;
+    loopThread.join();
+
     if (m_iedconnection != nullptr && IedConnection_getState(m_iedconnection)){
         /* Close the connection */
         IedConnection_close(m_iedconnection);
         /* Destroy the connection instance after closing it */
         IedConnection_destroy(m_iedconnection);
+    }
+
+    if (nullptr != m_client) {
+        delete m_client;
+        m_client = nullptr;
     }
 }
 
@@ -197,6 +209,3 @@ void IEC61850::ingest(std::vector<Datapoint *> points) {
     (*m_ingest)(m_data, Reading(asset, points));
 
 }
-
-
-IEC61850::~IEC61850()=default;

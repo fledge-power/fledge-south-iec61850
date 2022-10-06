@@ -43,7 +43,7 @@ class IEC61850
                  std::string CDC_SAV,
                  std::string dataAttribute,
                  std::string FC);
-        ~IEC61850();
+        ~IEC61850() = default;
 
         void setIp(const char *ip);
         void setPort(uint16_t port);
@@ -87,7 +87,7 @@ class IEC61850
         void                (*m_ingest)(void *, Reading){};
         void                *m_data{};
 
-        IEC61850Client      *m_client{};
+        IEC61850Client      *m_client;
 };
 
 
