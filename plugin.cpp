@@ -17,12 +17,10 @@
 #include <logger.h>
 
 // local library
-#include "version.h"
-#include "iec61850.h"
+#include "./version.h"
+#include "./iec61850.h"
 
 typedef void (*INGEST_CB)(void *, Reading);
-
-using namespace std;
 
 #define PLUGIN_NAME "iec61850"
 
@@ -30,7 +28,7 @@ using namespace std;
  * Default configuration
  */
 
-static const char *default_config = QUOTE ({
+static const char *default_config = QUOTE({
     "plugin" : {
         "description" : "iec61850 south plugin",
         "type" : "string",
@@ -64,41 +62,41 @@ static const char *default_config = QUOTE ({
 
     "IED Model" : {
         "description" : "Name of the 61850 IED model",
-        "type" : "string", //IedModel
+        "type" : "string",  // IedModel
         "default" : "simpleIO",
         "displayName" : "61850 Server IedModel"
     },
     "Logical Device" : {
         "description" : "Logical device of the 61850 server",
-        "type" : "string", //LogicalDevice
+        "type" : "string",  // LogicalDevice
         "default" : "GenericIO",
         "displayName" : "61850 Server logical device"
     },
 
     "Logical Node" : {
         "description" : "Logical node of the 61850 server",
-        "type" : "string", //LogicalNode
+        "type" : "string",  // LogicalNode
         "default" : "GGIO1",
         "displayName" : "61850 Server logical node"
     },
 
     "CDC" : {
         "description" : "CDC name of the 61850 server",
-        "type" : "string", //CDC_SAV
+        "type" : "string",  // CDC_SAV
         "default" : "SPCSO1",
         "displayName" : "61850 Server CDC_SAV"
     },
 
     "Data Attribute" : {
         "description" : "Data attribute of the CDC",
-        "type" : "string", //dataAttribute
+        "type" : "string",  // dataAttribute
         "default" : "stVal",
         "displayName" : "61850 Server data attribute"
     },
 
     "Functional Constraint" : {
         "description" : "Functional constraint of the 61850 server",
-        "type" : "string", //FC
+        "type" : "string",  // FC
         "default" : "ST",
         "displayName" : "61850 Server functional constraint"
     }
@@ -120,33 +118,33 @@ static PLUGIN_INFORMATION info = {
 /**
  * Return the information about this plugin
  */
-PLUGIN_INFORMATION *plugin_info() {
+PLUGIN_INFORMATION *plugin_info()
+{
     Logger::getLogger()->info("61850 Config is %s", info.config);
     return &info;
 }
 
-PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
+PLUGIN_HANDLE plugin_init(ConfigCategory *config)
+{
     IEC61850 *iec61850;
     Logger::getLogger()->info("Initializing the plugin");
 
-    string ip = "127.0.0.1";
-    string model="testmodel";
-    string logicalNode;
-    string logicalDevice;
-    string cdc;
-    string attribute;
-    string fc;
+    std::string ip = "127.0.0.1";
+    std::string model = "testmodel";
+    std::string logicalNode;
+    std::string logicalDevice;
+    std::string cdc;
+    std::string attribute;
+    std::string fc;
     uint16_t port = 8102;
 
 
-    if (config->itemExists("ip")){
+    if (config->itemExists("ip")) {
         ip = config->getValue("ip");
     }
 
-    if (config->itemExists("port")){
+    if (config->itemExists("port")) {
         port = static_cast<uint16_t>(stoi(config->getValue("port")));
-        char str[80];
-        sprintf(str, "%u", port);
     }
 
     if (config->itemExists("IED Model")) {
@@ -173,7 +171,14 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
         attribute = config->getValue("Data Attribute");
     }
 
-    iec61850 = new IEC61850(ip.c_str(), port, model, logicalNode, logicalDevice, cdc, attribute, fc);
+    iec61850 = new IEC61850(ip.c_str(),
+                            port,
+                            model,
+                            logicalNode,
+                            logicalDevice,
+                            cdc,
+                            attribute,
+                            fc);
 
     if (config->itemExists("asset")) {
         iec61850->setAssetName(config->getValue("asset"));
@@ -187,23 +192,23 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
 /**
  * Start the Async handling for the plugin
  */
-void plugin_start(PLUGIN_HANDLE *handle) {
+void plugin_start(PLUGIN_HANDLE *handle)
+{
     if (!handle)
         return;
+
     Logger::getLogger()->info("Starting the plugin");
     IEC61850 *iec61850 = (IEC61850 *) handle;
     iec61850->start();
-
-
-
 }
 
 /**
  * Register ingest callback
  */
-void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data) {
+void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data)
+{
     if (!handle)
-        throw new exception();
+        throw new std::exception();
 
     IEC61850 *iec61850 = (IEC61850 *) handle;
     iec61850->registerIngest(data, cb);
@@ -212,16 +217,23 @@ void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data) {
 /**
  * Poll for a plugin reading
  */
-Reading plugin_poll(PLUGIN_HANDLE *handle) {
-
-    throw runtime_error("IEC_104 is an async plugin, poll should not be called");
+Reading plugin_poll(PLUGIN_HANDLE *handle)
+{
+    throw std::runtime_error(
+        "IEC_61850 is an async plugin, poll should not be called");
 }
 
 /**
  * Reconfigure the plugin
  *
  */
-void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
+void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
+{
+    if (!handle) {
+        Logger::getLogger()->warn("plugin_reconfigure: PLUGIN_HANDLE is null");
+        return;
+    }
+
     ConfigCategory config("new", newConfig);
     auto *iec61850 = (IEC61850 *) *handle;
 
@@ -229,26 +241,24 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
     iec61850->loopActivated = false;
     iec61850->loopThread.join();
 
-    string ip;
-    string model;
-    string logicalNode;
-    string logicalDevice;
-    string cdc;
-    string attribute;
-    string fc;
+    std::string ip;
+    std::string model;
+    std::string logicalNode;
+    std::string logicalDevice;
+    std::string cdc;
+    std::string attribute;
+    std::string fc;
     uint16_t port;
 
     iec61850->stop();
 
-    if (config.itemExists("ip")){
+    if (config.itemExists("ip")) {
         ip = config.getValue("ip");
         iec61850->setIp(ip.c_str());
     }
 
-    if (config.itemExists("port")){
+    if (config.itemExists("port")) {
         port = static_cast<uint16_t>(stoi(config.getValue("port")));
-        char str[80];
-        sprintf(str, "%u", port);
         iec61850->setPort(port);
     }
 
@@ -295,10 +305,19 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig) {
 /**
  * Shutdown the plugin
  */
-void plugin_shutdown(PLUGIN_HANDLE *handle) {
+void plugin_shutdown(PLUGIN_HANDLE *handle)
+{
+    if (!handle) {
+        Logger::getLogger()->warn("plugin_shutdown: PLUGIN_HANDLE is null");
+        return;
+    }
+
     auto *iec61850 = (IEC61850 *) handle;
 
-    iec61850->stop();
-    delete iec61850;
+    if (nullptr != iec61850) {
+        iec61850->stop();
+        delete iec61850;
+        iec61850 = nullptr;
+    }
 }
 }  // end of 'extern "C"'

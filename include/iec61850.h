@@ -1,5 +1,5 @@
-#ifndef _IEC61850MMS_H
-#define _IEC61850MMS_H
+#ifndef INCLUDE_IEC61850_H_
+#define INCLUDE_IEC61850_H_
 
 /*
  * Fledge IEC 61850 south plugin.
@@ -11,9 +11,11 @@
  * Author: Estelle Chigot, Lucas Barret
  */
 
-#include <thread>
-#include <mutex>
+#include <thread>  // NOLINT
+#include <mutex>   // NOLINT
 #include <atomic>
+#include <string>
+#include <vector>
 
 // libiec61850 headers
 #include <libiec61850/iec61850_model.h>
@@ -29,15 +31,12 @@
 
 class IEC61850Client;
 
-using namespace std;
-
 class IEC61850
 {
     public:
-
         IEC61850(const char *ip,
                  uint16_t port,
-                 string iedModel,
+                 std::string iedModel,
                  std::string logicalNode,
                  std::string logicalDevice,
                  std::string CDC_SAV,
@@ -62,15 +61,17 @@ class IEC61850
             m_data = data;
         }
 
-        void setModel(string model);
-        void setCdc(string CDC);
+        void setModel(std::string model);
+        void setCdc(std::string CDC);
 
         void loop();
         std::mutex loopLock;
         std::atomic<bool> loopActivated{};
-        thread loopThread;
+        std::thread loopThread;
 
     private:
+        void readMmsLoop();
+        void exportMmsValue(MmsValue *value);
 
         std::string         m_asset;
         std::string         m_ip;
@@ -84,7 +85,7 @@ class IEC61850
         std::string         m_goto;
         IedConnection       m_iedconnection;
         IedClientError      m_error;
-        void                (*m_ingest)(void *, Reading){};
+        void                (*m_ingest)(void *, Reading){};  // NOLINT
         void                *m_data{};
 
         IEC61850Client      *m_client;
@@ -97,16 +98,7 @@ class IEC61850Client
 
         // Send the MMS data from the South plugin to Fledge
 
-        explicit IEC61850Client(IEC61850 *iec61850) : m_iec61850(iec61850) {};
-
-        void sendDatafloat(std::string dataname,float a)
-        {
-            DatapointValue value = DatapointValue(a);
-            std::vector<Datapoint *> points;
-            std::string name = dataname;
-            points.push_back(new Datapoint(name,value));
-            m_iec61850->ingest(points);
-        }
+        explicit IEC61850Client(IEC61850 *iec61850) : m_iec61850(iec61850) {}
 
         template <typename T>
         void sendData(std::string dataname, T a)
@@ -114,7 +106,7 @@ class IEC61850Client
             DatapointValue value = DatapointValue(a);
             std::vector<Datapoint *> points;
             std::string name = dataname;
-            points.push_back(new Datapoint(name,value));
+            points.push_back(new Datapoint(name, value));
             m_iec61850->ingest(points);
         }
 
@@ -122,4 +114,4 @@ class IEC61850Client
         IEC61850    *m_iec61850;
 };
 
-#endif
+#endif  // INCLUDE_IEC61850_H_
