@@ -192,32 +192,32 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config)
 /**
  * Start the Async handling for the plugin
  */
-void plugin_start(PLUGIN_HANDLE *handle)
+void plugin_start(PLUGIN_HANDLE handle)
 {
     if (!handle)
         return;
 
     Logger::getLogger()->info("Starting the plugin");
-    IEC61850 *iec61850 = (IEC61850 *) handle;
+    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
     iec61850->start();
 }
 
 /**
  * Register ingest callback
  */
-void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data)
+void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB cb, void *data)
 {
     if (!handle)
         throw new std::exception();
 
-    IEC61850 *iec61850 = (IEC61850 *) handle;
+    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
     iec61850->registerIngest(data, cb);
 }
 
 /**
  * Poll for a plugin reading
  */
-Reading plugin_poll(PLUGIN_HANDLE *handle)
+Reading plugin_poll(PLUGIN_HANDLE handle)
 {
     throw std::runtime_error(
         "IEC_61850 is an async plugin, poll should not be called");
@@ -227,7 +227,7 @@ Reading plugin_poll(PLUGIN_HANDLE *handle)
  * Reconfigure the plugin
  *
  */
-void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
+void plugin_reconfigure(PLUGIN_HANDLE handle, std::string &newConfig)
 {
     if (!handle) {
         Logger::getLogger()->warn("plugin_reconfigure: PLUGIN_HANDLE is null");
@@ -235,7 +235,7 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
     }
 
     ConfigCategory config("new", newConfig);
-    auto *iec61850 = (IEC61850 *) *handle;
+    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
 
     std::unique_lock<std::mutex> guard2(iec61850->loopLock);
     iec61850->loopActivated = false;
@@ -305,14 +305,14 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
 /**
  * Shutdown the plugin
  */
-void plugin_shutdown(PLUGIN_HANDLE *handle)
+void plugin_shutdown(PLUGIN_HANDLE handle)
 {
     if (!handle) {
         Logger::getLogger()->warn("plugin_shutdown: PLUGIN_HANDLE is null");
         return;
     }
 
-    auto *iec61850 = (IEC61850 *) handle;
+    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
 
     if (nullptr != iec61850) {
         iec61850->stop();
