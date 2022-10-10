@@ -35,22 +35,22 @@ class IEC61850
 {
     public:
         IEC61850(const char *ip,
-                 uint16_t port,
-                 std::string iedModel,
-                 std::string logicalNode,
-                 std::string logicalDevice,
-                 std::string CDC_SAV,
-                 std::string dataAttribute,
-                 std::string FC);
+                 const uint16_t port,
+                 const std::string &iedModel,
+                 const std::string &logicalNode,
+                 const std::string &logicalDevice,
+                 const std::string &cdc,
+                 const std::string &attribute,
+                 const std::string &fc);
         ~IEC61850() = default;
 
         void setIp(const char *ip);
         void setPort(uint16_t port);
         void setAssetName(const std::string& name);
-        void setLogicalDevice(std::string logicaldevice_name);;
-        void setLogicalNode(std::string logicalnode_name);
-        void setAttribute(std::string attribute_name);
-        void setFc(std::string fc_name);
+        void setLogicalDevice(const std::string &logicaldevice_name);;
+        void setLogicalNode(const std::string &logicalnode_name);
+        void setAttribute(const std::string &attribute_name);
+        void setFc(const std::string &fc_name);
 
         void start();
         void stop();
@@ -61,8 +61,8 @@ class IEC61850
             m_data = data;
         }
 
-        void setModel(std::string model);
-        void setCdc(std::string CDC);
+        void setModel(const std::string &model);
+        void setCdc(const std::string &CDC);
 
         void loop();
         std::mutex loopLock;
@@ -101,7 +101,7 @@ class IEC61850Client
         explicit IEC61850Client(IEC61850 *iec61850) : m_iec61850(iec61850) {}
 
         template <typename T>
-        void sendData(std::string dataname, T a)
+        void sendData(const std::string &dataname, T a)
         {
             DatapointValue value = DatapointValue(a);
             std::vector<Datapoint *> points;

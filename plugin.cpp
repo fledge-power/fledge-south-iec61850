@@ -241,54 +241,45 @@ void plugin_reconfigure(PLUGIN_HANDLE handle, std::string &newConfig)
     iec61850->loopActivated = false;
     iec61850->loopThread.join();
 
-    std::string ip;
-    std::string model;
-    std::string logicalNode;
-    std::string logicalDevice;
-    std::string cdc;
-    std::string attribute;
-    std::string fc;
-    uint16_t port;
-
     iec61850->stop();
 
     if (config.itemExists("ip")) {
-        ip = config.getValue("ip");
+        std::string ip = config.getValue("ip");
         iec61850->setIp(ip.c_str());
     }
 
     if (config.itemExists("port")) {
-        port = static_cast<uint16_t>(stoi(config.getValue("port")));
+        uint16_t port = static_cast<uint16_t>(stoi(config.getValue("port")));
         iec61850->setPort(port);
     }
 
     if (config.itemExists("IED Model")) {
-        model = (config.getValue("IED Model"));
+        std::string model = (config.getValue("IED Model"));
         iec61850->setModel(model);
     }
 
     if (config.itemExists("Logical Device")) {
-        logicalDevice = config.getValue("Logical Device");
+        std::string logicalDevice = config.getValue("Logical Device");
         iec61850->setLogicalDevice(logicalDevice);
     }
 
     if (config.itemExists("Logical Node")) {
-        logicalNode = config.getValue("Logical Node");
+        std::string logicalNode = config.getValue("Logical Node");
         iec61850->setLogicalNode(logicalNode);
     }
 
     if (config.itemExists("CDC")) {
-        cdc = config.getValue("CDC");
+        std::string cdc = config.getValue("CDC");
         iec61850->setCdc(cdc);
     }
 
     if (config.itemExists("Data Attribute")) {
-        attribute = config.getValue("Data Attribute");
+        std::string attribute = config.getValue("Data Attribute");
         iec61850->setAttribute(attribute);
     }
 
     if (config.itemExists("Functional Constraint")) {
-        fc = config.getValue("Functional Constraint");
+        std::string fc = config.getValue("Functional Constraint");
         iec61850->setFc(fc);
     }
 

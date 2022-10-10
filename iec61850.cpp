@@ -14,25 +14,26 @@
 
 
 IEC61850::IEC61850(const char *ip,
-                   uint16_t port,
-                   std::string iedModel,
-                   std::string logicalNode,
-                   std::string logicalDevice,
-                   std::string cdc,
-                   std::string attribute,
-                   std::string fc):
+                   const uint16_t port,
+                   const std::string &iedModel,
+                   const std::string &logicalNode,
+                   const std::string &logicalDevice,
+                   const std::string &cdc,
+                   const std::string &attribute,
+                   const std::string &fc):
+    m_ip(ip),
+    m_port(port),
+    m_logicaldevice(logicalDevice),
+    m_logicalnode(logicalNode),
+    m_iedmodel(iedModel),
+    m_cdc(cdc),
+    m_attribute(attribute),
+    m_fc(fc),
+    m_goto(""),
+    m_error(IED_ERROR_OK),
     m_client(nullptr)
 {
-    m_ip = ip;
-    m_port = port;
-    m_logicalnode = logicalNode;
-    m_logicaldevice = logicalDevice;
-    m_iedmodel = iedModel;
-    m_cdc = cdc;
-    m_attribute = attribute;
-    m_fc = fc;
     m_iedconnection = nullptr;
-    m_goto = "";
 }
 
 // Set the IP of the 61850 server
@@ -63,33 +64,35 @@ void IEC61850::setAssetName(const std::string &name) {
 }
 
 // Set the name of the logical device
-void IEC61850::setLogicalDevice(std::string logicaldevice_name) {
+void IEC61850::setLogicalDevice(const std::string &logicaldevice_name) {
     m_logicaldevice = logicaldevice_name;
 }
 
 // Set the name of the logical node
-void IEC61850::setLogicalNode(std::string logicalnode_name) {
+void IEC61850::setLogicalNode(const std::string &logicalnode_name) {
     m_logicalnode = logicalnode_name;
 }
 
 // Set the name of the IED model
-void IEC61850::setModel(std::string model) {
+void IEC61850::setModel(const std::string &model) {
     m_iedmodel = model;
 }
 
 // Set the name of the CDC
-void IEC61850::setCdc(std::string CDC) {
+void IEC61850::setCdc(const std::string &CDC) {
     m_cdc = CDC;
 }
 
 // Set the name of the data attribute
-void IEC61850::setAttribute(std::string attribute) {
-    m_attribute = attribute;
+void IEC61850::setAttribute(const std::string &attribute_name)
+{
+    m_attribute = attribute_name;
 }
 
 // Set the name of the functional constraint
-void IEC61850::setFc(std::string FC) {
-    m_fc = FC;
+void IEC61850::setFc(const std::string &fc_name)
+{
+    m_fc = fc_name;
 }
 
 
