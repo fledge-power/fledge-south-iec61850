@@ -46,7 +46,7 @@ class IEC61850
 
         void setIp(const char *ip);
         void setPort(uint16_t port);
-        void setAssetName(const std::string& name);
+        void setAssetName(const std::string &name);
         void setLogicalDevice(const std::string &logicaldevice_name);;
         void setLogicalNode(const std::string &logicalnode_name);
         void setAttribute(const std::string &attribute_name);
@@ -85,7 +85,7 @@ class IEC61850
         std::string         m_goto;
         IedConnection       m_iedconnection;
         IedClientError      m_error;
-        void                (*m_ingest)(void *, Reading){};  // NOLINT
+        void                (*m_ingest)(void *, Reading) {}; // NOLINT
         void                *m_data{};
 
         IEC61850Client      *m_client;

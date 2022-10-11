@@ -28,6 +28,7 @@ typedef void (*INGEST_CB)(void *, Reading);
  * Default configuration
  */
 
+// *INDENT-OFF* (disable 'astyle' tool on this section)
 static const char *default_config = QUOTE({
     "plugin" : {
         "description" : "iec61850 south plugin",
@@ -101,214 +102,213 @@ static const char *default_config = QUOTE({
         "displayName" : "61850 Server functional constraint"
     }
 });
+// *INDENT-ON*
 
 /**
  * The 61850 plugin interface
  */
 extern "C" {
-static PLUGIN_INFORMATION info = {
-    PLUGIN_NAME,              // Name
-    VERSION,                  // Version
-    SP_ASYNC,                 // Flags
-    PLUGIN_TYPE_SOUTH,        // Type
-    "1.0.0",                  // Interface version
-    default_config            // Default configuration
-};
+    static PLUGIN_INFORMATION info = {
+        PLUGIN_NAME,              // Name
+        VERSION,                  // Version
+        SP_ASYNC,                 // Flags
+        PLUGIN_TYPE_SOUTH,        // Type
+        "1.0.0",                  // Interface version
+        default_config            // Default configuration
+    };
 
-/**
- * Return the information about this plugin
- */
-PLUGIN_INFORMATION *plugin_info()
-{
-    Logger::getLogger()->info("61850 Config is %s", info.config);
-    return &info;
-}
-
-PLUGIN_HANDLE plugin_init(ConfigCategory *config)
-{
-    IEC61850 *iec61850;
-    Logger::getLogger()->info("Initializing the plugin");
-
-    std::string ip = "127.0.0.1";
-    std::string model = "testmodel";
-    std::string logicalNode;
-    std::string logicalDevice;
-    std::string cdc;
-    std::string attribute;
-    std::string fc;
-    uint16_t port = 8102;
-
-
-    if (config->itemExists("ip")) {
-        ip = config->getValue("ip");
+    /**
+     * Return the information about this plugin
+     */
+    PLUGIN_INFORMATION *plugin_info()
+    {
+        Logger::getLogger()->info("61850 Config is %s", info.config);
+        return &info;
     }
 
-    if (config->itemExists("port")) {
-        port = static_cast<uint16_t>(stoi(config->getValue("port")));
+    PLUGIN_HANDLE plugin_init(ConfigCategory *config)
+    {
+        IEC61850 *iec61850;
+        Logger::getLogger()->info("Initializing the plugin");
+        std::string ip = "127.0.0.1";
+        std::string model = "testmodel";
+        std::string logicalNode;
+        std::string logicalDevice;
+        std::string cdc;
+        std::string attribute;
+        std::string fc;
+        uint16_t port = 8102;
+
+        if (config->itemExists("ip")) {
+            ip = config->getValue("ip");
+        }
+
+        if (config->itemExists("port")) {
+            port = static_cast<uint16_t>(stoi(config->getValue("port")));
+        }
+
+        if (config->itemExists("IED Model")) {
+            model = (config->getValue("IED Model"));
+        }
+
+        if (config->itemExists("Logical Device")) {
+            logicalDevice = config->getValue("Logical Device");
+        }
+
+        if (config->itemExists("Logical Node")) {
+            logicalNode = config->getValue("Logical Node");
+        }
+
+        if (config->itemExists("CDC")) {
+            cdc = config->getValue("CDC");
+        }
+
+        if (config->itemExists("Functional Constraint")) {
+            fc = config->getValue("Functional Constraint");
+        }
+
+        if (config->itemExists("Data Attribute")) {
+            attribute = config->getValue("Data Attribute");
+        }
+
+        iec61850 = new IEC61850(ip.c_str(),
+                                port,
+                                model,
+                                logicalNode,
+                                logicalDevice,
+                                cdc,
+                                attribute,
+                                fc);
+
+        if (config->itemExists("asset")) {
+            iec61850->setAssetName(config->getValue("asset"));
+        } else {
+            iec61850->setAssetName("iec61850");
+        }
+
+        return (PLUGIN_HANDLE) iec61850;
     }
 
-    if (config->itemExists("IED Model")) {
-        model = (config->getValue("IED Model"));
+    /**
+     * Start the Async handling for the plugin
+     */
+    void plugin_start(PLUGIN_HANDLE handle)
+    {
+        if (!handle) {
+            return;
+        }
+
+        Logger::getLogger()->info("Starting the plugin");
+        IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
+        iec61850->start();
     }
 
-    if (config->itemExists("Logical Device")) {
-        logicalDevice = config->getValue("Logical Device");
+    /**
+     * Register ingest callback
+     */
+    void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB cb, void *data)
+    {
+        if (!handle) {
+            throw new std::exception();
+        }
+
+        IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
+        iec61850->registerIngest(data, cb);
     }
 
-    if (config->itemExists("Logical Node")) {
-        logicalNode = config->getValue("Logical Node");
+    /**
+     * Poll for a plugin reading
+     */
+    Reading plugin_poll(PLUGIN_HANDLE handle)
+    {
+        throw std::runtime_error(
+            "IEC_61850 is an async plugin, poll should not be called");
     }
 
-    if (config->itemExists("CDC")) {
-        cdc = config->getValue("CDC");
-    }
+    /**
+     * Reconfigure the plugin
+     *
+     */
+    void plugin_reconfigure(PLUGIN_HANDLE handle, std::string &newConfig)
+    {
+        if (!handle) {
+            Logger::getLogger()->warn("plugin_reconfigure: PLUGIN_HANDLE is null");
+            return;
+        }
 
-    if (config->itemExists("Functional Constraint")) {
-        fc = config->getValue("Functional Constraint");
-    }
-
-    if (config->itemExists("Data Attribute")) {
-        attribute = config->getValue("Data Attribute");
-    }
-
-    iec61850 = new IEC61850(ip.c_str(),
-                            port,
-                            model,
-                            logicalNode,
-                            logicalDevice,
-                            cdc,
-                            attribute,
-                            fc);
-
-    if (config->itemExists("asset")) {
-        iec61850->setAssetName(config->getValue("asset"));
-    } else {
-        iec61850->setAssetName("iec61850");
-    }
-
-    return (PLUGIN_HANDLE) iec61850;
-}
-
-/**
- * Start the Async handling for the plugin
- */
-void plugin_start(PLUGIN_HANDLE handle)
-{
-    if (!handle)
-        return;
-
-    Logger::getLogger()->info("Starting the plugin");
-    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-    iec61850->start();
-}
-
-/**
- * Register ingest callback
- */
-void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB cb, void *data)
-{
-    if (!handle)
-        throw new std::exception();
-
-    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-    iec61850->registerIngest(data, cb);
-}
-
-/**
- * Poll for a plugin reading
- */
-Reading plugin_poll(PLUGIN_HANDLE handle)
-{
-    throw std::runtime_error(
-        "IEC_61850 is an async plugin, poll should not be called");
-}
-
-/**
- * Reconfigure the plugin
- *
- */
-void plugin_reconfigure(PLUGIN_HANDLE handle, std::string &newConfig)
-{
-    if (!handle) {
-        Logger::getLogger()->warn("plugin_reconfigure: PLUGIN_HANDLE is null");
-        return;
-    }
-
-    ConfigCategory config("new", newConfig);
-    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-
-    std::unique_lock<std::mutex> guard2(iec61850->loopLock);
-    iec61850->loopActivated = false;
-    iec61850->loopThread.join();
-
-    iec61850->stop();
-
-    if (config.itemExists("ip")) {
-        std::string ip = config.getValue("ip");
-        iec61850->setIp(ip.c_str());
-    }
-
-    if (config.itemExists("port")) {
-        uint16_t port = static_cast<uint16_t>(stoi(config.getValue("port")));
-        iec61850->setPort(port);
-    }
-
-    if (config.itemExists("IED Model")) {
-        std::string model = (config.getValue("IED Model"));
-        iec61850->setModel(model);
-    }
-
-    if (config.itemExists("Logical Device")) {
-        std::string logicalDevice = config.getValue("Logical Device");
-        iec61850->setLogicalDevice(logicalDevice);
-    }
-
-    if (config.itemExists("Logical Node")) {
-        std::string logicalNode = config.getValue("Logical Node");
-        iec61850->setLogicalNode(logicalNode);
-    }
-
-    if (config.itemExists("CDC")) {
-        std::string cdc = config.getValue("CDC");
-        iec61850->setCdc(cdc);
-    }
-
-    if (config.itemExists("Data Attribute")) {
-        std::string attribute = config.getValue("Data Attribute");
-        iec61850->setAttribute(attribute);
-    }
-
-    if (config.itemExists("Functional Constraint")) {
-        std::string fc = config.getValue("Functional Constraint");
-        iec61850->setFc(fc);
-    }
-
-    if (config.itemExists("asset")) {
-        iec61850->setAssetName(config.getValue("asset"));
-    } else {
-        iec61850->setAssetName("iec61850");
-    }
-
-    iec61850->start();
-    guard2.unlock();
-}
-
-/**
- * Shutdown the plugin
- */
-void plugin_shutdown(PLUGIN_HANDLE handle)
-{
-    if (!handle) {
-        Logger::getLogger()->warn("plugin_shutdown: PLUGIN_HANDLE is null");
-        return;
-    }
-
-    IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-
-    if (nullptr != iec61850) {
+        ConfigCategory config("new", newConfig);
+        IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
+        std::unique_lock<std::mutex> guard2(iec61850->loopLock);
+        iec61850->loopActivated = false;
+        iec61850->loopThread.join();
         iec61850->stop();
-        delete iec61850;
-        iec61850 = nullptr;
+
+        if (config.itemExists("ip")) {
+            std::string ip = config.getValue("ip");
+            iec61850->setIp(ip.c_str());
+        }
+
+        if (config.itemExists("port")) {
+            uint16_t port = static_cast<uint16_t>(stoi(config.getValue("port")));
+            iec61850->setPort(port);
+        }
+
+        if (config.itemExists("IED Model")) {
+            std::string model = (config.getValue("IED Model"));
+            iec61850->setModel(model);
+        }
+
+        if (config.itemExists("Logical Device")) {
+            std::string logicalDevice = config.getValue("Logical Device");
+            iec61850->setLogicalDevice(logicalDevice);
+        }
+
+        if (config.itemExists("Logical Node")) {
+            std::string logicalNode = config.getValue("Logical Node");
+            iec61850->setLogicalNode(logicalNode);
+        }
+
+        if (config.itemExists("CDC")) {
+            std::string cdc = config.getValue("CDC");
+            iec61850->setCdc(cdc);
+        }
+
+        if (config.itemExists("Data Attribute")) {
+            std::string attribute = config.getValue("Data Attribute");
+            iec61850->setAttribute(attribute);
+        }
+
+        if (config.itemExists("Functional Constraint")) {
+            std::string fc = config.getValue("Functional Constraint");
+            iec61850->setFc(fc);
+        }
+
+        if (config.itemExists("asset")) {
+            iec61850->setAssetName(config.getValue("asset"));
+        } else {
+            iec61850->setAssetName("iec61850");
+        }
+
+        iec61850->start();
+        guard2.unlock();
     }
-}
+
+    /**
+     * Shutdown the plugin
+     */
+    void plugin_shutdown(PLUGIN_HANDLE handle)
+    {
+        if (!handle) {
+            Logger::getLogger()->warn("plugin_shutdown: PLUGIN_HANDLE is null");
+            return;
+        }
+
+        IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
+
+        if (nullptr != iec61850) {
+            iec61850->stop();
+            delete iec61850;
+            iec61850 = nullptr;
+        }
+    }
 }  // end of 'extern "C"'
