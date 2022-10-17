@@ -37,11 +37,11 @@ IEC61850::IEC61850(const char *ip,
 }
 
 // Set the IP of the 61850 server
-void IEC61850::setIp(const char *ip)
+void IEC61850::setIp(const char *ip_address)
 {
-    if (strlen(ip) > 1) {
+    if (strlen(ip_address) > 1) {
         /* Ip set to the ip given by user */
-        m_ip = ip;
+        m_ip = ip_address;
     } else {
         /* Default IP if entry null*/
         m_ip = "127.0.0.1";

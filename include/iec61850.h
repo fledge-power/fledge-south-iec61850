@@ -44,7 +44,7 @@ class IEC61850
                  const std::string &fc);
         ~IEC61850() = default;
 
-        void setIp(const char *ip);
+        void setIp(const char *ip_address);
         void setPort(uint16_t port);
         void setAssetName(const std::string &name);
         void setLogicalDevice(const std::string &logicaldevice_name);;

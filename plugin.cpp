@@ -29,7 +29,7 @@ typedef void (*INGEST_CB)(void *, Reading);
  */
 
 // *INDENT-OFF* (disable 'astyle' tool on this section)
-static const char *default_config = QUOTE({
+static const char *const default_config = QUOTE({
     "plugin" : {
         "description" : "iec61850 south plugin",
         "type" : "string",
@@ -244,8 +244,8 @@ extern "C" {
         iec61850->stop();
 
         if (config.itemExists("ip")) {
-            std::string ip = config.getValue("ip");
-            iec61850->setIp(ip.c_str());
+            std::string ip_address = config.getValue("ip");
+            iec61850->setIp(ip_address.c_str());
         }
 
         if (config.itemExists("port")) {
@@ -269,18 +269,18 @@ extern "C" {
         }
 
         if (config.itemExists("CDC")) {
-            std::string cdc = config.getValue("CDC");
-            iec61850->setCdc(cdc);
+            std::string cdc_name = config.getValue("CDC");
+            iec61850->setCdc(cdc_name);
         }
 
         if (config.itemExists("Data Attribute")) {
-            std::string attribute = config.getValue("Data Attribute");
-            iec61850->setAttribute(attribute);
+            std::string data_attribute = config.getValue("Data Attribute");
+            iec61850->setAttribute(data_attribute);
         }
 
         if (config.itemExists("Functional Constraint")) {
-            std::string fc = config.getValue("Functional Constraint");
-            iec61850->setFc(fc);
+            std::string fc_name = config.getValue("Functional Constraint");
+            iec61850->setFc(fc_name);
         }
 
         if (config.itemExists("asset")) {
@@ -303,7 +303,8 @@ extern "C" {
             return;
         }
 
-        IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
+        IEC61850 *iec61850 = nullptr;
+        iec61850 = static_cast<IEC61850 *>(handle);
 
         if (nullptr != iec61850) {
             iec61850->stop();
