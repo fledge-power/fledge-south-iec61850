@@ -39,11 +39,22 @@ Build
 
 To build Fledge IEC 61850 C++ South plugin:
 
+To build a release:
+
 .. code-block:: console
 
   $ mkdir build
   $ cd build
-  $ cmake ..
+  $ cmake -DCMAKE_BUILD_TYPE=Release ..
+  $ make
+
+To build with unit tests and code coverage:
+
+.. code-block:: console
+
+  $ mkdir build
+  $ cd build
+  $ cmake -DCMAKE_BUILD_TYPE=Coverage ..
   $ make
 
 - By default the Fledge develop package header files and libraries
