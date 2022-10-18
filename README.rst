@@ -1,9 +1,17 @@
+.. Images
+.. |South_IEC61850_plugin_context| image:: docs/images/south-iec61850-plugin-context.svg
+
 ===============================================================================
 IEC61850 C/C++ South plugin
 ===============================================================================
 
 A simple asynchronous IEC61850 plugin that pulls data from a server and sends
 it to Fledge.
+
+
+|South_IEC61850_plugin_context|
+
+(use 'Drawio' -https://app.diagrams.net- for updating this diagram)
 
 To build this plugin, you will need the libiec61850 library installed on your environment
 as described below.
