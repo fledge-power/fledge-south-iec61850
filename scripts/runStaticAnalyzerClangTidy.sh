@@ -22,9 +22,11 @@ cd ${ROOT_DIR_PROJECT}
 rm -f ${TMP_OUTPUT_FILE}
 
 find ${ROOT_DIR_PROJECT} -not -path "*build*" -name "*.cpp" -exec ${CLANG_TIDY} {} \
-    -header-filter="${ROOT_DIR_PROJECT}*" \
-    -checks=*,clang-analyzer-*,clang-analyzer-cplusplus*,-fuchsia*,-llvmlibc* \
-    -- -I ${ROOT_DIR_PROJECT}/include/ -I ${FLEDGE_ROOT}/C/common/include/ \; >> ${TMP_OUTPUT_FILE}
+-header-filter="${ROOT_DIR_PROJECT}*" \
+-checks=*,clang-analyzer-*,clang-analyzer-cplusplus*,\
+-fuchsia*,-llvmlibc*,\
+-modernize-use-trailing-return-type \
+-- -I ${ROOT_DIR_PROJECT}/include/ -I ${FLEDGE_ROOT}/C/common/include/ \; >> ${TMP_OUTPUT_FILE}
 
 
 # show a light version of the warning list

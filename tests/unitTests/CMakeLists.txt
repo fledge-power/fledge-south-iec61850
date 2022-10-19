@@ -9,7 +9,7 @@ project(RunTests)
 # If no -D options are given and FLEDGE_ROOT environment variable is set
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+set(CMAKE_CXX_FLAGS "-std=c++14 -g")
 
 # Generation version header file
 set_source_files_properties(version.h PROPERTIES GENERATED TRUE)

@@ -20,9 +20,9 @@
 #include "./version.h"
 #include "./iec61850.h"
 
-typedef void (*INGEST_CB)(void *, Reading);
-
 #define PLUGIN_NAME "iec61850"
+
+using INGEST_CB = void (*)(void *, Reading);
 
 /**
  * Default configuration
@@ -130,21 +130,21 @@ extern "C" {
     {
         IEC61850 *iec61850;
         Logger::getLogger()->info("Initializing the plugin");
-        std::string ip = "127.0.0.1";
+        std::string ipAddress = DEFAULT_IED_IP_ADDRESS;
         std::string model = "testmodel";
         std::string logicalNode;
         std::string logicalDevice;
         std::string cdc;
         std::string attribute;
-        std::string fc;
-        uint16_t port = 8102;
+        std::string fonctionConstraint;
+        uint16_t mmsPort = DEFAULT_MMS_PORT;
 
         if (config->itemExists("ip")) {
-            ip = config->getValue("ip");
+            ipAddress = config->getValue("ip");
         }
 
         if (config->itemExists("port")) {
-            port = static_cast<uint16_t>(stoi(config->getValue("port")));
+            mmsPort = static_cast<uint16_t>(stoi(config->getValue("port")));
         }
 
         if (config->itemExists("IED Model")) {
@@ -164,21 +164,21 @@ extern "C" {
         }
 
         if (config->itemExists("Functional Constraint")) {
-            fc = config->getValue("Functional Constraint");
+            fonctionConstraint = config->getValue("Functional Constraint");
         }
 
         if (config->itemExists("Data Attribute")) {
             attribute = config->getValue("Data Attribute");
         }
 
-        iec61850 = new IEC61850(ip.c_str(),
-                                port,
+        iec61850 = new IEC61850(ipAddress.c_str(),
+                                mmsPort,
                                 model,
                                 logicalNode,
                                 logicalDevice,
                                 cdc,
                                 attribute,
-                                fc);
+                                fonctionConstraint);
 
         if (config->itemExists("asset")) {
             iec61850->setAssetName(config->getValue("asset"));
@@ -206,14 +206,14 @@ extern "C" {
     /**
      * Register ingest callback
      */
-    void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB cb, void *data)
+    void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB ingestCallback, void *data)
     {
         if (!handle) {
-            throw new std::exception();
+            throw std::exception();
         }
 
         IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-        iec61850->registerIngest(data, cb);
+        iec61850->registerIngest(data, ingestCallback);
     }
 
     /**
@@ -238,19 +238,16 @@ extern "C" {
 
         ConfigCategory config("new", newConfig);
         IEC61850 *iec61850 = static_cast<IEC61850 *>(handle);
-        std::unique_lock<std::mutex> guard2(iec61850->loopLock);
-        iec61850->loopActivated = false;
-        iec61850->loopThread.join();
         iec61850->stop();
 
         if (config.itemExists("ip")) {
-            std::string ip_address = config.getValue("ip");
-            iec61850->setIp(ip_address.c_str());
+            std::string ipAddress = config.getValue("ip");
+            iec61850->setIedIpAddress(ipAddress);
         }
 
         if (config.itemExists("port")) {
-            uint16_t port = static_cast<uint16_t>(stoi(config.getValue("port")));
-            iec61850->setPort(port);
+            uint16_t mmsPort = static_cast<uint16_t>(stoi(config.getValue("port")));
+            iec61850->setMmsPort(mmsPort);
         }
 
         if (config.itemExists("IED Model")) {
@@ -290,7 +287,6 @@ extern "C" {
         }
 
         iec61850->start();
-        guard2.unlock();
     }
 
     /**

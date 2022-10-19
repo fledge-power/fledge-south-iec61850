@@ -12,70 +12,73 @@
 
 #include "./iec61850.h"
 
+constexpr const uint32_t MMS_READ_FREQUENCY_IN_HERTZ = 10;
+constexpr const uint32_t WAIT_BEFORE_NEW_CONNECTION_TRY_IN_MILLISEC = 500;
 
-IEC61850::IEC61850(const char *ip,
-                   const uint16_t port,
-                   const std::string &iedModel,
-                   const std::string &logicalNode,
-                   const std::string &logicalDevice,
-                   const std::string &cdc,
-                   const std::string &attribute,
-                   const std::string &fc):
-    m_ip(ip),
-    m_port(port),
-    m_logicaldevice(logicalDevice),
-    m_logicalnode(logicalNode),
-    m_iedmodel(iedModel),
-    m_cdc(cdc),
-    m_attribute(attribute),
-    m_fc(fc),
-    m_goto(""),
-    m_error(IED_ERROR_OK),
+IEC61850::IEC61850(std::string ipAddress,
+                   uint16_t mmsPort,
+                   std::string iedModel,
+                   std::string logicalNodeName,
+                   std::string logicalDeviceName,
+                   std::string cdc,
+                   std::string attribute,
+                   std::string fonctionalConstraint):
+    m_ipAddress(std::move(ipAddress)),
+    m_mmsPort(mmsPort),
+    m_logicalDeviceName(std::move(logicalDeviceName)),
+    m_logicalNodeName(std::move(logicalNodeName)),
+    m_iedmodel(std::move(iedModel)),
+    m_cdc(std::move(cdc)),
+    m_attribute(std::move(attribute)),
+    m_fc(std::move(fonctionalConstraint)),
     m_client(nullptr)
 {
-    m_iedconnection = nullptr;
+}
+
+IEC61850::~IEC61850()
+{
+    stop();
 }
 
 // Set the IP of the 61850 server
-void IEC61850::setIp(const char *ip_address)
+void IEC61850::setIedIpAddress(const std::string &ipAddress)
 {
-    if (strlen(ip_address) > 1) {
-        /* Ip set to the ip given by user */
-        m_ip = ip_address;
-    } else {
+    if (ipAddress.empty()) {
         /* Default IP if entry null*/
-        m_ip = "127.0.0.1";
+        m_ipAddress = DEFAULT_IED_IP_ADDRESS;
+    } else {
+        m_ipAddress = ipAddress;
     }
 }
 
-// Set the port of the 61850 server
-void IEC61850::setPort(uint16_t port)
+// Set the MMS port of the 61850 server
+void IEC61850::setMmsPort(uint16_t mmsPort)
 {
-    if (port > 0) {
+    if (mmsPort > 0) {
         /* port set to the port given by the user*/
-        m_port = port;
+        m_mmsPort = mmsPort;
     } else {
-        /* Default port for IEC61850 */
-        m_port = 8102;
+        /* Default MMS port for IEC61850 */
+        m_mmsPort = DEFAULT_MMS_PORT;
     }
 }
 
 // Set the name of the asset
-void IEC61850::setAssetName(const std::string &name)
+void IEC61850::setAssetName(const std::string &assetName)
 {
-    m_asset = name;
+    m_assetName = assetName;
 }
 
 // Set the name of the logical device
-void IEC61850::setLogicalDevice(const std::string &logicaldevice_name)
+void IEC61850::setLogicalDevice(const std::string &logicalDeviceName)
 {
-    m_logicaldevice = logicaldevice_name;
+    m_logicalDeviceName = logicalDeviceName;
 }
 
 // Set the name of the logical node
-void IEC61850::setLogicalNode(const std::string &logicalnode_name)
+void IEC61850::setLogicalNode(const std::string &logicalNodeName)
 {
-    m_logicalnode = logicalnode_name;
+    m_logicalNodeName = logicalNodeName;
 }
 
 // Set the name of the IED model
@@ -91,61 +94,64 @@ void IEC61850::setCdc(const std::string &CDC)
 }
 
 // Set the name of the data attribute
-void IEC61850::setAttribute(const std::string &attribute_name)
+void IEC61850::setAttribute(const std::string &attributeName)
 {
-    m_attribute = attribute_name;
+    m_attribute = attributeName;
 }
 
 // Set the name of the functional constraint
-void IEC61850::setFc(const std::string &fc_name)
+void IEC61850::setFc(const std::string &fcName)
 {
-    m_fc = fc_name;
+    m_fc = fcName;
 }
 
 void IEC61850::start()
 {
     Logger::getLogger()->info("Plugin started");
     /* Creating the client for fledge */
-    m_client = new IEC61850Client(this);
+    m_client = std::make_unique<IEC61850Client>(this);
     /* The type of Data class */
-    m_goto = m_iedmodel + m_logicaldevice +
+    m_goto = m_iedmodel + m_logicalDeviceName +
              "/" +
-             m_logicalnode +
+             m_logicalNodeName +
              "." +
              m_cdc +
              "." +
              m_attribute;
-    loopActivated = true;
+    isLoopActivated = true;
     loopThread = std::thread(&IEC61850::loop, this);
 }
 
 void IEC61850::loop()
 {
     /* Retry if connection lost */
-    while (loopActivated) {
-        m_iedconnection = IedConnection_create();
+    while (isLoopActivated) {
+        m_iedConnection = IedConnection_create();
         /* Connect with the object connection reference */
-        IedConnection_connect(m_iedconnection, &m_error, m_ip.c_str(), m_port);
+        IedConnection_connect(m_iedConnection,
+                              &m_networkStack_error,
+                              m_ipAddress.c_str(),
+                              m_mmsPort);
 
-        if (nullptr != m_iedconnection) {
+        if (nullptr != m_iedConnection) {
             readMmsLoop();
         }
 
-        std::chrono::milliseconds timespan(500);
+        std::chrono::milliseconds timespan(WAIT_BEFORE_NEW_CONNECTION_TRY_IN_MILLISEC);
         std::this_thread::sleep_for(timespan);
     }
 }
 
 void IEC61850::readMmsLoop()
 {
-    while ( (IedConnection_getState(m_iedconnection) == IED_STATE_CONNECTED) &&
-            loopActivated) {
-        std::unique_lock<std::mutex> guard2(loopLock);
+    while ( (IedConnection_getState(m_iedConnection) == IED_STATE_CONNECTED) &&
+            isLoopActivated) {
+        std::unique_lock<std::mutex> guard2(m_libiec61850ClientConnectionMutex);
 
-        if (m_error == IED_ERROR_OK) {
+        if (m_networkStack_error == IED_ERROR_OK) {
             /* read an analog measurement value from server */
-            MmsValue *value = IedConnection_readObject(m_iedconnection,
-                              &m_error,
+            MmsValue *value = IedConnection_readObject(m_iedConnection,
+                              &m_networkStack_error,
                               m_goto.c_str(),
                               FunctionalConstraint_fromString(m_fc.c_str()));
             exportMmsValue(value);
@@ -154,7 +160,7 @@ void IEC61850::readMmsLoop()
         }
 
         guard2.unlock();
-        std::chrono::milliseconds timespan(100);
+        std::chrono::milliseconds timespan(1000 / MMS_READ_FREQUENCY_IN_HERTZ);
         std::this_thread::sleep_for(timespan);
     }
 }
@@ -172,13 +178,16 @@ void IEC61850::exportMmsValue(MmsValue *value)
             m_client->sendData("MMS_FLOAT", MmsValue_toFloat(value));
             break;
 
-        case (MMS_BOOLEAN):
+        case (MMS_BOOLEAN): {
+            bool boolValue = MmsValue_getBoolean(value);
             m_client->sendData("MMS_BOOLEAN",
-                               int64_t(MmsValue_getBoolean(value) ? 1 : 0));
+                               static_cast<int64_t>(boolValue ? 1 : 0));
             break;
+        }
 
         case (MMS_INTEGER):
-            m_client->sendData("MMS_INTEGER", int64_t(MmsValue_toInt32(value)));
+            m_client->sendData("MMS_INTEGER",
+                               static_cast<int64_t>(MmsValue_toInt32(value)));
             break;
 
         case (MMS_VISIBLE_STRING) :
@@ -187,7 +196,7 @@ void IEC61850::exportMmsValue(MmsValue *value)
 
         case (MMS_UNSIGNED):
             m_client->sendData("MMS_UNSIGNED",
-                               int64_t(MmsValue_toUint32(value)));
+                               static_cast<int64_t>(MmsValue_toUint32(value)));
             break;
 
         case (MMS_OCTET_STRING): {
@@ -213,20 +222,21 @@ void IEC61850::exportMmsValue(MmsValue *value)
 
 void IEC61850::stop()
 {
-    // Stop the MMS reader thread
-    loopActivated = false;
-    loopThread.join();
-
-    if (m_iedconnection != nullptr && IedConnection_getState(m_iedconnection)) {
-        /* Close the connection */
-        IedConnection_close(m_iedconnection);
-        /* Destroy the connection instance after closing it */
-        IedConnection_destroy(m_iedconnection);
+    // Preconditions
+    if (false == isLoopActivated) {
+        return;
     }
 
-    if (nullptr != m_client) {
-        delete m_client;
-        m_client = nullptr;
+    // Stop the MMS reader thread
+    isLoopActivated = false;
+    loopThread.join();
+
+    if ( (m_iedConnection != nullptr) &&
+         (IED_STATE_CLOSED != IedConnection_getState(m_iedConnection))) {
+        /* Close the connection */
+        IedConnection_close(m_iedConnection);
+        /* Destroy the connection instance after closing it */
+        IedConnection_destroy(m_iedConnection);
     }
 }
 
@@ -235,5 +245,5 @@ void IEC61850::ingest(std::vector<Datapoint *> points)
     /* Creating the name of the type of data */
     std::string asset = points[0]->getName();
     /* Callback function used after receiving data */
-    (*m_ingest)(m_data, Reading(asset, points));
+    (*m_ingest_callback)(m_data, Reading(asset, points));
 }
