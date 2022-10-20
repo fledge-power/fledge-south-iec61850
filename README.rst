@@ -1,5 +1,6 @@
 .. Images
 .. |South_IEC61850_plugin_context| image:: docs/images/south-iec61850-plugin-context.svg
+.. |South_IEC61850_plugin_class_diagram| image:: docs/images/classDiagram.drawio.png
 
 ===============================================================================
 IEC61850 C/C++ South plugin
@@ -11,7 +12,7 @@ it to Fledge.
 
 |South_IEC61850_plugin_context|
 
-(use 'Drawio' -https://app.diagrams.net- for updating this diagram)
+(use 'Drawio' -https://draw.io- for updating this diagram)
 
 To build this plugin, you will need the libiec61850 library installed on your environment
 as described below.
@@ -127,3 +128,12 @@ a service from the web API:
  - Select iec61850 and give it a name, then click on "Next"
  - Change the default settings to your settings, then click on "Next"
  - Let the "Enabled" option checked, then click on "Done"
+
+
+Plugin design
+-------------
+
+Here, an overview of the plugin, with a UML class diagram:
+
+|South_IEC61850_plugin_class_diagram|
+
