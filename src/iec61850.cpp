@@ -231,8 +231,8 @@ void IEC61850::stop()
     isLoopActivated = false;
     loopThread.join();
 
-    if ( (m_iedConnection != nullptr) &&
-         (IED_STATE_CLOSED != IedConnection_getState(m_iedConnection))) {
+    if (   (m_iedConnection != nullptr)
+        && (IED_STATE_CLOSED != IedConnection_getState(m_iedConnection))) {
         /* Close the connection */
         IedConnection_close(m_iedConnection);
         /* Destroy the connection instance after closing it */

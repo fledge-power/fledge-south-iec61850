@@ -12,8 +12,10 @@ else
     cd ${ROOT_DIR_PROJECT}
     ${ASTYLE} --style=kr \
               --indent-classes --indent-switches \
+              --indent-col1-comments \
               --pad-oper --pad-comma --pad-header \
               --delete-empty-lines --break-blocks \
               --align-pointer=name --align-reference=name --add-braces \
+              --min-conditional-indent=0 \
               --recursive --exclude=${ROOT_DIR_PROJECT}/build --suffix=none *.cpp,*.h
 fi

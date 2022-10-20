@@ -51,11 +51,11 @@ class IEC61850
         /** Unavailable copy constructor */
         IEC61850(const IEC61850 &) = delete;
         /** Unavailable copy assignment operator */
-        IEC61850& operator = (const IEC61850 &) = delete;
+        IEC61850 &operator = (const IEC61850 &) = delete;
         /** Unavailable move constructor */
         IEC61850(IEC61850 &&) = delete;
         /** Unavailable move assignment operator */
-        IEC61850& operator = (IEC61850 &&) = delete;
+        IEC61850 &operator = (IEC61850 &&) = delete;
 
         void setIedIpAddress(const std::string &ipAddress);
         void setMmsPort(uint16_t mmsPort);
