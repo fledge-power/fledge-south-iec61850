@@ -38,76 +38,74 @@ static const char *const default_config = QUOTE({
         "readonly" : "true"
     },
 
+    "log min level" : {
+        "description" : "minimum level for the Fledge logger (debug, info)",
+        "type" : "string",
+        "default" : "info",
+        "displayName" : "logger minimum level",
+        "order" : "1",
+        "mandatory" : "true"
+    },
+
     "asset" : {
         "description" : "Asset name",
         "type" : "string",
         "default" : "iec61850",
         "displayName" : "Asset Name",
-        "order" : "1",
+        "order" : "2",
         "mandatory" : "true"
     },
 
-    "ip" : {
-        "description" : "IP of the Server",
-        "type" : "string",
-        "default" : "127.0.0.1",
-        "displayName" : "61850 Server IP",
-        "order" : "2"
+    "protocol_stack" : {
+        "description" : "protocol stack parameters",
+        "type" : "JSON",
+        "displayName" : "Protocol stack parameters",
+        "order" : "3",
+        "default" : QUOTE({
+            "protocol_stack" : {
+                "name" : "iec61850client",
+                "version" : "1.0",
+                "transport_layer" : {
+                    "connections" : [
+                        {
+                            "server_name" : "simpleIO",
+                            "ap_name" : "accessPoint1",
+                            "address" : {
+                                "ip_address": "0.0.0.0",
+                                "mms_port" : 102
+                            }
+                        },
+                        {
+                            "server_name" : "simpleIO",
+                            "ap_name" : "accessPoint2",
+                            "address" : {
+                                "ip_address": "0.0.0.0",
+                                "mms_port" : 8102
+                            }
+                        }
+                    ]
+                },
+                "application_layer" : {
+                }
+            }
+        })
     },
-
-    "port" : {
-        "description" : "Port number of the 61850 server",
-        "type" : "integer",
-        "default" : "102",
-        "displayName" : "61850 Server port"
-    },
-
-    "IED Model" : {
-        "description" : "Name of the 61850 IED model",
-        "type" : "string",  // IedModel
-        "default" : "simpleIO",
-        "displayName" : "61850 Server IedModel"
-    },
-    "Logical Device" : {
-        "description" : "Logical device of the 61850 server",
-        "type" : "string",  // LogicalDevice
-        "default" : "GenericIO",
-        "displayName" : "61850 Server logical device"
-    },
-
-    "Logical Node" : {
-        "description" : "Logical node of the 61850 server",
-        "type" : "string",  // LogicalNode
-        "default" : "GGIO1",
-        "displayName" : "61850 Server logical node"
-    },
-
-    "CDC" : {
-        "description" : "CDC name of the 61850 server",
-        "type" : "string",  // CDC_SAV
-        "default" : "SPCSO1",
-        "displayName" : "61850 Server CDC_SAV"
-    },
-
-    "Data Attribute" : {
-        "description" : "Data attribute of the CDC",
-        "type" : "string",  // dataAttribute
-        "default" : "stVal",
-        "displayName" : "61850 Server data attribute"
-    },
-
-    "Functional Constraint" : {
-        "description" : "Functional constraint of the 61850 server",
-        "type" : "string",  // FC
-        "default" : "ST",
-        "displayName" : "61850 Server functional constraint"
-    },
-
-    "log min level" : {
-        "description" : "minimum level for the Fledge logger (debug, info)",
-        "type" : "string",
-        "default" : "info",
-        "displayName" : "logger minimum level"
+    "exchanged_data" : {
+        "description" : "exchanged data list",
+        "type" : "JSON",
+        "displayName" : "Exchanged data list",
+        "order" : "4",
+        "default" : QUOTE({
+            "exchanged_data": {
+                "name" : "iec104client",
+                "version" : "1.0",
+                "Logical Device": "GenericIO",
+                "Logical Node": "GGIO1",
+                "CDC" : "AnIn1",
+                "Data Attribute": "mag.f",
+                "Functional Constraint": "MX"
+            }
+        })
     }
 });
 // *INDENT-ON*
@@ -136,10 +134,16 @@ extern "C" {
 
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)  // NOSONAR (Fledge API)
     {
+        Logger::getLogger()->setMinLevel("info");
+
         IEC61850 *iec61850;
         Logger::getLogger()->info("Initializing the plugin");
         iec61850 = new IEC61850();
-        iec61850->setConfig(*config);
+
+        if (config) {
+            iec61850->setConfig(*config);
+        }
+
         return (PLUGIN_HANDLE) iec61850;
     }
 

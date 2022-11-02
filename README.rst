@@ -20,10 +20,31 @@ as described below.
 You also need to have Fledge installed from the source code, not from the
 package repository.
 
+Installing the build dependencies
+=================================
 
-Building libiec61850
------------------
+Install dependencies with the Distribution package manager
+----------------------------------------------------
 
+RapidJson
+^^^^^^^^^
+ * for Debian:
+
+.. code-block:: console
+
+  $ sudo apt-get install rapidjson-dev
+
+
+GoogleTest (for unit only)
+^^^^^^^^^^
+ * for Debian:
+.. code-block:: console
+
+  $ sudo apt-get install libgtest-dev libgmock-dev
+
+
+Libiec61850 (IEC61850 protocol stack)
+-----------
 To build IEC61850 C/C++ South plugin, you need to download libiec61850 at:
 https://github.com/mz-automation/libiec61850
 
@@ -44,7 +65,7 @@ Then, you can build and install libiec61850 with:
 
 
 Build
-----
+=====
 
 To build Fledge IEC 61850 C++ South plugin:
 
@@ -117,7 +138,7 @@ Examples:
   $ cmake -DFLEDGE_INSTALL=/usr/local/fledge ..
 
 Using the plugin
-----------------
+================
 
 As described in the Fledge documentation, you can use the plugin by adding
 a service from the web API:
@@ -131,7 +152,7 @@ a service from the web API:
 
 
 Plugin design
--------------
+=============
 
 Here, an overview of the plugin, with a UML class diagram:
 

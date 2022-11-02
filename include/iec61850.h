@@ -14,6 +14,7 @@
 #include <string>
 #include <memory>
 #include <mutex>   // NOLINT
+#include <map>
 
 // Fledge headers
 #include <reading.h>
@@ -61,7 +62,7 @@ class IEC61850: public ClientGatewayInterface, public FledgeProxyInterface
         INGEST_DATA_TYPE    m_data = nullptr;
         std::mutex          m_ingestMutex;
 
-        std::unique_ptr<IEC61850Client> m_client;
+        std::map<std::string, std::unique_ptr<IEC61850Client>> m_clients;
 
         std::shared_ptr<IEC61850ClientConfig> m_config;
 };

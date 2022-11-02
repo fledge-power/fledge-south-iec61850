@@ -68,7 +68,7 @@ class IEC61850ClientConnection
     public :
 
         explicit
-        IEC61850ClientConnection(const ConnectionParameters &connParam);
+        IEC61850ClientConnection(const ServerConnectionParameters &connParam);
 
         ~IEC61850ClientConnection();
 
@@ -95,7 +95,7 @@ class IEC61850ClientConnection
         void open();
         void close();
 
-        ConnectionParameters m_connectionParam;
+        ServerConnectionParameters m_connectionParam;
         std::mutex m_iedConnectionMutex; // libiec61850 thread safe?: protect the IedConnection
 
         // libiec61850 objects

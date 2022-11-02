@@ -40,7 +40,7 @@ bool Mms::isNull() const
 
 
 IEC61850ClientConnection::IEC61850ClientConnection(
-    const ConnectionParameters &connParam)
+    const ServerConnectionParameters &connParam)
     : m_connectionParam(connParam)
 {
     Logger::getLogger()->debug("IEC61850ClientConn: constructor");

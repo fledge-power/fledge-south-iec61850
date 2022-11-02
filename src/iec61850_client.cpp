@@ -23,16 +23,27 @@
 constexpr const uint32_t DEMO_MMS_READ_FREQUENCY_IN_HERTZ = 2;
 
 IEC61850Client::IEC61850Client(IEC61850 *iec61850,
-                               std::shared_ptr<IEC61850ClientConfig> config)
+                               const ServerConnectionParameters &connectionParam,
+                               const ExchangedData exchangedData)
     : m_iec61850(iec61850),
-      m_config(config)
+      m_connectionParam(connectionParam),
+      m_exchangedData(exchangedData)
 {
-    Logger::getLogger()->debug("IEC61850Client: constructor");
+    /** Complete the DA path, with the name of the server */
+    m_exchangedData.daPath = m_connectionParam.serverName +
+                             m_exchangedData.daPathWithoutServerName;
+
+
+    m_clientId = IEC61850ClientConfig::buildKey(m_connectionParam);
+
+    Logger::getLogger()->debug("IEC61850Client: constructor %s",
+                               m_clientId.c_str());
 }
 
 IEC61850Client::~IEC61850Client()
 {
-    Logger::getLogger()->debug("IEC61850Client: destructor");
+    Logger::getLogger()->debug("IEC61850Client: destructor %s",
+                               m_clientId.c_str());
     stop();  // ensure a correct shutdown, if 'stop' order was missing
 }
 
@@ -45,7 +56,8 @@ void IEC61850Client::start()
         // Start the demo
         startDemo();
     } else {
-        Logger::getLogger()->error("IEC61850Client: connection is unavailable");
+        Logger::getLogger()->error("IEC61850Client: connection is unavailable (%s)",
+                                   m_clientId.c_str());
         m_connection->logError();
     }
 }
@@ -61,27 +73,26 @@ void IEC61850Client::createConnection()
 {
     // Preconditions
     if (m_connection) {
-        Logger::getLogger()->info("IEC61850Client: connection is already created");
+        Logger::getLogger()->info("IEC61850Client: connection is already created (%s)",
+                                  m_clientId.c_str());
         return;
     }
 
-    if (! m_config) {
-        Logger::getLogger()->error("IEC61850Client: configuration object is null");
-        return;
-    }
-
-    Logger::getLogger()->debug("IEC61850Client: create connection");
-    m_connection = std::make_unique<IEC61850ClientConnection>(m_config->connectionParam);
+    Logger::getLogger()->debug("IEC61850Client: create connection (%s)",
+                               m_clientId.c_str());
+    m_connection = std::make_unique<IEC61850ClientConnection>(m_connectionParam);
 }
 
 void IEC61850Client::destroyConnection()
 {
     if (! m_connection) {
-        Logger::getLogger()->info("IEC61850Client: connection does not exist");
+        Logger::getLogger()->info("IEC61850Client: connection does not exist (%s)",
+                                  m_clientId.c_str());
         return;
     }
 
-    Logger::getLogger()->debug("IEC61850Client: destroy connection");
+    Logger::getLogger()->debug("IEC61850Client: destroy connection (%s)",
+                               m_clientId.c_str());
     m_connection.reset(nullptr);
 }
 
@@ -197,7 +208,8 @@ void IEC61850Client::readMmsLoop()
         if (m_connection->isNoError()) {
             /* read an analog measurement value from server */
             std::shared_ptr<Mms> mms;
-            mms = m_connection->readMms(m_config->daPath, m_config->fcName);
+            mms = m_connection->readMms(m_exchangedData.daPath,
+                                        m_exchangedData.fcName);
 
             if (mms != nullptr) {
                 Datapoint *datapoint = convertMmsToDatapoint(mms);

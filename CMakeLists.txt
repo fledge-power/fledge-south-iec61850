@@ -76,7 +76,7 @@ if (NOT FLEDGE_FOUND)
 	# Stop the build process
 	message(FATAL_ERROR "Fledge plugin '${PROJECT_NAME}' build error.")
 endif()
-# On success, FLEDGE_INCLUDE_DIRS and FLEDGE_LIB_DIRS variables are set 
+# On success, FLEDGE_INCLUDE_DIRS and FLEDGE_LIB_DIRS variables are set
 
 
 # Add ./include
@@ -86,11 +86,6 @@ include_directories(${FLEDGE_INCLUDE_DIRS})
 
 # Add Fledge lib path
 link_directories(${FLEDGE_LIB_DIRS})
-
-if (FLEDGE_SRC)
-	message(STATUS "Using third-party includes " ${FLEDGE_SRC}/C/thirdparty)
-	include_directories(${FLEDGE_SRC}/C/thirdparty/rapidjson/include)
-endif()
 
 # Create shared library
 add_library(${PROJECT_NAME} SHARED ${SOURCES} version.h)

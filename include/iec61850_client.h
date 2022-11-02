@@ -43,7 +43,8 @@ class IEC61850Client
     public :
 
         explicit IEC61850Client(IEC61850 *iec61850,
-                                std::shared_ptr<IEC61850ClientConfig> config);
+                                const ServerConnectionParameters &connectionParam,
+                                const ExchangedData exchangedData);
 
         ~IEC61850Client();
 
@@ -97,9 +98,12 @@ class IEC61850Client
 
 
         IEC61850 *m_iec61850;
-        std::shared_ptr<IEC61850ClientConfig> m_config;
+        const ServerConnectionParameters &m_connectionParam;
+        ExchangedData m_exchangedData;
 
         std::unique_ptr<IEC61850ClientConnection> m_connection;
+
+        std::string m_clientId;
 
         // For demo only
         void startDemo();
