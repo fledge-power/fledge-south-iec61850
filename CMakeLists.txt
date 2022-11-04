@@ -41,7 +41,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL Coverage)
   )
 else()
   message("Build without Coverage")
-  set(CMAKE_CXX_FLAGS "-std=c++14 -O3")
+  set(CMAKE_CXX_FLAGS "-std=c++14 -O3 -Wall -Werror")
 endif()
 
 # Generation version header file
