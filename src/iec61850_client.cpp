@@ -24,7 +24,7 @@ constexpr const uint32_t DEMO_MMS_READ_FREQUENCY_IN_HERTZ = 2;
 
 IEC61850Client::IEC61850Client(IEC61850 *iec61850,
                                const ServerConnectionParameters &connectionParam,
-                               const ExchangedData exchangedData)
+                               const ExchangedData &exchangedData)
     : m_iec61850(iec61850),
       m_connectionParam(connectionParam),
       m_exchangedData(exchangedData)

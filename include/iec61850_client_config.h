@@ -38,7 +38,7 @@ struct ExchangedData {
 };
 
 using ServerDictKey = std::string;
-using ServerConfigDict = std::map<ServerDictKey, ServerConnectionParameters>;
+using ServerConfigDict = std::map<ServerDictKey, ServerConnectionParameters, std::less<>>;
 
 
 
@@ -66,10 +66,13 @@ class IEC61850ClientConfig
     private:
         void importJsonProtocolConfig(const std::string &protocolConfig);
         void importJsonTransportLayerConfig(const rapidjson::Value &transportLayer);
-        void importJsonApplicationLayerConfig(const rapidjson::Value &transportLayer);
+        void importJsonConnectionConfig(const rapidjson::Value &connConfig);
+        void importJsonServerAddressConfig(const rapidjson::Value &serverAddressConfig,
+                                           ServerConnectionParameters &io_iedConnectionParam);
+        void importJsonApplicationLayerConfig(const rapidjson::Value &transportLayer) const;
         void importJsonExchangeConfig(const std::string &exchangeConfig);
 
-        void logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam);
+        static void logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam);
         static bool isValidIPAddress(const std::string &addrStr);
 };
 

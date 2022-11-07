@@ -44,7 +44,7 @@ class IEC61850Client
 
         explicit IEC61850Client(IEC61850 *iec61850,
                                 const ServerConnectionParameters &connectionParam,
-                                const ExchangedData exchangedData);
+                                const ExchangedData &exchangedData);
 
         ~IEC61850Client();
 

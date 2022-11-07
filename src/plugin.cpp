@@ -129,7 +129,7 @@ extern "C" {
     PLUGIN_INFORMATION *plugin_info()
     {
         Logger::getLogger()->info("61850 Config is %s", info.config);
-        return const_cast<PLUGIN_INFORMATION*>(&info);
+        return const_cast<PLUGIN_INFORMATION*>(&info);  // NOSONAR (Fledge API)
     }
 
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)  // NOSONAR (Fledge API)

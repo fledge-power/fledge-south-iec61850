@@ -54,7 +54,7 @@ void IEC61850::start()
 
 void IEC61850::stop()
 {
-    for(auto &client: m_clients) {
+    for(const auto &client: m_clients) {
         client.second->stop();
     }
 

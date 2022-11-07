@@ -109,71 +109,94 @@ void IEC61850ClientConfig::importJsonTransportLayerConfig(const rapidjson::Value
 
     /** Parse each 'connection' JSON structure */
     for (auto &conn: connections.GetArray()) {
-        ServerConnectionParameters iedConnectionParam;
-
-        /** Parse the simple JSON fields of 'connection' */
-        if (conn.HasMember("server_name")) {
-            if (conn["server_name"].IsString()) {
-                iedConnectionParam.serverName = std::string(conn["server_name"].GetString());
-            } else {
-                iedConnectionParam.serverName = std::string(DEFAULT_SERVER_NAME);
-            }
-        }
-
-        if (conn.HasMember("ap_name")) {
-            if (conn["ap_name"].IsString()) {
-                iedConnectionParam.apName = std::string(conn["ap_name"].GetString());
-            } else {
-                iedConnectionParam.apName = std::string(DEFAULT_AP_NAME);
-            }
-        }
-
-        /** Parse the 'Address' JSON structure of 'connection' */
-        iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
-        iedConnectionParam.mmsPort = DEFAULT_MMS_PORT;
-
-        if (conn.HasMember("address")) {
-            if (conn["address"].IsObject()) {
-                const rapidjson::Value &addressStruct = conn["address"];
-
-                if (addressStruct.HasMember("ip_address")) {
-                    if (addressStruct["ip_address"].IsString()) {
-                        iedConnectionParam.ipAddress = std::string(addressStruct["ip_address"].GetString());
-                        if ( ! isValidIPAddress(iedConnectionParam.ipAddress)) {
-                            iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
-                            Logger::getLogger()->warn("Config: IP address not valid; keep default IP address");
-                        }
-                    } else {
-                        Logger::getLogger()->warn("Config: wrong 'IP address' format; keep default IP address");
-                    }
-                } else {
-                    Logger::getLogger()->warn("Config: 'IP address' is missing; keep default IP address");
-                }
-
-                if (addressStruct.HasMember("mms_port")) {
-                    if (addressStruct["mms_port"].IsInt()) {
-                        iedConnectionParam.mmsPort = addressStruct["mms_port"].GetInt();
-                    } else {
-                        Logger::getLogger()->warn("Config: wrong 'MMS port' format; keep default MMS port");
-                    }
-                } else {
-                    Logger::getLogger()->warn("Config: 'MMS port' is missing; keep default MMS port");
-                }
-            }
-        }
-
-        logParsedIedConnectionParam(iedConnectionParam);
-
-        ServerDictKey key = buildKey(iedConnectionParam);
-
-        serverConfigDict[key] = iedConnectionParam;
+        importJsonConnectionConfig(conn);
     }
 }
 
-void IEC61850ClientConfig::importJsonApplicationLayerConfig(const rapidjson::Value &applicationLayer)
+void IEC61850ClientConfig::importJsonConnectionConfig(const rapidjson::Value &connConfig)
 {
-;
+    // Preconditions
+    if (!connConfig.IsObject()) {
+        Logger::getLogger()->fatal("Config: 'Connection' is not valid");
+        return;
+    }
+
+    ServerConnectionParameters iedConnectionParam;
+
+    /** Parse the simple JSON fields of 'connection' */
+    if (connConfig.HasMember("server_name")) {
+        if (connConfig["server_name"].IsString()) {
+            iedConnectionParam.serverName = std::string(connConfig["server_name"].GetString());
+        } else {
+            iedConnectionParam.serverName = std::string(DEFAULT_SERVER_NAME);
+        }
+    }
+
+    if (connConfig.HasMember("ap_name")) {
+        if (connConfig["ap_name"].IsString()) {
+            iedConnectionParam.apName = std::string(connConfig["ap_name"].GetString());
+        } else {
+            iedConnectionParam.apName = std::string(DEFAULT_AP_NAME);
+        }
+    }
+
+    /** Parse the 'Address' JSON structure of 'connection' */
+    iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
+    iedConnectionParam.mmsPort = DEFAULT_MMS_PORT;
+
+    if (connConfig.HasMember("address")) {
+        if (connConfig["address"].IsObject()) {
+            const rapidjson::Value &addressStruct = connConfig["address"];
+
+            importJsonServerAddressConfig(addressStruct,
+                                          iedConnectionParam);
+
+        }
+    }
+
+    logParsedIedConnectionParam(iedConnectionParam);
+
+    ServerDictKey key = buildKey(iedConnectionParam);
+
+    serverConfigDict[key] = iedConnectionParam;
 }
+
+void IEC61850ClientConfig::importJsonServerAddressConfig(const rapidjson::Value &serverAddressConfig,
+                                                         ServerConnectionParameters &io_iedConnectionParam)
+{
+    // Preconditions
+    if (!serverAddressConfig.IsObject()) {
+        Logger::getLogger()->fatal("Config: 'Server address' is not valid");
+        return;
+    }
+
+    if (serverAddressConfig.HasMember("ip_address")) {
+        if (serverAddressConfig["ip_address"].IsString()) {
+            io_iedConnectionParam.ipAddress = std::string(serverAddressConfig["ip_address"].GetString());
+            if ( ! isValidIPAddress(io_iedConnectionParam.ipAddress)) {
+                io_iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
+                Logger::getLogger()->warn("Config: IP address not valid; keep default IP address");
+            }
+        } else {
+            Logger::getLogger()->warn("Config: wrong 'IP address' format; keep default IP address");
+        }
+    } else {
+        Logger::getLogger()->warn("Config: 'IP address' is missing; keep default IP address");
+    }
+
+    if (serverAddressConfig.HasMember("mms_port")) {
+        if (serverAddressConfig["mms_port"].IsInt()) {
+            io_iedConnectionParam.mmsPort = serverAddressConfig["mms_port"].GetInt();
+        } else {
+            Logger::getLogger()->warn("Config: wrong 'MMS port' format; keep default MMS port");
+        }
+    } else {
+        Logger::getLogger()->warn("Config: 'MMS port' is missing; keep default MMS port");
+    }
+}
+
+void IEC61850ClientConfig::importJsonApplicationLayerConfig(const rapidjson::Value &/*applicationLayer*/) const
+{}
 
 void IEC61850ClientConfig::logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam)
 {

@@ -62,7 +62,7 @@ class IEC61850: public ClientGatewayInterface, public FledgeProxyInterface
         INGEST_DATA_TYPE    m_data = nullptr;
         std::mutex          m_ingestMutex;
 
-        std::map<std::string, std::unique_ptr<IEC61850Client>> m_clients;
+        std::map<std::string, std::unique_ptr<IEC61850Client>, std::less<>> m_clients;
 
         std::shared_ptr<IEC61850ClientConfig> m_config;
 };
