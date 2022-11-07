@@ -71,8 +71,14 @@ class IEC61850Client
         void stop();
 
     private:
-        void createConnection();
-        void destroyConnection();
+        std::string m_clientId;
+
+        // Section: Configuration
+        const ServerConnectionParameters &m_connectionParam;
+        ExchangedData m_exchangedData;
+
+        // Section: Data formatting for the plugin
+        IEC61850 *m_iec61850;
 
         /**
          * Create the Datapoint object that will be ingest by Fledge
@@ -96,16 +102,18 @@ class IEC61850Client
          */
         void sendData(Datapoint *datapoint);
 
+        void readAndExportMms();
 
-        IEC61850 *m_iec61850;
-        const ServerConnectionParameters &m_connectionParam;
-        ExchangedData m_exchangedData;
-
+        // Section: Client initialization with connection creation
+        void launch();
+        void initializeConnection();
+        void createConnection();
+        void destroyConnection();
+        std::thread m_backgroundLaunchThread;
+        std::atomic<bool> m_stopOrder{false};
         std::unique_ptr<IEC61850ClientConnection> m_connection;
 
-        std::string m_clientId;
-
-        // For demo only
+        // Section: For demo only
         void startDemo();
         void stopDemo();
         void readMmsLoop();

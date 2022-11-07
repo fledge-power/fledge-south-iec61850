@@ -20,14 +20,16 @@
 #include "./iec61850.h"
 #include "./iec61850_client_connection.h"
 
+constexpr const uint32_t SECOND_IN_MILLISEC = 1000;
+constexpr const uint32_t RECONNECTION_FREQUENCY_IN_HERTZ = 1;
 constexpr const uint32_t DEMO_MMS_READ_FREQUENCY_IN_HERTZ = 2;
 
 IEC61850Client::IEC61850Client(IEC61850 *iec61850,
                                const ServerConnectionParameters &connectionParam,
                                const ExchangedData &exchangedData)
-    : m_iec61850(iec61850),
-      m_connectionParam(connectionParam),
-      m_exchangedData(exchangedData)
+    : m_connectionParam(connectionParam),
+      m_exchangedData(exchangedData),
+      m_iec61850(iec61850)
 {
     /** Complete the DA path, with the name of the server */
     m_exchangedData.daPath = m_connectionParam.serverName +
@@ -49,24 +51,47 @@ IEC61850Client::~IEC61850Client()
 
 void IEC61850Client::start()
 {
-    Logger::getLogger()->debug("IEC61850Client: start");
-    createConnection();
-
-    if (m_connection->isNoError()) {
-        // Start the demo
-        startDemo();
-    } else {
-        Logger::getLogger()->error("IEC61850Client: connection is unavailable (%s)",
-                                   m_clientId.c_str());
-        m_connection->logError();
-    }
+    m_backgroundLaunchThread = std::thread(&IEC61850Client::launch, this);
 }
 
 void IEC61850Client::stop()
 {
+    m_stopOrder = true;
+    if (m_backgroundLaunchThread.joinable()) {
+        m_backgroundLaunchThread.join();
+    }
+
     // Stop the demo
     stopDemo();
     destroyConnection();
+}
+
+void IEC61850Client::launch()
+{
+    initializeConnection();
+
+    /** Make subscriptions */
+    // TODO
+
+    /** Start application loop */
+    // Start the demo
+    startDemo();
+}
+
+void IEC61850Client::initializeConnection()
+{
+    do {
+        Logger::getLogger()->debug("IEC61850Client: init connection (%s)",
+                                   m_clientId.c_str());
+        destroyConnection();
+        createConnection();
+
+        // Wait connection establishment
+        std::chrono::milliseconds timespan(SECOND_IN_MILLISEC / RECONNECTION_FREQUENCY_IN_HERTZ);
+        std::this_thread::sleep_for(timespan);
+
+    } while ( (! m_stopOrder) &&
+            (! m_connection->isConnected()));
 }
 
 void IEC61850Client::createConnection()
@@ -204,22 +229,31 @@ void IEC61850Client::readMmsLoop()
         Logger::getLogger()->warn("IEC61850Client: Connection object is null");
     }
 
-    while (m_isDemoLoopActivated && m_connection->isConnected()) {
-        if (m_connection->isNoError()) {
-            /* read an analog measurement value from server */
-            std::shared_ptr<Mms> mms;
-            mms = m_connection->readMms(m_exchangedData.daPath,
-                                        m_exchangedData.fcName);
-
-            if (mms != nullptr) {
-                Datapoint *datapoint = convertMmsToDatapoint(mms);
-                sendData(datapoint);
+    while (m_isDemoLoopActivated) {
+        if (m_connection->isConnected()) {
+            if (m_connection->isNoError()) {
+                readAndExportMms();
+            } else {
+                Logger::getLogger()->info("No data to read");
             }
-        } else {
-            Logger::getLogger()->info("No data to read");
-        }
 
-        std::chrono::milliseconds timespan(1000 / DEMO_MMS_READ_FREQUENCY_IN_HERTZ);
-        std::this_thread::sleep_for(timespan);
+            std::chrono::milliseconds timespan(SECOND_IN_MILLISEC / DEMO_MMS_READ_FREQUENCY_IN_HERTZ);
+            std::this_thread::sleep_for(timespan);
+        } else {
+            initializeConnection();
+        }
+    }
+}
+
+void IEC61850Client::readAndExportMms()
+{
+    /* read an analog measurement value from server */
+    std::shared_ptr<Mms> mms;
+    mms = m_connection->readMms(m_exchangedData.daPath,
+            m_exchangedData.fcName);
+
+    if (mms != nullptr) {
+        Datapoint *datapoint = convertMmsToDatapoint(mms);
+        sendData(datapoint);
     }
 }
