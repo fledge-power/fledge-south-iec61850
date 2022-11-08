@@ -21,7 +21,6 @@
 
 struct ServerConnectionParameters {
     std::string serverName;
-    std::string apName;
     std::string ipAddress;
     uint16_t    mmsPort;
 };
@@ -58,7 +57,6 @@ class IEC61850ClientConfig
 
         inline static std::string buildKey(const ServerConnectionParameters &serverConn) {
             return (serverConn.serverName + "_" +
-                    serverConn.apName + "_" +
                     serverConn.ipAddress + "_" +
                     std::to_string(serverConn.mmsPort));
         }
@@ -67,8 +65,6 @@ class IEC61850ClientConfig
         void importJsonProtocolConfig(const std::string &protocolConfig);
         void importJsonTransportLayerConfig(const rapidjson::Value &transportLayer);
         void importJsonConnectionConfig(const rapidjson::Value &connConfig);
-        void importJsonServerAddressConfig(const rapidjson::Value &serverAddressConfig,
-                                           ServerConnectionParameters &io_iedConnectionParam);
         void importJsonApplicationLayerConfig(const rapidjson::Value &transportLayer) const;
         void importJsonExchangeConfig(const std::string &exchangeConfig);
 

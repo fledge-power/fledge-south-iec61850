@@ -26,11 +26,11 @@ TEST(IEC61850ClientConfig, importDefaultConfig)
 
     ASSERT_EQ(clientConfig.serverConfigDict.size(), 2);
 
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint1_0.0.0.0_102"].serverName, "simpleIO");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint1_0.0.0.0_102"].ipAddress, "0.0.0.0");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint1_0.0.0.0_102"].mmsPort, 102);
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].serverName, "simpleIO");
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].ipAddress, "0.0.0.0");
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].mmsPort, 102);
 
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint2_0.0.0.0_8102"].serverName, "simpleIO");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint2_0.0.0.0_8102"].ipAddress, "0.0.0.0");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_accessPoint2_0.0.0.0_8102"].mmsPort, 8102);
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].serverName, "simpleIO");
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].ipAddress, "0.0.0.0");
+    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].mmsPort, 8102);
 }

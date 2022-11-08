@@ -60,19 +60,13 @@ static const char *const default_config = QUOTE({
                     "connections" : [
                         {
                             "server_name" : "simpleIO",
-                            "ap_name" : "accessPoint1",
-                            "address" : {
-                                "ip_address": "0.0.0.0",
-                                "mms_port" : 102
-                            }
+                            "srv_ip": "0.0.0.0",
+                            "port" : 102
                         },
                         {
                             "server_name" : "simpleIO",
-                            "ap_name" : "accessPoint2",
-                            "address" : {
-                                "ip_address": "0.0.0.0",
-                                "mms_port" : 8102
-                            }
+                            "srv_ip": "0.0.0.0",
+                            "port" : 8102
                         }
                     ]
                 },
