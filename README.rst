@@ -35,12 +35,12 @@ RapidJson
   $ sudo apt-get install rapidjson-dev
 
 
-GoogleTest (for unit only)
+GoogleTest and Gcovr (for Unit Tests only)
 ^^^^^^^^^^
  * for Debian:
 .. code-block:: console
 
-  $ sudo apt-get install libgtest-dev libgmock-dev
+  $ sudo apt-get install libgtest-dev libgmock-dev gcovr
 
 
 Libiec61850 (IEC61850 protocol stack)

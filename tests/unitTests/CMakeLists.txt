@@ -28,7 +28,7 @@ include_directories(${CMAKE_BINARY_DIR})
 set(NEEDED_FLEDGE_LIBS common-lib services-common-lib)
 
 # Find source files
-file(GLOB SOURCES ../src/*.cpp)
+file(GLOB SOURCES ../../src/*.cpp)
 file(GLOB unittests "*.cpp")
 
 # Find Fledge includes and libs, by including FindFledge.cmake file
