@@ -11,49 +11,16 @@
  * Author: Mikael Bourhis-Cloarec
  */
 
-#include <memory>
 #include <mutex>   // NOLINT
-
-// libiec61850 headers
-#include <libiec61850/iec61850_client.h>
 
 // Fledge headers
 #include <logger.h>
 
 // local library
+#include "./iec61850_client_connection_interface.h"
 #include "./iec61850_client_config.h"
 
 class IEC61850Client;
-
-
-/** \class Mms
- *  \brief Encapsulate an MmsValue pointer
- *
- *  Encapsulate an MmsValue pointer for automatically deleting the
- *  allocated memory at the end of the life cycle of this object
- */
-class Mms
-{
-    public:
-        Mms() = default;
-        ~Mms();
-
-        /** Disable copy constructor */
-        Mms(const Mms &) = delete;
-        /** Disable copy assignment operator */
-        Mms &operator = (const Mms &) = delete;
-        /** Disable move constructor */
-        Mms(Mms &&) = delete;
-        /** Disable move assignment operator */
-        Mms &operator = (Mms &&) = delete;
-
-        void setMmsValue(MmsValue *mmsValue);
-        const MmsValue *getMmsValue() const;
-        bool isNull() const;
-
-    private:
-        MmsValue *m_mmsValue = nullptr;
-};
 
 /** \class IEC61850ClientConnection
  *  \brief Create and use a IEC61850 connection with a IED
@@ -63,14 +30,14 @@ class Mms
  *  sending 'operation' or 'reading' order,
  *  receiving asynchronous reports
  */
-class IEC61850ClientConnection
+class IEC61850ClientConnection: public IEC61850ClientConnectionInterface
 {
     public :
 
         explicit
         IEC61850ClientConnection(const ServerConnectionParameters &connParam);
 
-        ~IEC61850ClientConnection();
+        ~IEC61850ClientConnection() override;
 
         /** Disable default constructor */
         IEC61850ClientConnection() = delete;
@@ -84,12 +51,12 @@ class IEC61850ClientConnection
         /** Disable move assignment operator */
         IEC61850ClientConnection &operator = (IEC61850ClientConnection &&) = delete;
 
-        bool isConnected();
-        bool isNoError() const;
-        void logError() const;
+        bool isConnected() override;
+        bool isNoError() const override;
+        void logError() const override;
 
-        std::shared_ptr<Mms> readMms(const std::string &daPath,
-                                     const std::string &fcName);
+        std::shared_ptr<WrappedMms> readMms(const std::string &daPath,
+                                            const std::string &fcName) override;
 
     private:
         void open();

@@ -16,9 +16,13 @@
 #include <memory>
 #include <vector>
 
+// libiec61850 headers
+#include <libiec61850/mms_value.h>
+
 // local library
 #include "./iec61850.h"
 #include "./iec61850_client_connection.h"
+#include "./wrapped_mms.h"
 
 constexpr const uint32_t SECOND_IN_MILLISEC = 1000;
 constexpr const uint32_t RECONNECTION_FREQUENCY_IN_HERTZ = 1;
@@ -135,21 +139,27 @@ Datapoint *IEC61850Client::createDatapoint(const std::string &dataName,
 
 void IEC61850Client::sendData(Datapoint *dataPoint)
 {
+    // Preconditions
+    if (nullptr == m_iec61850) {
+        Logger::getLogger()->warn("IEC61850Client: abort 'sendData' (receiver is null)");
+        return;
+    }
+
     std::vector<Datapoint *> points(0);
     points.push_back(dataPoint);
     m_iec61850->ingest(points);
 }
 
-Datapoint *IEC61850Client::convertMmsToDatapoint(std::shared_ptr<Mms> mms)
+Datapoint *IEC61850Client::convertMmsToDatapoint(std::shared_ptr<WrappedMms> wrappedMms)
 {
     // Precondition
-    if (nullptr == mms) {
+    if (nullptr == wrappedMms) {
         return nullptr;
     }
 
     Datapoint *datapoint = nullptr;
     /* Test the Mms value type */
-    const MmsValue *mmsValue = mms->getMmsValue();
+    const MmsValue *mmsValue = wrappedMms->getMmsValue();
 
     switch (MmsValue_getType(mmsValue))  {
         case MMS_FLOAT:
@@ -248,12 +258,12 @@ void IEC61850Client::readMmsLoop()
 void IEC61850Client::readAndExportMms()
 {
     /* read an analog measurement value from server */
-    std::shared_ptr<Mms> mms;
-    mms = m_connection->readMms(m_exchangedData.daPath,
-            m_exchangedData.fcName);
+    std::shared_ptr<WrappedMms> wrapped_mms;
+    wrapped_mms = m_connection->readMms(m_exchangedData.daPath,
+                                        m_exchangedData.fcName);
 
-    if (mms != nullptr) {
-        Datapoint *datapoint = convertMmsToDatapoint(mms);
+    if (wrapped_mms != nullptr) {
+        Datapoint *datapoint = convertMmsToDatapoint(wrapped_mms);
         sendData(datapoint);
     }
 }

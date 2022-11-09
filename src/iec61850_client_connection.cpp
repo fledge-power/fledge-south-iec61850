@@ -13,32 +13,6 @@
 // libiec61850 headers
 #include <libiec61850/iec61850_common.h>
 
-
-Mms::~Mms()
-{
-    if (m_mmsValue) {
-        Logger::getLogger()->debug("Mms: destructor 0x%x", m_mmsValue);
-        MmsValue_delete(m_mmsValue);
-    }
-}
-
-void Mms::setMmsValue(MmsValue *mmsValue)
-{
-    Logger::getLogger()->debug("Mms: setMmsValue 0x%x", mmsValue);
-    m_mmsValue = mmsValue;
-}
-
-const MmsValue *Mms::getMmsValue() const
-{
-    return m_mmsValue;
-}
-
-bool Mms::isNull() const
-{
-    return (m_mmsValue == nullptr);
-}
-
-
 IEC61850ClientConnection::IEC61850ClientConnection(
     const ServerConnectionParameters &connParam)
     : m_connectionParam(connParam)
@@ -83,7 +57,7 @@ void IEC61850ClientConnection::close()
     IedConnection_close(m_iedConnection);
 }
 
-std::shared_ptr<Mms>
+std::shared_ptr<WrappedMms>
 IEC61850ClientConnection::readMms(const std::string &daPath,
                                   const std::string &fcName)
 {
@@ -94,13 +68,13 @@ IEC61850ClientConnection::readMms(const std::string &daPath,
 
     FunctionalConstraint functionalConstraint =
         FunctionalConstraint_fromString(fcName.c_str());
-    auto mms = std::make_shared<Mms>();
+    auto wrapped_mms = std::make_shared<WrappedMms>();
     std::unique_lock<std::mutex> connectionGuard(m_iedConnectionMutex);
-    mms->setMmsValue(IedConnection_readObject(m_iedConnection,
-                     &m_networkStack_error,
-                     daPath.c_str(),
-                     functionalConstraint));
-    return mms;
+    wrapped_mms->setMmsValue(IedConnection_readObject(m_iedConnection,
+                             &m_networkStack_error,
+                             daPath.c_str(),
+                             functionalConstraint));
+    return wrapped_mms;
 }
 
 

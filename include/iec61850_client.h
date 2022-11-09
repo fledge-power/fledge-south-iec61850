@@ -16,9 +16,6 @@
 #include <mutex>   // NOLINT
 #include <atomic>
 
-// libiec61850 headers
-#include <libiec61850/mms_value.h>
-
 // Fledge headers
 #include <logger.h>
 #include <reading.h>
@@ -29,7 +26,7 @@
 
 class IEC61850;
 class IEC61850ClientConnection;
-class Mms;
+class WrappedMms;
 
 /** \class IEC61850Client
  *  \brief Read from and write to a IED
@@ -94,7 +91,7 @@ class IEC61850Client
          * by extracting the MMS content and creating a new Datapoint
          * Reentrant function, thread safe
          */
-        static Datapoint *convertMmsToDatapoint(std::shared_ptr<Mms> mms);
+        static Datapoint *convertMmsToDatapoint(std::shared_ptr<WrappedMms> wrappedMms);
 
         /**
          * Send a datapoint to Fledge core
