@@ -1,6 +1,5 @@
 #include <string>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <rapidjson/document.h>
@@ -13,7 +12,7 @@
 #include "iec61850_client_config.h"
 
 
-TEST(IEC61850ClientConfig, importDefaultConfig)
+TEST(IEC61850ClientConfigTest, importDefaultConfig)
 {
     ConfigCategory config("TestDefaultConfig", default_config);
     config.setItemsValueFromDefault();

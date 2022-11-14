@@ -41,7 +41,6 @@ class WrappedMms
 
         void setMmsValue(MmsValue *mmsValue);
         const MmsValue *getMmsValue() const;
-        bool isNull() const;
 
     private:
         MmsValue *m_mmsValue = nullptr;

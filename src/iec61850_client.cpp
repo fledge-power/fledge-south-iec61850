@@ -144,6 +144,10 @@ void IEC61850Client::sendData(Datapoint *dataPoint)
         Logger::getLogger()->warn("IEC61850Client: abort 'sendData' (receiver is null)");
         return;
     }
+    if (nullptr == dataPoint) {
+        Logger::getLogger()->warn("IEC61850Client: abort 'sendData' (datapoint is empty)");
+        return;
+    }
 
     std::vector<Datapoint *> points(0);
     points.push_back(dataPoint);
@@ -154,6 +158,9 @@ Datapoint *IEC61850Client::convertMmsToDatapoint(std::shared_ptr<WrappedMms> wra
 {
     // Precondition
     if (nullptr == wrappedMms) {
+        return nullptr;
+    }
+    if (nullptr == wrappedMms->getMmsValue()) {
         return nullptr;
     }
 

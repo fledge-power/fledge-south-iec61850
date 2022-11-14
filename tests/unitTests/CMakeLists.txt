@@ -29,7 +29,9 @@ set(NEEDED_FLEDGE_LIBS common-lib services-common-lib)
 
 # Find source files
 file(GLOB SOURCES ../../src/*.cpp)
-file(GLOB unittests "*.cpp")
+file(GLOB unittests "*.cpp"
+                    "../common/mms_server_basic_io/mms_server_basic_io.cpp"
+                    "../common/mms_server_basic_io/static_model.c")
 
 # Find Fledge includes and libs, by including FindFledge.cmake file
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../..)
@@ -51,7 +53,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 # Add ${CMAKE_SOURCE_DIR}/include
 include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(/usr/local/include/lib61850)
+include_directories(/usr/local/include/libiec61850)
 # Add Fledge include dir(s)
 include_directories(${FLEDGE_INCLUDE_DIRS})
 

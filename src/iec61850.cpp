@@ -61,7 +61,7 @@ void IEC61850::stop()
     m_clients.clear();
 }
 
-void IEC61850::ingest(std::vector<Datapoint *> points)
+void IEC61850::ingest(std::vector<Datapoint *> &points)
 {
     std::unique_lock<std::mutex> ingestGuard(m_ingestMutex);
 

@@ -35,8 +35,3 @@ const MmsValue *WrappedMms::getMmsValue() const
 {
     return m_mmsValue;
 }
-
-bool WrappedMms::isNull() const
-{
-    return (m_mmsValue == nullptr);
-}

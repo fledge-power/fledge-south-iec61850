@@ -20,6 +20,9 @@
 #include "./iec61850_client_connection_interface.h"
 #include "./iec61850_client_config.h"
 
+// For white box unit tests
+#include <gtest/gtest_prod.h>
+
 class IEC61850Client;
 
 /** \class IEC61850ClientConnection
@@ -68,6 +71,9 @@ class IEC61850ClientConnection: public IEC61850ClientConnectionInterface
         // libiec61850 objects
         IedConnection       m_iedConnection = nullptr;
         IedClientError      m_networkStack_error = IED_ERROR_OK;
+
+        // Section: see the class as a white box for unit tests
+        FRIEND_TEST(IEC61850ClientConnectionTest, openConnection);
 };
 
 #endif  // INCLUDE_IEC61850_CLIENT_CONNECTION_H_

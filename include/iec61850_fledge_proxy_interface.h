@@ -23,7 +23,7 @@ class FledgeProxyInterface
     public :
         virtual ~FledgeProxyInterface() = default;
 
-        virtual void ingest(std::vector<Datapoint *>  points) = 0;
+        virtual void ingest(std::vector<Datapoint *> &points) = 0;
         virtual void registerIngest(INGEST_DATA_TYPE data,
                                     void (*ingest_cb)(INGEST_DATA_TYPE, Reading)) = 0;
 

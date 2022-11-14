@@ -23,9 +23,12 @@
 
 // local library
 #include "./iec61850_client_config.h"
+#include "./iec61850_client_connection_interface.h"
+
+// For white box unit tests
+#include <gtest/gtest_prod.h>
 
 class IEC61850;
-class IEC61850ClientConnection;
 class WrappedMms;
 
 /** \class IEC61850Client
@@ -108,7 +111,7 @@ class IEC61850Client
         void destroyConnection();
         std::thread m_backgroundLaunchThread;
         std::atomic<bool> m_stopOrder{false};
-        std::unique_ptr<IEC61850ClientConnection> m_connection;
+        std::unique_ptr<IEC61850ClientConnectionInterface> m_connection;
 
         // Section: For demo only
         void startDemo();
@@ -116,6 +119,16 @@ class IEC61850Client
         void readMmsLoop();
         std::atomic<bool> m_isDemoLoopActivated{false};
         std::thread m_demoLoopThread;
+
+        // Section: see the class as a white box for unit tests
+        FRIEND_TEST(IEC61850ClientTest, createOneConnection);
+        FRIEND_TEST(IEC61850ClientTest, reuseCreatedConnection);
+        FRIEND_TEST(IEC61850ClientTest, destroyConnection);
+        FRIEND_TEST(IEC61850ClientTest, destroyNullConnection);
+        FRIEND_TEST(IEC61850ClientTest, injectMockConnection);
+        FRIEND_TEST(IEC61850ClientTest, initializeConnectionInOneTry);
+        FRIEND_TEST(IEC61850ClientTest, initializeConnectionFailed);
+        FRIEND_TEST(IEC61850ClientTest, startAndStop);
 };
 
 #endif  // INCLUDE_IEC61850_CLIENT_H_

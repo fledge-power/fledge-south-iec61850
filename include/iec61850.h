@@ -47,7 +47,7 @@ class IEC61850: public ClientGatewayInterface, public FledgeProxyInterface
         void start() override;
         void stop() override;
 
-        void ingest(std::vector<Datapoint *>  points) override;
+        void ingest(std::vector<Datapoint *> &points) override;
         void registerIngest(INGEST_DATA_TYPE data,
                             void (*ingest_cb)(INGEST_DATA_TYPE, Reading)) override
         {
@@ -65,5 +65,14 @@ class IEC61850: public ClientGatewayInterface, public FledgeProxyInterface
         std::map<std::string, std::unique_ptr<IEC61850Client>, std::less<>> m_clients;
 
         std::shared_ptr<IEC61850ClientConfig> m_config;
+
+        // Section: see the class as a white box for unit tests
+        FRIEND_TEST(IEC61850Test, createObjectWithEmptyConfig);
+        FRIEND_TEST(IEC61850Test, setValidConfig);
+        FRIEND_TEST(IEC61850Test, getDefaultLogLevel);
+        FRIEND_TEST(IEC61850Test, getCustomizedLogLevel);
+        FRIEND_TEST(IEC61850Test, startClient);
+        FRIEND_TEST(IEC61850Test, stopClient);
+        FRIEND_TEST(IEC61850Test, registerIngestCallback);
 };
 #endif  // INCLUDE_IEC61850_H_
