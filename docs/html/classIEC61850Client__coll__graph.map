@@ -1,0 +1,8 @@
+<map id="IEC61850Client" name="IEC61850Client">
+<area shape="rect" id="node1" title="Read from and write to a IED." alt="" coords="241,171,362,197"/>
+<area shape="rect" id="node2" href="$structServerConnectionParameters.html" title=" " alt="" coords="5,81,216,108"/>
+<area shape="rect" id="node3" href="$structExchangedData.html" title=" " alt="" coords="239,81,363,108"/>
+<area shape="rect" id="node4" href="$classIEC61850.html" title=" " alt="" coords="417,81,500,108"/>
+<area shape="rect" id="node5" href="$classClientGatewayInterface.html" title=" " alt="" coords="275,5,451,32"/>
+<area shape="rect" id="node6" href="$classFledgeProxyInterface.html" title=" " alt="" coords="475,5,637,32"/>
+</map>
