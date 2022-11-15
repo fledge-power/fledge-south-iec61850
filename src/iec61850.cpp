@@ -66,9 +66,7 @@ void IEC61850::ingest(std::vector<Datapoint *> &points)
     std::unique_lock<std::mutex> ingestGuard(m_ingestMutex);
 
     if (m_ingest_callback) {
-        /* Creating the name of the type of data */
-        std::string asset = points[0]->getName();
         /* Callback function used after receiving data */
-        (*m_ingest_callback)(m_data, Reading(asset, points));
+        (*m_ingest_callback)(m_data, Reading(m_config->assetName, points));
     }
 }
