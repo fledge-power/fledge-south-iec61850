@@ -14,7 +14,6 @@ TEST(IEC61850ClientConnectionTest, openConnection)
 {
     // Test Init
     ServerConnectionParameters connParam;
-    connParam.serverName = "UnitTestMmsServer";
     connParam.ipAddress = "127.0.0.1";
     connParam.mmsPort = 8102;
 
@@ -24,7 +23,6 @@ TEST(IEC61850ClientConnectionTest, openConnection)
     // Test Body
     IEC61850ClientConnection conn(connParam);
 
-    ASSERT_EQ("UnitTestMmsServer", conn.m_connectionParam.serverName);
     ASSERT_EQ("127.0.0.1", conn.m_connectionParam.ipAddress);
     ASSERT_EQ(8102, conn.m_connectionParam.mmsPort);
 

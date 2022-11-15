@@ -20,7 +20,6 @@
 #include <rapidjson/document.h>
 
 struct ServerConnectionParameters {
-    std::string serverName;
     std::string ipAddress;
     uint16_t    mmsPort;
 };
@@ -32,7 +31,6 @@ struct ExchangedData {
     std::string dataAttribute = "DA_NOT_DEFINED";
     std::string fcName = "FC_NOT_DEFINED";
 
-    std::string daPathWithoutServerName = "NOT_DEFINED";
     std::string daPath = "NOT_DEFINED";
 };
 
@@ -47,6 +45,7 @@ class IEC61850ClientConfig
 
         std::string logMinLevel;
         std::string assetName;
+        std::string iedName;
 
         ServerConfigDict serverConfigDict;
 
@@ -56,8 +55,7 @@ class IEC61850ClientConfig
         void importConfig(const ConfigCategory &newConfig);
 
         inline static std::string buildKey(const ServerConnectionParameters &serverConn) {
-            return (serverConn.serverName + "_" +
-                    serverConn.ipAddress + "_" +
+            return (serverConn.ipAddress + "_" +
                     std::to_string(serverConn.mmsPort));
         }
 
@@ -68,7 +66,7 @@ class IEC61850ClientConfig
         void importJsonApplicationLayerConfig(const rapidjson::Value &transportLayer) const;
         void importJsonExchangeConfig(const std::string &exchangeConfig);
 
-        static void logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam);
+        void logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam);
         static bool isValidIPAddress(const std::string &addrStr);
 };
 

@@ -35,11 +35,6 @@ IEC61850Client::IEC61850Client(IEC61850 *iec61850,
       m_exchangedData(exchangedData),
       m_iec61850(iec61850)
 {
-    /** Complete the DA path, with the name of the server */
-    m_exchangedData.daPath = m_connectionParam.serverName +
-                             m_exchangedData.daPathWithoutServerName;
-
-
     m_clientId = IEC61850ClientConfig::buildKey(m_connectionParam);
 
     Logger::getLogger()->debug("IEC61850Client: constructor %s",

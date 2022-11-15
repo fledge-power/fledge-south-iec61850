@@ -22,7 +22,7 @@ const char *const JSON_EXCHANGED_DATA = "exchanged_data";
 
 const char *const DEFAULT_LOG_MIN_LEVEL = "info";
 
-const char *const DEFAULT_SERVER_NAME = "simpleIO";
+const char *const DEFAULT_IED_NAME = "simpleIO";
 const char *const DEFAULT_AP_NAME = "accessPoint0";
 const char *const DEFAULT_IED_IP_ADDRESS = "127.0.0.1";
 constexpr const uint16_t DEFAULT_MMS_PORT = 8102;
@@ -105,6 +105,13 @@ void IEC61850ClientConfig::importJsonTransportLayerConfig(const rapidjson::Value
         return;
     }
 
+    iedName = std::string(DEFAULT_IED_NAME);
+    if (transportLayer.HasMember("ied_name")) {
+        if (transportLayer["ied_name"].IsString()) {
+            iedName = std::string(transportLayer["ied_name"].GetString());
+        }
+    }
+
     const rapidjson::Value& connections = transportLayer["connections"];
 
     /** Parse each 'connection' JSON structure */
@@ -123,16 +130,7 @@ void IEC61850ClientConfig::importJsonConnectionConfig(const rapidjson::Value &co
 
     ServerConnectionParameters iedConnectionParam;
 
-    /** Parse the simple JSON fields of 'connection' */
-    if (connConfig.HasMember("server_name")) {
-        if (connConfig["server_name"].IsString()) {
-            iedConnectionParam.serverName = std::string(connConfig["server_name"].GetString());
-        } else {
-            iedConnectionParam.serverName = std::string(DEFAULT_SERVER_NAME);
-        }
-    }
-
-    /** Parse the 'Address' JSON structure of 'connection' */
+    /** Parse the JSON structure of 'connection' */
     iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
     iedConnectionParam.mmsPort = DEFAULT_MMS_PORT;
 
@@ -173,7 +171,7 @@ void IEC61850ClientConfig::importJsonApplicationLayerConfig(const rapidjson::Val
 void IEC61850ClientConfig::logParsedIedConnectionParam(const ServerConnectionParameters &iedConnectionParam)
 {
     Logger::getLogger()->info("Config: Transport Layer: new IED:");
-    Logger::getLogger()->info("Config: IED: server_name: %s", iedConnectionParam.serverName.c_str());
+    Logger::getLogger()->info("Config: IED: ied_name: %s", iedName.c_str());
     Logger::getLogger()->info("Config: IED: IP address:  %s", iedConnectionParam.ipAddress.c_str());
     Logger::getLogger()->info("Config: IED: MMS port:    %u", iedConnectionParam.mmsPort);
 }
@@ -257,13 +255,13 @@ void IEC61850ClientConfig::importJsonExchangeConfig(const std::string &exchangeC
         Logger::getLogger()->fatal("Config: 'Functional Constraint' is missing");
     }
 
-    exchangedData.daPathWithoutServerName = exchangedData.logicalDeviceName +
-                                            "/" +
-                                            exchangedData.logicalNodeName +
-                                            "." +
-                                            exchangedData.cdc +
-                                            "." +
-                                            exchangedData.dataAttribute;
+    exchangedData.daPath = iedName + exchangedData.logicalDeviceName +
+                           "/" +
+                           exchangedData.logicalNodeName +
+                           "." +
+                           exchangedData.cdc +
+                           "." +
+                           exchangedData.dataAttribute;
 }
 
 bool IEC61850ClientConfig::isValidIPAddress(const std::string &addrStr)

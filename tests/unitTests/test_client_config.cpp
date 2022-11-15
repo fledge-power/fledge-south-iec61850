@@ -22,14 +22,13 @@ TEST(IEC61850ClientConfigTest, importDefaultConfig)
 
     ASSERT_EQ(clientConfig.logMinLevel, "info");
     ASSERT_EQ(clientConfig.assetName, "iec61850");
+    ASSERT_EQ(clientConfig.iedName, "simpleIO");
 
     ASSERT_EQ(clientConfig.serverConfigDict.size(), 2);
 
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].serverName, "simpleIO");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].ipAddress, "0.0.0.0");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_102"].mmsPort, 102);
+    ASSERT_EQ(clientConfig.serverConfigDict["0.0.0.0_102"].ipAddress, "0.0.0.0");
+    ASSERT_EQ(clientConfig.serverConfigDict["0.0.0.0_102"].mmsPort, 102);
 
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].serverName, "simpleIO");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].ipAddress, "0.0.0.0");
-    ASSERT_EQ(clientConfig.serverConfigDict["simpleIO_0.0.0.0_8102"].mmsPort, 8102);
+    ASSERT_EQ(clientConfig.serverConfigDict["0.0.0.0_8102"].ipAddress, "0.0.0.0");
+    ASSERT_EQ(clientConfig.serverConfigDict["0.0.0.0_8102"].mmsPort, 8102);
 }

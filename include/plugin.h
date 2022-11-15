@@ -57,14 +57,13 @@ static const char *const default_config = QUOTE({
                 "name" : "iec61850client",
                 "version" : "1.0",
                 "transport_layer" : {
+                    "ied_name" : "simpleIO",
                     "connections" : [
                         {
-                            "server_name" : "simpleIO",
                             "srv_ip": "0.0.0.0",
                             "port" : 102
                         },
                         {
-                            "server_name" : "simpleIO",
                             "srv_ip": "0.0.0.0",
                             "port" : 8102
                         }
