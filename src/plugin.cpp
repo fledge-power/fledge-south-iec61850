@@ -51,10 +51,21 @@ extern "C" {
 
         IEC61850 *iec61850;
         Logger::getLogger()->info("Initializing the plugin");
-        iec61850 = new IEC61850();
 
-        if (config) {
-            iec61850->setConfig(*config);
+        try {
+            iec61850 = new IEC61850();
+
+            if (config) {
+                iec61850->setConfig(*config);
+            }
+        }
+        catch (std::exception &e) {
+            Logger::getLogger()->error("%s", e.what());
+            throw;
+        }
+        catch (...) {
+            Logger::getLogger()->error("Error: unknown exception caught");
+            throw std::runtime_error("unknown exception caught");
         }
 
         return (PLUGIN_HANDLE) iec61850;
@@ -108,12 +119,22 @@ extern "C" {
             return;
         }
 
-        ConfigCategory config("new", newConfig);
-        auto iec61850 = static_cast<IEC61850 *>(handle);
-        iec61850->stop();
-        iec61850->setConfig(config);
-        Logger::getLogger()->setMinLevel(iec61850->getLogMinLevel());
-        iec61850->start();
+        try {
+            ConfigCategory config("new", newConfig);
+            auto iec61850 = static_cast<IEC61850 *>(handle);
+            iec61850->stop();
+            iec61850->setConfig(config);
+            Logger::getLogger()->setMinLevel(iec61850->getLogMinLevel());
+            iec61850->start();
+        }
+        catch (std::exception &e) {
+            Logger::getLogger()->error("%s", e.what());
+            throw;
+        }
+        catch (...) {
+            Logger::getLogger()->error("Error: unknown exception caught");
+            throw std::runtime_error("unknown exception caught");
+        }
     }
 
     /**

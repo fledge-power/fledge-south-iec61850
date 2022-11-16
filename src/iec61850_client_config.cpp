@@ -21,11 +21,7 @@ const char *const JSON_APPLICATION_LAYER = "application_layer";
 const char *const JSON_EXCHANGED_DATA = "exchanged_data";
 
 const char *const DEFAULT_LOG_MIN_LEVEL = "info";
-
-const char *const DEFAULT_IED_NAME = "simpleIO";
-const char *const DEFAULT_AP_NAME = "accessPoint0";
-const char *const DEFAULT_IED_IP_ADDRESS = "127.0.0.1";
-constexpr const uint16_t DEFAULT_MMS_PORT = 8102;
+const char *const DEFAULT_ASSET_NAME = "iec61850";
 
 void IEC61850ClientConfig::importConfig(const ConfigCategory &newConfig)
 {
@@ -37,10 +33,9 @@ void IEC61850ClientConfig::importConfig(const ConfigCategory &newConfig)
     Logger::getLogger()->info("IEC61850ClientConfig: logMinLevel = %s",
                               logMinLevel.c_str());
 
+    assetName = DEFAULT_ASSET_NAME;
     if (newConfig.itemExists("asset")) {
         assetName = newConfig.getValue("asset");
-    } else {
-        assetName = "iec61850";
     }
     Logger::getLogger()->info("IEC61850ClientConfig: assetName = %s",
                               assetName.c_str());
@@ -55,27 +50,23 @@ void IEC61850ClientConfig::importJsonProtocolConfig(const std::string &protocolC
 
     /** Parse the input JSON std::string */
     if (document.Parse(protocolConfig.c_str()).HasParseError()) {
-        Logger::getLogger()->fatal("Config: 'Protocol stack' parsing error");
-        return;
+        throw ConfigurationException("'Protocol stack' parsing error");
     }
 
-    /** Check if 'protocol_stack' is found */
+    /** The 'protocol_stack' section is mandatory */
     if (!document.IsObject()) {
-        Logger::getLogger()->fatal("Config: 'Protocol stack' empty conf");
-        return;
+        throw ConfigurationException("'Protocol stack' empty conf");
     }
 
     if (!document.HasMember(JSON_PROTOCOL_STACK) || !document[JSON_PROTOCOL_STACK].IsObject()) {
-        Logger::getLogger()->fatal("Config: 'Protocol stack' empty conf");
-        return;
+        throw ConfigurationException("'Protocol stack' empty conf");
     }
 
     const rapidjson::Value& protocolStack = document[JSON_PROTOCOL_STACK];
 
     /** Check if 'transport_layer' is found */
     if (!protocolStack.HasMember(JSON_TRANSPORT_LAYER) || !protocolStack[JSON_TRANSPORT_LAYER].IsObject()) {
-        Logger::getLogger()->fatal("Config: 'transport layer' configuration is missing");
-        return;
+        throw ConfigurationException("'transport layer' configuration is missing");
     }
 
     const rapidjson::Value &transportLayer = protocolStack[JSON_TRANSPORT_LAYER];
@@ -84,8 +75,7 @@ void IEC61850ClientConfig::importJsonProtocolConfig(const std::string &protocolC
 
     /** Check if 'application_layer' is found */
     if (!protocolStack.HasMember(JSON_APPLICATION_LAYER) || !protocolStack[JSON_APPLICATION_LAYER].IsObject()) {
-        Logger::getLogger()->fatal("Config: 'application layer' configuration is missing");
-        return;
+        throw ConfigurationException("'application layer' configuration is missing");
     }
 
     const rapidjson::Value &applicationLayer = protocolStack[JSON_APPLICATION_LAYER];
@@ -96,21 +86,20 @@ void IEC61850ClientConfig::importJsonProtocolConfig(const std::string &protocolC
 void IEC61850ClientConfig::importJsonTransportLayerConfig(const rapidjson::Value &transportLayer)
 {
     // Preconditions
+    if (! transportLayer.HasMember("ied_name")) {
+        throw ConfigurationException("the mandatory 'ied_name' not found");
+    }
+    if (! transportLayer["ied_name"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'ied_name'");
+    }
     if (! transportLayer.HasMember("connections")) {
-        Logger::getLogger()->fatal("Config: 'Transport Layer' parsing error: no 'connections'");
-        return;
+        throw ConfigurationException("'Transport Layer' parsing error: no 'connections'");
     }
     if (! transportLayer["connections"].IsArray()) {
-        Logger::getLogger()->fatal("Config: 'connections' is not an array -> fail to parse 'Transport Layer'");
-        return;
+        throw ConfigurationException("'connections' is not an array -> fail to parse 'Transport Layer'");
     }
 
-    iedName = std::string(DEFAULT_IED_NAME);
-    if (transportLayer.HasMember("ied_name")) {
-        if (transportLayer["ied_name"].IsString()) {
-            iedName = std::string(transportLayer["ied_name"].GetString());
-        }
-    }
+    iedName = std::string(transportLayer["ied_name"].GetString());
 
     const rapidjson::Value& connections = transportLayer["connections"];
 
@@ -123,40 +112,31 @@ void IEC61850ClientConfig::importJsonTransportLayerConfig(const rapidjson::Value
 void IEC61850ClientConfig::importJsonConnectionConfig(const rapidjson::Value &connConfig)
 {
     // Preconditions
-    if (!connConfig.IsObject()) {
-        Logger::getLogger()->fatal("Config: 'Connection' is not valid");
-        return;
+    if (! connConfig.IsObject()) {
+        throw ConfigurationException("'Connection' is not valid");
+    }
+    if (! connConfig.HasMember("srv_ip")) {
+        throw ConfigurationException("the mandatory 'srv_ip' not found");
+    }
+    if (! connConfig["srv_ip"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'srv_ip'");
+    }
+    if (! connConfig.HasMember("port")) {
+        throw ConfigurationException("the mandatory 'port' not found");
+    }
+    if (! connConfig["port"].IsInt()) {
+        throw ConfigurationException("bad format for the mandatory 'port'");
     }
 
     ServerConnectionParameters iedConnectionParam;
 
-    /** Parse the JSON structure of 'connection' */
-    iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
-    iedConnectionParam.mmsPort = DEFAULT_MMS_PORT;
+    iedConnectionParam.ipAddress = std::string(connConfig["srv_ip"].GetString());
 
-    if (connConfig.HasMember("srv_ip")) {
-        if (connConfig["srv_ip"].IsString()) {
-            iedConnectionParam.ipAddress = std::string(connConfig["srv_ip"].GetString());
-            if ( ! isValidIPAddress(iedConnectionParam.ipAddress)) {
-                iedConnectionParam.ipAddress = std::string(DEFAULT_IED_IP_ADDRESS);
-                Logger::getLogger()->warn("Config: IP address not valid; keep default IP address");
-            }
-        } else {
-            Logger::getLogger()->warn("Config: wrong 'IP address' format; keep default IP address");
-        }
-    } else {
-        Logger::getLogger()->warn("Config: 'IP address' is missing; keep default IP address");
+    if ( ! isValidIPAddress(iedConnectionParam.ipAddress)) {
+        throw ConfigurationException("not a valid IP address for the mandatory 'srv_ip'");
     }
 
-    if (connConfig.HasMember("port")) {
-        if (connConfig["port"].IsInt()) {
-            iedConnectionParam.mmsPort = connConfig["port"].GetInt();
-        } else {
-            Logger::getLogger()->warn("Config: wrong 'MMS port' format; keep default MMS port");
-        }
-    } else {
-        Logger::getLogger()->warn("Config: 'MMS port' is missing; keep default MMS port");
-    }
+    iedConnectionParam.mmsPort = connConfig["port"].GetInt();
 
     logParsedIedConnectionParam(iedConnectionParam);
 
@@ -183,77 +163,69 @@ void IEC61850ClientConfig::importJsonExchangeConfig(const std::string &exchangeC
 
     /** Parse the input JSON std::string */
     if (document.Parse(exchangeConfig.c_str()).HasParseError()) {
-        Logger::getLogger()->fatal("Config: 'Exchanged data' parsing error");
-        return;
+        throw ConfigurationException("'Exchanged data' parsing error");
     }
 
     /** The 'exchanged_data' section is mandatory */
     if (!document.IsObject()) {
-        Logger::getLogger()->fatal("Config: 'Exchanged data' empty conf");
-        return;
+        throw ConfigurationException("'Exchanged data' empty conf");
     }
 
     if (!document.HasMember(JSON_EXCHANGED_DATA) || !document[JSON_EXCHANGED_DATA].IsObject()) {
-        Logger::getLogger()->fatal("Config: 'Exchanged data' empty conf");
-        return;
+        throw ConfigurationException("'Exchanged data' empty conf");
     }
 
     const rapidjson::Value& exchange = document[JSON_EXCHANGED_DATA];
 
     /** The 'Logical Device' param is mandatory */
-    if (exchange.HasMember("Logical Device")) {
-        if (exchange["Logical Device"].IsString()) {
-            exchangedData.logicalDeviceName = std::string(exchange["Logical Device"].GetString());
-        } else {
-            Logger::getLogger()->fatal("Config: 'Logical Device' wrong format");
-        }
-    } else {
-        Logger::getLogger()->fatal("Config: 'Logical Device' is missing");
+    if (! exchange.HasMember("Logical Device")) {
+        throw ConfigurationException("the mandatory 'Logical Device' not found");
     }
+    if (! exchange["Logical Device"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'Logical Device'");
+    }
+
+    exchangedData.logicalDeviceName = std::string(exchange["Logical Device"].GetString());
 
     /** The 'Logical Node' param is mandatory */
-    if (exchange.HasMember("Logical Node")) {
-        if (exchange["Logical Node"].IsString()) {
-            exchangedData.logicalNodeName = std::string(exchange["Logical Node"].GetString());
-        } else {
-            Logger::getLogger()->fatal("Config: 'Logical Node' wrong format");
-        }
-    } else {
-        Logger::getLogger()->fatal("Config: 'Logical Node' is missing");
+    if (! exchange.HasMember("Logical Node")) {
+        throw ConfigurationException("the mandatory 'Logical Node' not found");
     }
+    if (! exchange["Logical Node"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'Logical Node'");
+    }
+
+    exchangedData.logicalNodeName = std::string(exchange["Logical Node"].GetString());
 
     /** The 'CDC' param is mandatory */
-    if (exchange.HasMember("CDC")) {
-        if (exchange["CDC"].IsString()) {
-            exchangedData.cdc = std::string(exchange["CDC"].GetString());
-        } else {
-            Logger::getLogger()->fatal("Config: 'CDC' wrong format");
-        }
-    } else {
-        Logger::getLogger()->fatal("Config: 'CDC' is missing");
+    if (! exchange.HasMember("CDC")) {
+        throw ConfigurationException("the mandatory 'CDC' not found");
     }
+    if (! exchange["CDC"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'CDC'");
+    }
+
+    exchangedData.cdc = std::string(exchange["CDC"].GetString());
 
     /** The 'Data Attribute' param is mandatory */
-    if (exchange.HasMember("Data Attribute")) {
-        if (exchange["Data Attribute"].IsString()) {
-            exchangedData.dataAttribute = std::string(exchange["Data Attribute"].GetString());
-        } else {
-            Logger::getLogger()->fatal("Config: 'Data Attribute' wrong format");
-        }
-    } else {
-        Logger::getLogger()->fatal("Config: 'Data Attribute' is missing");
+    if (! exchange.HasMember("Data Attribute")) {
+        throw ConfigurationException("the mandatory 'Data Attribute' not found");
+    }
+    if (! exchange["Data Attribute"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'Data Attribute'");
     }
 
+    exchangedData.dataAttribute = std::string(exchange["Data Attribute"].GetString());
+
     /** The 'Functional Constraint' param is mandatory */
-    if (exchange.HasMember("Functional Constraint")) {
-        if (exchange["Functional Constraint"].IsString()) {
-            exchangedData.fcName = std::string(exchange["Functional Constraint"].GetString());
-        } else {
-            Logger::getLogger()->fatal("Config: 'Functional Constraint' wrong format");
-        }
-    } else {
-        Logger::getLogger()->fatal("Config: 'Functional Constraint' is missing");
+    if (! exchange.HasMember("Functional Constraint")) {
+        throw ConfigurationException("the mandatory 'Functional Constraint' not found");
     }
+    if (! exchange["Functional Constraint"].IsString()) {
+        throw ConfigurationException("bad format for the mandatory 'Functional Constraint'");
+    }
+
+    exchangedData.fcName = std::string(exchange["Functional Constraint"].GetString());
 
     exchangedData.daPath = iedName + exchangedData.logicalDeviceName +
                            "/" +

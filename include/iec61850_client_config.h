@@ -38,6 +38,13 @@ using ServerDictKey = std::string;
 using ServerConfigDict = std::map<ServerDictKey, ServerConnectionParameters, std::less<>>;
 
 
+class ConfigurationException: public std::logic_error
+{
+    public:
+        explicit ConfigurationException(std::string const &msg):
+                 std::logic_error("Configuration exception: " + msg) {}
+};
+
 
 class IEC61850ClientConfig
 {

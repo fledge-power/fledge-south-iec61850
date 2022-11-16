@@ -10,6 +10,8 @@
 #include "plugin.h"
 #include "iec61850.h"
 
+#include "../common/configuration_examples.h"
+
 using namespace ::testing;
 
 using INGEST_CB = void (*)(void *, Reading);
@@ -105,7 +107,7 @@ TEST(IEC61850, PluginShutdown)
 
 TEST(IEC61850, PluginReconfigure)
 {
-    std::string new_config(default_config);
+    std::string new_config(configForReconfiguration);
 
     PLUGIN_HANDLE handle = plugin_init(nullptr);
     ASSERT_THAT(handle, NotNull());
