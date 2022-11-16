@@ -97,7 +97,7 @@ TEST(IEC61850PluginTest, PluginRegisterIngest)
     delete static_cast<IEC61850*>(handle);
 }
 
-TEST(IEC61850, PluginShutdown)
+TEST(IEC61850PluginTest, PluginShutdown)
 {
     PLUGIN_HANDLE handle = plugin_init(nullptr);
     ASSERT_THAT(handle, NotNull());
@@ -105,7 +105,7 @@ TEST(IEC61850, PluginShutdown)
     ASSERT_NO_THROW(plugin_shutdown(handle));
 }
 
-TEST(IEC61850, PluginReconfigure)
+TEST(IEC61850PluginTest, PluginReconfigure)
 {
     std::string new_config(configForReconfiguration);
 

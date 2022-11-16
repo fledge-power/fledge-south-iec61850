@@ -127,25 +127,26 @@ Datapoint *IEC61850Client::createDatapoint(const std::string &dataName,
 {
     DatapointValue value = DatapointValue(primitiveTypeValue);
     /** Dynamic allocation with raw pointer: Fledge core will deallocate it */
-    auto *datapoint = new Datapoint(dataName, value);  // NOSONAR
-    return datapoint;
+    return new Datapoint(dataName, value);  // NOSONAR
 }
 
 
-void IEC61850Client::sendData(Datapoint *dataPoint)
+void IEC61850Client::sendData(Datapoint *datapoint)
 {
     // Preconditions
     if (nullptr == m_iec61850) {
         Logger::getLogger()->warn("IEC61850Client: abort 'sendData' (receiver is null)");
+        // datapoint is now useless
+        delete datapoint;
         return;
     }
-    if (nullptr == dataPoint) {
+    if (nullptr == datapoint) {
         Logger::getLogger()->warn("IEC61850Client: abort 'sendData' (datapoint is empty)");
         return;
     }
 
     std::vector<Datapoint *> points(0);
-    points.push_back(dataPoint);
+    points.push_back(datapoint);
     m_iec61850->ingest(points);
 }
 
@@ -265,7 +266,6 @@ void IEC61850Client::readAndExportMms()
                                         m_exchangedData.fcName);
 
     if (wrapped_mms != nullptr) {
-        Datapoint *datapoint = convertMmsToDatapoint(wrapped_mms);
-        sendData(datapoint);
+        sendData(convertMmsToDatapoint(wrapped_mms));
     }
 }

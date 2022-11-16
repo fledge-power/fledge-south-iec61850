@@ -21,7 +21,7 @@
 
 struct ServerConnectionParameters {
     std::string ipAddress;
-    uint16_t    mmsPort;
+    int mmsPort;
 };
 
 struct ExchangedData {

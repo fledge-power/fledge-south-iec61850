@@ -51,14 +51,10 @@ class IEC61850Client
         /** Disable default constructor */
         IEC61850Client() = delete;
 
-        /** Disable copy constructor */
-        IEC61850Client(const IEC61850Client &) = delete;
-        /** Disable copy assignment operator */
-        IEC61850Client &operator = (const IEC61850Client &) = delete;
-        /** Disable move constructor */
-        IEC61850Client(IEC61850Client &&) = delete;
-        /** Disable move assignment operator */
-        IEC61850Client &operator = (IEC61850Client &&) = delete;
+        IEC61850Client(const IEC61850Client &) = default;
+        IEC61850Client &operator = (const IEC61850Client &) = default;
+        IEC61850Client(IEC61850Client &&) = default;
+        IEC61850Client &operator = (IEC61850Client &&) = default;
 
         /**
          * Open the connection with the IED

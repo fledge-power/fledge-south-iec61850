@@ -73,6 +73,9 @@ TEST(IEC61850Test, startClient)
     iec61850.start();
 
     ASSERT_EQ(2, iec61850.m_clients.size());
+
+    // test teardown
+    iec61850.stop();
 }
 
 TEST(IEC61850Test, stopClient)

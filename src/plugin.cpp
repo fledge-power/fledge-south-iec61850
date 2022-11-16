@@ -53,7 +53,7 @@ extern "C" {
         Logger::getLogger()->info("Initializing the plugin");
 
         try {
-            iec61850 = new IEC61850();
+            iec61850 = new IEC61850();  // NOSONAR (Fledge API)
 
             if (config) {
                 iec61850->setConfig(*config);
@@ -65,7 +65,7 @@ extern "C" {
         }
         catch (...) {
             Logger::getLogger()->error("Error: unknown exception caught");
-            throw std::runtime_error("unknown exception caught");
+            throw;
         }
 
         return (PLUGIN_HANDLE) iec61850;
@@ -92,7 +92,7 @@ extern "C" {
     void plugin_register_ingest(PLUGIN_HANDLE handle, INGEST_CB ingestCallback, void *data)  // NOSONAR (Fledge API)
     {
         if (!handle) {
-            throw std::exception();
+            throw std::invalid_argument("PLUGIN_HANDLE is null");
         }
 
         auto iec61850 = static_cast<IEC61850 *>(handle);
@@ -104,7 +104,7 @@ extern "C" {
      */
     Reading plugin_poll(PLUGIN_HANDLE)  // NOSONAR (Fledge API)
     {
-        throw std::runtime_error(
+        throw std::domain_error(
             "IEC_61850 is an async plugin, poll should not be called");
     }
 
@@ -133,7 +133,7 @@ extern "C" {
         }
         catch (...) {
             Logger::getLogger()->error("Error: unknown exception caught");
-            throw std::runtime_error("unknown exception caught");
+            throw;
         }
     }
 
@@ -152,7 +152,7 @@ extern "C" {
 
         if (nullptr != iec61850) {
             iec61850->stop();
-            delete iec61850;
+            delete iec61850;  // NOSONAR (Fledge API)
             iec61850 = nullptr;
         }
     }
