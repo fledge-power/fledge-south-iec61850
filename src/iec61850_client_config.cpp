@@ -40,8 +40,24 @@ void IEC61850ClientConfig::importConfig(const ConfigCategory &newConfig)
     Logger::getLogger()->info("IEC61850ClientConfig: assetName = %s",
                               assetName.c_str());
 
-    importJsonProtocolConfig(newConfig.getValue(JSON_PROTOCOL_STACK));
-    importJsonExchangeConfig(newConfig.getValue(JSON_EXCHANGED_DATA));
+    std::string protocolStack;
+    std::string exchangedData;
+
+    try {
+        protocolStack = newConfig.getValue(JSON_PROTOCOL_STACK);
+    }
+    catch (...) {
+        throw ConfigurationException("'Protocol stack' not found");
+    }
+    importJsonProtocolConfig(protocolStack);
+
+    try {
+        exchangedData = newConfig.getValue(JSON_EXCHANGED_DATA);
+    }
+    catch (...) {
+        throw ConfigurationException("'Exchanged Data' not found");
+    }
+    importJsonExchangeConfig(exchangedData);
 }
 
 void IEC61850ClientConfig::importJsonProtocolConfig(const std::string &protocolConfig)
