@@ -5,20 +5,29 @@
 #include <logger.h>
 #include <map>
 #include <vector>
-#include "iec61850_client_redgroup.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 
 using namespace std;
 
+typedef enum { GTIS, GTIM, GTIC } PIVOTROOT;
+typedef enum { SPS, DPS, BSC, MV, INS, ENS, SPC, DPC, APC, INC } CDCTYPE;
+
+typedef struct{
+ string ipAddr;
+  int tcpPort;
+} RedGroup;
+
 typedef struct {
     string objRef;
-    int typeId;
-    std::string label;
+    CDCTYPE cdcType;
+    string label;
 } DataExchangeDefinition;
 
 class IEC61850ClientConfig
 {
 public:
-    IEC61850ClientConfig() {m_exchangeDefinitions.clear();};
+    IEC61850ClientConfig() {m_exchangeDefinitions->clear();};
     //IEC61850ClientConfig(const string& protocolConfig, const string& exchangeConfig);
     ~IEC61850ClientConfig();
 
@@ -28,14 +37,17 @@ public:
     void importExchangeConfig(const string& exchangeConfig);
     void importTlsConfig(const string& tlsConfig);
 
+    std::vector<RedGroup*>* GetConnections(){return m_connections;};
     std::string& GetPrivateKey() {return m_privateKey;};
     std::string& GetOwnCertificate() {return m_ownCertificate;};
     std::vector<std::string>& GetRemoteCertificates() {return m_remoteCertificates;};
     std::vector<std::string>& GetCaCertificates() {return m_caCertificates;};
 
     static bool isValidIPAddress(const string& addrStr);
+    
+    static int getCdcTypeFromString(const std::string& cdc);
 
-    std::map<int, std::map<int, DataExchangeDefinition*>>& ExchangeDefinition() {return m_exchangeDefinitions;};
+    std::map<std::string , DataExchangeDefinition*>* ExchangeDefinition() {return m_exchangeDefinitions;};
 
     static int GetTypeIdByName(const string& name);
 
@@ -47,12 +59,14 @@ private:
 
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
+    std::vector<RedGroup*>* m_connections;
+
     void deleteExchangeDefinitions();
 
-    std::map<int, std::map<int, DataExchangeDefinition*>> m_exchangeDefinitions = std::map<int, std::map<int, DataExchangeDefinition*>>();
+    std::map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitions = nullptr;
 
-    bool m_protocolConfigComplete = false; /* flag if protocol configuration is read */
-    bool m_exchangeConfigComplete = false; /* flag if exchange configuration is read */
+    bool m_protocolConfigComplete = false;
+    bool m_exchangeConfigComplete = false;
 
     std::string m_privateKey = "";
     std::string m_ownCertificate = "";

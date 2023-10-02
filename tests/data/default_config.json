@@ -1,8 +1,9 @@
-"protocol_stack" : {
-                "name" : "iec61850server",
+protocol_stack" : {
+                "name" : "iec61850client",
                 "version" : "1.0",
                 "transport_layer" : {
-                    "srv_ip":"0.0.0.0",
-                    "port":102,
+                    "ied_name":"ied_x"
+                    "ip_addr":"x.x.x.x",
+                    "tcp_port":102
                 }
 }

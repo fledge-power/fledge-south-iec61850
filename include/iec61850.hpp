@@ -6,7 +6,6 @@
 #include <plugin_api.h>
 #include <reading.h>
 
-// clang-format off
 #include <mutex>
 #include <chrono>
 #include <string>
@@ -17,10 +16,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-// clang-format on
 
 #include "iec61850_client_config.hpp"
 #include "iec61850_client_connection.hpp"
+
+#define LOGGER Logger::getLogger()
 
 class IEC61850Client;
 
@@ -48,12 +48,17 @@ public:
 
 private:
 
+    bool m_spc(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_dpc(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_apc(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_inc(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_bsc(int count, PLUGIN_PARAMETER** params, bool withTime);
+
     IEC61850ClientConfig* m_config;
 
     std::string m_asset;
 
 protected:
-    std::vector<IedConnection*> m_connections;
 
 private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
@@ -78,6 +83,11 @@ public:
     void stop();
 
 private:
+    std::vector<IEC61850ClientConnection*>* m_connections;
+    
+    IEC61850ClientConnection* m_active_connection;
+
+    bool m_started = false;
 
     IEC61850ClientConfig* m_config;
     IEC61850* m_iec61850;
