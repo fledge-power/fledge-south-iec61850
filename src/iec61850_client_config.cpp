@@ -1,7 +1,10 @@
 #include <iec61850_client_config.hpp>
 #include <iec61850.hpp>
+#include <vector>
+#include <arpa/inet.h>
 
 #define JSON_PROTOCOL_STACK "protocol_stack"
+#define JSON_TRANSPORT_LAYER "transport_layer"
 #define JSON_DATASETS "datasets"
 #define JSON_CONNECTIONS "connections"
 #define JSON_IP "ip_addr"
@@ -9,7 +12,7 @@
 #define JSON_TLS "tls"
 #define JSON_DATASET_REF "dataset_ref"
 #define JSON_DATASET_ENTRIES "entries"
-#define JSON_POOLING_INTERVAL "polling_interval"
+#define JSON_POLLING_INTERVAL "polling_interval"
 #define JSON_REPORT_SUBSCRIPTIONS "report_subscriptions"
 #define JSON_RCB_REF "rcb_ref"
 #define JSON_TRGOPS "trgops"
@@ -34,6 +37,24 @@ std::map<std::string,CDCTYPE> cdcMap = {
     {"SpcTyp",SPC}, {"DpcTyp",DPC},
     {"ApcTyp",APC}, {"IncTyp",INC}};
 
+int
+IEC61850ClientConfig::getCdcTypeFromString( const std::string& cdc) {
+  auto it = cdcMap.find(cdc);
+  if (it != cdcMap.end()) {
+    return it->second;
+  }
+  return -1;
+}
+
+bool 
+IEC61850ClientConfig::isValidIPAddress(const std::string& addrStr) {
+  // see
+  // https://stackoverflow.com/questions/318236/how-do-you-validate-that-a-string-is-a-valid-ipv4-address-in-c
+  struct sockaddr_in sa;
+  int result = inet_pton(AF_INET, addrStr.c_str(), &(sa.sin_addr));
+
+  return (result == 1);
+}
 
 void 
 IEC61850ClientConfig::deleteExchangeDefinitions() {
@@ -45,6 +66,73 @@ IEC61850ClientConfig::deleteExchangeDefinitions() {
 }
 
 IEC61850ClientConfig::~IEC61850ClientConfig() { deleteExchangeDefinitions(); }
+
+void 
+IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
+  m_protocolConfigComplete = false;
+
+  Document document;
+
+  if (document.Parse(const_cast<char*>(protocolConfig.c_str()))
+          .HasParseError()) {
+    Logger::getLogger()->fatal("Parsing error in protocol configuration");
+    printf("Parsing error in protocol configuration\n");
+    return;
+  }
+
+  if (!document.IsObject()) {
+    return;
+  }
+
+  if (!document.HasMember(JSON_PROTOCOL_STACK) ||
+      !document[JSON_PROTOCOL_STACK].IsObject()) {
+    return;
+  }
+
+  const Value& protocolStack = document[JSON_PROTOCOL_STACK];
+
+  if (!protocolStack.HasMember(JSON_TRANSPORT_LAYER) ||
+      !protocolStack[JSON_TRANSPORT_LAYER].IsObject()) {
+    Logger::getLogger()->fatal("transport layer configuration is missing");
+    return;
+  }
+
+  const Value& transportLayer = protocolStack[JSON_TRANSPORT_LAYER];
+  
+  if (!transportLayer.HasMember(JSON_CONNECTIONS) ||
+      !transportLayer[JSON_CONNECTIONS].IsArray()){
+    LOGGER->fatal("no connections are configured");
+    return;
+  }
+  
+  const Value& connections = protocolStack[JSON_CONNECTIONS];
+  
+  m_connections = new std::vector<RedGroup*>();
+
+  for(const Value& connection : connections.GetArray()){
+   if (connection.HasMember(JSON_IP) && connection[JSON_IP].IsString()){
+      std::string srvIp = connection[JSON_IP].GetString();
+      if(!isValidIPAddress(srvIp)){
+        LOGGER->error("Invalid Ip address %s", srvIp.c_str());
+        continue;
+      }
+      if (connection.HasMember(JSON_PORT) && connection[JSON_PORT].IsInt()){
+        int portVal = connection[JSON_PORT].GetInt();
+        if(portVal <= 0 || portVal >= 65636){
+          LOGGER->error("Invalid port %d", portVal);
+          continue;
+        }
+      }
+
+      RedGroup* group = new RedGroup;
+      
+      group->ipAddr = connection[JSON_IP].GetString();
+      group->tcpPort = connection[JSON_PORT].GetInt();
+
+      m_connections->push_back(group);
+    }
+  }
+}
 
 void
 IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
@@ -155,7 +243,3 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 }
 
 
-void
-IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig){
-
-}

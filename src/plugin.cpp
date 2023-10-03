@@ -31,6 +31,27 @@ static const char *default_config = QUOTE({
         "displayName" : "Asset Name",
         "order" : "1",
         "mandatory" : "true"
+    },
+     "protocol_stack" : {
+        "description" : "protocol stack parameters",
+        "type" : "JSON",
+        "displayName" : "Protocol stack parameters",
+        "order" : "2",
+        "default" : QUOTE({
+            "protocol_stack" : {
+                "name" : "iec104client",
+                "version" : "1.0",
+                "transport_layer" : {
+                    
+                            "connections" : [
+                                {     
+                                    "srv_ip" : "127.0.0.1",        
+                                    "port" : 102          
+                                }
+                            ]
+                }
+            }
+        })
     }
          
 });
@@ -179,7 +200,7 @@ extern "C"
 
         auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
 
-        return iec61850->operation(operation, count, params);
+        return true;
     }
 
 }  // extern "C"

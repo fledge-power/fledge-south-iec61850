@@ -12,6 +12,14 @@ IEC61850::~IEC61850(){
   delete m_config;
 }
 
+void 
+IEC61850::registerIngest(void* data, INGEST_CB cb)
+{
+    m_ingest = cb;
+    m_data = data;
+}
+
+
 void IEC61850::setJsonConfig(const std::string& protocol_stack,
                              const std::string& exchanged_data,
                              const std::string& tls_configuration)
@@ -62,8 +70,9 @@ void IEC61850::stop()
 
 void IEC61850::ingest(std::string assetName, std::vector<Datapoint*>& points)
 {
-    if (m_ingest)
-        m_ingest(m_data, Reading(assetName, points));
+  if (m_ingest){
+    m_ingest(m_data, Reading(assetName, points));
+  }
 }
 
 bool

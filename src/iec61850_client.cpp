@@ -36,6 +36,6 @@ IEC61850Client::start(){
     m_connections->push_back(connection);
   }
 
-
+  m_connections->at(0)->Connect();
 }
 
