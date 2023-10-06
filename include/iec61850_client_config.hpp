@@ -59,7 +59,7 @@ private:
 
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
-    std::vector<RedGroup*>* m_connections;
+    std::vector<RedGroup*>* m_connections = nullptr;
 
     void deleteExchangeDefinitions();
 

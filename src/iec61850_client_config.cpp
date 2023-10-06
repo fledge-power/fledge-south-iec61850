@@ -105,8 +105,8 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
     return;
   }
   
-  const Value& connections = protocolStack[JSON_CONNECTIONS];
-  
+  const Value& connections = transportLayer[JSON_CONNECTIONS];
+
   m_connections = new std::vector<RedGroup*>();
 
   for(const Value& connection : connections.GetArray()){

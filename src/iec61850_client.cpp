@@ -28,14 +28,19 @@ IEC61850Client::stop()
 void
 IEC61850Client::start(){ 
   m_connections = new std::vector<IEC61850ClientConnection*>();
-  
   for(RedGroup* redgroup : *m_config->GetConnections())
   {
+    Logger::getLogger()->info("Add connection: %s", redgroup->ipAddr.c_str());
     IEC61850ClientConnection* connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort);
 
     m_connections->push_back(connection);
   }
 
-  m_connections->at(0)->Connect();
+  if(m_connections->size() > 0){
+      m_connections->at(0)->Connect();
+  }
+  else{
+    LOGGER->error("No connections configured");
+  }
 }
 

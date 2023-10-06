@@ -38,22 +38,91 @@ static const char *default_config = QUOTE({
         "displayName" : "Protocol stack parameters",
         "order" : "2",
         "default" : QUOTE({
-            "protocol_stack" : {
-                "name" : "iec104client",
-                "version" : "1.0",
-                "transport_layer" : {
-                    
-                            "connections" : [
-                                {     
-                                    "srv_ip" : "127.0.0.1",        
-                                    "port" : 102          
+            "protocol_stack":
+            {
+                "name": "iec61850client",
+                "version": "0.0.1",
+                "transport_layer": {
+                    "ied_name" : "IED1",
+                    "connections":[
+                        {
+                            "ip_addr":"127.0.0.1",
+                            "port": 102
+                        }
+                    ],
+                    "tls" : false
+                },
+                "application_layer": {
+                    "polling_interval": 0,
+                    "datasets": [
+                        {
+                            "dataset_ref": "",
+                            "entries": [
+                                {
+                                    "objref" : ""
                                 }
                             ]
+                        }
+                    ],
+                    "report_subscriptions": [
+                        {
+                            "rcb_ref" : "",
+                            "dataset_ref" : "",
+                            "trgops" : ""
+                        }
+                    ]
                 }
             }
+        }
+    )
+    },
+    "exchanged_data" : {
+    "description" : "Exchanged datapoints configuration",
+    "type" : "JSON",
+    "displayName" : "Exchanged datapoints",
+    "order" : "3",
+    "default" : QUOTE({
+    "exchanged_data":{
+      "datapoints":[
+        {
+          "label":"TS1",
+          "protocols":[
+              {
+                "name":"iec61850",
+                "objref": "DER_Scheduler_Control/ActPow_GGIO1.AnOut1",
+                "cdc": "ApcTyp"
+              }
+            ]
+          }
+        ]
+      } 
+    })
+    },
+    "tls_conf": {
+    "description" : "TLS configuration",
+    "type" : "JSON",
+    "displayName" : "TLS Configuration",
+    "order": "4",
+    "default" : QUOTE({      
+            "tls_conf" : {
+                "private_key" : "iec104_server.key",
+                "own_cert" : "iec104_server.cer",
+                "ca_certs" : [
+                    {
+                        "cert_file": "iec104_ca.cer"
+                    },
+                    {
+                        "cert_file": "iec104_ca2.cer"
+                    }
+                ],
+                "remote_certs" : [
+                    {
+                        "cert_file": "iec104_client.cer"
+                    }
+                ]
+            }       
         })
-    }
-         
+  }
 });
 
 
@@ -98,10 +167,10 @@ extern "C"
 
             if (config->itemExists("protocol_stack") &&
                 config->itemExists("exchanged_data") &&
-                config->itemExists("tls"))
+                config->itemExists("tls_conf"))
                 iec61850->setJsonConfig(config->getValue("protocol_stack"),
                                       config->getValue("exchanged_data"),
-                                      config->getValue("tls"));
+                                      config->getValue("tls_conf"));
         }
 
         return (PLUGIN_HANDLE)iec61850;

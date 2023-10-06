@@ -21,7 +21,6 @@ IEC61850ClientConnection::Connect(){
   IedClientError error;
 
   IedConnection_connect(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
-  IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
 
   if (error == IED_ERROR_ALREADY_CONNECTED){
     LOGGER->warn("Already connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
@@ -36,6 +35,8 @@ IEC61850ClientConnection::Connect(){
   if(IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
     LOGGER->info("Connected successfuly to %s:%d", m_serverIp.c_str(), m_tcpPort);
     m_connected = true;
+    return;
   }
   
+  LOGGER->error("No connection made to %s:%d", m_serverIp.c_str(), m_tcpPort);
 }

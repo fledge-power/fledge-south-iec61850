@@ -20,7 +20,8 @@ IEC61850::registerIngest(void* data, INGEST_CB cb)
 }
 
 
-void IEC61850::setJsonConfig(const std::string& protocol_stack,
+void 
+IEC61850::setJsonConfig(const std::string& protocol_stack,
                              const std::string& exchanged_data,
                              const std::string& tls_configuration)
 {
@@ -30,10 +31,11 @@ void IEC61850::setJsonConfig(const std::string& protocol_stack,
 
   m_config->importProtocolConfig(protocol_stack);
   m_config->importExchangeConfig(exchanged_data);
-  m_config->importTlsConfig(tls_configuration);
-}
+//   m_config->importTlsConfig(tls_configuration);
+ }
 
-void IEC61850::start()
+void 
+IEC61850::start()
 {
     LOGGER->info("Starting iec61850");
 
