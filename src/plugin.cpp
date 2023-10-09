@@ -269,7 +269,7 @@ extern "C"
 
         auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
 
-        return true;
+        return iec61850->operation(operation, count, params);
     }
 
 }  // extern "C"

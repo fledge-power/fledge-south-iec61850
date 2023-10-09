@@ -48,11 +48,11 @@ public:
 
 private:
 
-    bool m_spc(int count, PLUGIN_PARAMETER** params, bool withTime);
-    bool m_dpc(int count, PLUGIN_PARAMETER** params, bool withTime);
-    bool m_apc(int count, PLUGIN_PARAMETER** params, bool withTime);
-    bool m_inc(int count, PLUGIN_PARAMETER** params, bool withTime);
-    bool m_bsc(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_spc(Datapoint* cdc);
+    bool m_dpc(Datapoint* cdc);
+    bool m_apc(Datapoint* cdc);
+    bool m_inc(Datapoint* cdc);
+    bool m_bsc(Datapoint* cdc);
 
     IEC61850ClientConfig* m_config;
 

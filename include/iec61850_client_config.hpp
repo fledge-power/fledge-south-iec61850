@@ -27,7 +27,7 @@ typedef struct {
 class IEC61850ClientConfig
 {
 public:
-    IEC61850ClientConfig() {m_exchangeDefinitions->clear();};
+    IEC61850ClientConfig() {if(m_exchangeDefinitions) m_exchangeDefinitions->clear();};
     //IEC61850ClientConfig(const string& protocolConfig, const string& exchangeConfig);
     ~IEC61850ClientConfig();
 

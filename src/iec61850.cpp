@@ -77,8 +77,126 @@ void IEC61850::ingest(std::string assetName, std::vector<Datapoint*>& points)
   }
 }
 
+static Datapoint*
+getCdc(Datapoint* dp)
+{
+    Datapoint* cdcDp = nullptr;
+
+    DatapointValue& dpv = dp->getData();
+
+    if (dpv.getType() == DatapointValue::T_DP_DICT) {
+        std::vector<Datapoint*>* datapoints = dpv.getDpVec();
+
+        for (Datapoint* child : *datapoints) {
+            if (child->getName() == "SpsTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "MvTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "DpsTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "SpcTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "DpcTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "IncTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "ApcTyp") {
+                cdcDp = child;
+                break;
+            }
+            else if (child->getName() == "BscTyp") {
+                cdcDp = child;
+                break;
+            }
+        }
+    }
+    return cdcDp;
+}
+
 bool
-IEC61850::m_spc(int count, PLUGIN_PARAMETER** params, bool withTime){
+IEC61850::m_spc(Datapoint* cdc){
   return true;
+}
+
+bool
+IEC61850::m_dpc(Datapoint* cdc){
+  return true;
+}
+
+bool
+IEC61850::m_apc(Datapoint* cdc){
+  return true;
+}
+
+bool
+IEC61850::m_inc(Datapoint* cdc){
+  return true;
+}
+
+bool
+IEC61850::m_bsc(Datapoint* cdc){
+  return true;
+}
+
+bool
+IEC61850::operation(const std::string& operation, int count,
+                       PLUGIN_PARAMETER** params)
+{
+    if (m_client == nullptr) {
+        Logger::getLogger()->error("operation called but plugin is not yet initialized");
+
+        return false;
+    }
+
+    if (operation == "PivotCommand"){
+        std::string commandContentJSON = params[0]->value;
+        
+        Datapoint* commandContent;
+
+        commandContent = commandContent->parseJson(commandContentJSON)->at(0);
+        
+        LOGGER->debug("Received command: %s", commandContent->toJSONProperty().c_str());
+        
+        Datapoint* cdc = getCdc(commandContent);
+        
+        CDCTYPE type = (CDCTYPE) IEC61850ClientConfig::getCdcTypeFromString(cdc->getName());
+
+        switch(type){
+          case SPC: return m_spc(cdc);
+          case DPC: return m_dpc(cdc);
+          case APC: return m_apc(cdc);
+          case INC: return m_inc(cdc);
+          case BSC: return m_bsc(cdc);
+          default:{
+            LOGGER->error("Invalid command CDC");
+            return false;
+          }
+        }
+         
+         
+        // int typeID = m_config->GetTypeIdByName(type);
+        //
+        // switch (typeID){
+        //     default:
+        //         Logger::getLogger()->error("Unrecognised command type %s", type.c_str());
+        //         return false;
+        // }
+    }
+
+    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
+
+    return false;
 }
 
