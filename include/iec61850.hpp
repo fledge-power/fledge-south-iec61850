@@ -20,6 +20,7 @@
 #include "iec61850_client_config.hpp"
 #include "iec61850_client_connection.hpp"
 
+#define BACKUP_CONNECTION_TIMEOUT 5000
 #define LOGGER Logger::getLogger()
 
 class IEC61850Client;
@@ -81,11 +82,27 @@ public:
     void start();
 
     void stop();
+    
+    void prepareConnections();
 
 private:
     std::vector<IEC61850ClientConnection*>* m_connections;
     
-    IEC61850ClientConnection* m_active_connection;
+    IEC61850ClientConnection* m_active_connection = nullptr;
+    std::mutex m_activeConnectionMtx;
+    
+    enum class ConnectionStatus
+    {
+        STARTED,
+        NOT_CONNECTED
+    };
+
+    ConnectionStatus m_connStatus = ConnectionStatus::NOT_CONNECTED;
+
+    void updateConnectionStatus(ConnectionStatus newState);
+
+    std::thread* m_monitoringThread = nullptr;
+    void _monitoringThread();
 
     bool m_started = false;
 

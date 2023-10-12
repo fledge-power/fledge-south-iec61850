@@ -80,49 +80,21 @@ void IEC61850::ingest(std::string assetName, std::vector<Datapoint*>& points)
 static Datapoint*
 getCdc(Datapoint* dp)
 {
-    Datapoint* cdcDp = nullptr;
-
     DatapointValue& dpv = dp->getData();
 
-    if (dpv.getType() == DatapointValue::T_DP_DICT) {
-        std::vector<Datapoint*>* datapoints = dpv.getDpVec();
-
-        for (Datapoint* child : *datapoints) {
-            if (child->getName() == "SpsTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "MvTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "DpsTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "SpcTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "DpcTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "IncTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "ApcTyp") {
-                cdcDp = child;
-                break;
-            }
-            else if (child->getName() == "BscTyp") {
-                cdcDp = child;
-                break;
-            }
-        }
+    if (dpv.getType() != DatapointValue::T_DP_DICT) {
+      LOGGER->error("Datapoint is not a dictionary %s", dp->getName().c_str());
     }
-    return cdcDp;
+
+    std::vector<Datapoint*>* datapoints = dpv.getDpVec();
+
+    for (Datapoint* child : *datapoints) {
+      if(IEC61850ClientConfig::getCdcTypeFromString(child->getName()) != -1){
+        return child;
+      }  
+    }
+    
+    return nullptr;
 }
 
 bool
