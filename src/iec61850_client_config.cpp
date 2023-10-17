@@ -46,6 +46,16 @@ IEC61850ClientConfig::getCdcTypeFromString( const std::string& cdc) {
   return -1;
 }
 
+DataExchangeDefinition*
+IEC61850ClientConfig::getExchangeDefinitionByLabel(std::string& label){
+  auto it = m_exchangeDefinitions->find(label);
+  if(it !=  m_exchangeDefinitions->end()){
+    return it->second;
+  }
+  return nullptr;
+}
+
+
 bool 
 IEC61850ClientConfig::isValidIPAddress(const std::string& addrStr) {
   // see

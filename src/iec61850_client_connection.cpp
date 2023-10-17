@@ -2,6 +2,8 @@
 #include <libiec61850/iec61850_client.h>
 #include <iec61850.hpp>
 #include <libiec61850/hal_thread.h>
+#include <libiec61850/iec61850_common.h>
+#include <libiec61850/mms_value.h>
 
 IEC61850ClientConnection::IEC61850ClientConnection(IEC61850Client* client,
                                                    IEC61850ClientConfig* config,
@@ -24,7 +26,7 @@ static uint64_t getMonotonicTimeInMs()
     uint64_t timeVal = 0;
 
     struct timespec ts;
-
+    
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
         timeVal = ((uint64_t) ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
     }
@@ -77,9 +79,23 @@ IEC61850ClientConnection::Connect()
     m_connect = true;
 }
 
+MmsVariableSpecification*
+IEC61850ClientConnection::getVariableSpec(IedClientError* error, const char* objRef)
+{
+  return IedConnection_getVariableSpecification(m_connection, error, objRef, IEC61850_FC_ST);
+}
+
+MmsValue* 
+IEC61850ClientConnection::readValue(IedClientError* error, const char* objRef)
+{
+  MmsValue* value = IedConnection_readObject(m_connection, error, objRef, IEC61850_FC_ST); 
+  return value;
+}
+
 void
 IEC61850ClientConnection::executePeriodicTasks()
 {
+  m_client->handleValues();
 }
 
 void
@@ -162,9 +178,11 @@ IEC61850ClientConnection::_conThread()
                 
                 if(newState != IED_STATE_CONNECTED){
                   m_connectionState = CON_STATE_IDLE;
+                  break;
                 }
                 executePeriodicTasks();
-
+                
+                Thread_sleep(10000);
                 break;
             }
             case CON_STATE_CLOSED:

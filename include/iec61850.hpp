@@ -2,6 +2,7 @@
 #define INCLUDE_IEC61850_H_
 
 #include "libiec61850/iec61850_client.h"
+#include <cstdint>
 #include <logger.h>
 #include <plugin_api.h>
 #include <reading.h>
@@ -25,6 +26,43 @@
 
 class IEC61850Client;
 
+
+class PivotTimestamp
+{
+public:
+    PivotTimestamp(Datapoint* timestampData);
+    PivotTimestamp(uint64_t ms);
+    ~PivotTimestamp();
+
+    void setTimeInMs(uint64_t ms);
+
+    int SecondSinceEpoch();
+    int FractionOfSecond();
+    uint64_t getTimeInMs();
+
+    bool ClockFailure() {return m_clockFailure;};
+    bool LeapSecondKnown() {return m_leapSecondKnown;};
+    bool ClockNotSynchronized() {return m_clockNotSynchronized;};
+    int TimeAccuracy() {return m_timeAccuracy;};
+
+    static uint64_t GetCurrentTimeInMs();
+
+private:
+
+    void handleTimeQuality(Datapoint* timeQuality);
+
+    uint8_t* m_valueArray;
+
+    int m_secondSinceEpoch;
+    int m_fractionOfSecond;
+
+    int m_timeAccuracy;
+    bool m_clockFailure = false;
+    bool m_leapSecondKnown = false;
+    bool m_clockNotSynchronized = false;
+};
+
+
 class IEC61850
 {
 public:
@@ -46,6 +84,7 @@ public:
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
+
 
 private:
 
@@ -84,6 +123,10 @@ public:
     void stop();
     
     void prepareConnections();
+    
+    void handleValues();
+
+    void logError(IedClientError err, std::string info);
 
 private:
     std::vector<IEC61850ClientConnection*>* m_connections;
@@ -108,6 +151,15 @@ private:
 
     IEC61850ClientConfig* m_config;
     IEC61850* m_iec61850;
+
+    template <class T> Datapoint* m_createDatapoint(std::string& label, std::string objRef, T value, Quality quality, uint64_t timestampMs);
+    static int getRootFromCDC(const CDCTYPE cdc);
+   
+    void addQualityDp(Datapoint* cdcDp, Quality quality);
+    void addTimestampDp(Datapoint* cdcDp, uint64_t timestampMs);
+    template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value);
+
+    void m_handleMonitoringData(std::string objRef, std::vector<Datapoint*>& datapoints, std::string& label, CDCTYPE type);
 };
 
 #endif  // INCLUDE_IEC61850_H_

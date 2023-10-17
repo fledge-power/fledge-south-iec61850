@@ -26,6 +26,10 @@ public:
     bool Connected() {return m_connected;};
     bool Active() {return m_active;};
 
+    MmsValue* readValue(IedClientError* err, const char* objRef);
+
+    MmsVariableSpecification* getVariableSpec(IedClientError* error, const char* objRef);
+
 private:
     bool prepareConnection();
     IedConnection m_connection = nullptr; 
