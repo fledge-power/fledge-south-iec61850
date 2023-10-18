@@ -95,7 +95,13 @@ IEC61850ClientConnection::readValue(IedClientError* error, const char* objRef)
 void
 IEC61850ClientConnection::executePeriodicTasks()
 {
-  m_client->handleValues();
+  uint64_t currentTime = getMonotonicTimeInMs();
+  if(m_config->getPollingInterval()>0){
+    if(currentTime > m_nextPollingTime){
+      m_client->handleValues();
+      m_nextPollingTime = currentTime + m_config->getPollingInterval();
+    }
+  }
 }
 
 void
@@ -182,7 +188,6 @@ IEC61850ClientConnection::_conThread()
                 }
                 executePeriodicTasks();
                 
-                Thread_sleep(10000);
                 break;
             }
             case CON_STATE_CLOSED:

@@ -5,6 +5,7 @@
 
 #define JSON_PROTOCOL_STACK "protocol_stack"
 #define JSON_TRANSPORT_LAYER "transport_layer"
+#define JSON_APPLICATION_LAYER "application_layer"
 #define JSON_DATASETS "datasets"
 #define JSON_CONNECTIONS "connections"
 #define JSON_IP "ip_addr"
@@ -141,6 +142,27 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
       m_connections->push_back(group);
     }
+  }
+  
+  if (!protocolStack.HasMember(JSON_APPLICATION_LAYER) ||
+    !protocolStack[JSON_APPLICATION_LAYER].IsObject()) {
+    Logger::getLogger()->fatal("transport layer configuration is missing");
+    return;
+  }
+   
+  const Value& applicationLayer = protocolStack[JSON_APPLICATION_LAYER];
+
+  if(applicationLayer.HasMember(JSON_POLLING_INTERVAL)){
+    if(!applicationLayer[JSON_POLLING_INTERVAL].IsInt()){
+      LOGGER->error("polling_interval has invalid data type");
+      return;
+    }
+    int intVal = applicationLayer[JSON_POLLING_INTERVAL].GetInt();
+    if(intVal < 0){
+      LOGGER->error("polling_interval must be positive");
+      return;
+    }
+    pollingInterval = intVal;
   }
 }
 

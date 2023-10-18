@@ -758,6 +758,8 @@ template <class T> void
 IEC61850Client::addValueDp(Datapoint* cdcDp, CDCTYPE type, T value)
 {
   switch(type){
+    case ENS:
+    case INS:
     case SPS:{
       addElementWithValue(cdcDp, "stVal", (long) value);
       break;
@@ -773,7 +775,17 @@ IEC61850Client::addValueDp(Datapoint* cdcDp, CDCTYPE type, T value)
       break;
     }
     case MV:{
-
+      Datapoint* magDp = addElement(cdcDp, "mag");
+      if(std::is_same<T,double>::value){
+         addElementWithValue(magDp,"f",(double) value); 
+      }
+      else if(std::is_same<T, long>::value){
+         addElementWithValue(magDp,"i",(long) value); 
+      }
+      else{
+        Logger::getLogger()->error("Invalid mag data type");
+      }
+      break;
     }
     case BSC:{
 

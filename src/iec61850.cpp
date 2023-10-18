@@ -99,6 +99,7 @@ getCdc(Datapoint* dp)
 
 bool
 IEC61850::m_spc(Datapoint* cdc){
+  
   return true;
 }
 
@@ -114,7 +115,7 @@ IEC61850::m_apc(Datapoint* cdc){
 
 bool
 IEC61850::m_inc(Datapoint* cdc){
-  return true;
+  return true; 
 }
 
 bool

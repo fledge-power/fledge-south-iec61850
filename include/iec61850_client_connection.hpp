@@ -59,7 +59,9 @@ private:
     std::mutex m_conLock;
     
     uint64_t m_delayExpirationTime;
-
+  
+    uint64_t m_nextPollingTime = 0;
+    
     std::thread* m_conThread = nullptr;
     void _conThread();
 

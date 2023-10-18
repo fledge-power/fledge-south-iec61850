@@ -55,6 +55,8 @@ public:
 
     DataExchangeDefinition* getExchangeDefinitionByLabel(std::string& label);
 
+    long getPollingInterval(){return pollingInterval;}
+
 private:
 
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
@@ -72,6 +74,8 @@ private:
     std::string m_ownCertificate = "";
     std::vector<std::string> m_remoteCertificates;
     std::vector<std::string> m_caCertificates;
+
+    long pollingInterval = 0;
 };
 
 #endif /* IEC61850_CLIENT_CONFIG_H */
