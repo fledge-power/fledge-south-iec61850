@@ -121,7 +121,7 @@ public:
 
     bool handleOperation(Datapoint* operation);
 
-    void logError(IedClientError err, std::string info);
+    void logIedClientError(IedClientError err, std::string info);
 
     void sendCommandAck(const std::string& label, ControlModel mode, bool terminated);
 

@@ -102,6 +102,9 @@ private:
 
     static
     void commandTerminationHandler(void *parameter, ControlObjectClient connection);
+
+    static
+    void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const string &info);
 };
 
 #endif

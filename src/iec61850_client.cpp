@@ -226,7 +226,7 @@ IEC61850Client::getRootFromCDC( const CDCTYPE cdc){
 }
 
 void
-IEC61850Client::logError(IedClientError err, std::string info)
+IEC61850Client::logIedClientError(IedClientError err, std::string info)
 {
     Logger::getLogger()->error("In here : %s",  info.c_str());
     switch (err) {
@@ -670,13 +670,13 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
   MmsValue* mmsvalue = m_active_connection->readValue(&error, objRef.c_str());
 
   if(error!=IED_ERROR_OK){
-    logError(error, "Get MmsValue " + objRef ); 
+      logIedClientError(error, "Get MmsValue " + objRef);
     return;
   }
   MmsVariableSpecification* varSpec = m_active_connection->getVariableSpec(&error, objRef.c_str());
 
   if(error!=IED_ERROR_OK){
-    logError(error, "Get MmsVarSpec " + objRef ); 
+      logIedClientError(error, "Get MmsVarSpec " + objRef);
     return;
   }
 

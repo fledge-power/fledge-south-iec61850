@@ -40,8 +40,8 @@ void
 IEC61850ClientConnection::commandTerminationHandler(void *parameter, ControlObjectClient connection)
 {
     LastApplError lastApplError = ControlObjectClient_getLastApplError(connection);
-
     if (lastApplError.error != CONTROL_ERROR_NO_ERROR) {
+        logControlErrors(lastApplError.addCause, lastApplError.error, std::string(ControlObjectClient_getObjectReference(connection)));
         Logger::getLogger()->error("Couldn't terminate command");
         return;
     }
@@ -49,10 +49,118 @@ IEC61850ClientConnection::commandTerminationHandler(void *parameter, ControlObje
     auto connectionCosPair = (std::pair<IEC61850ClientConnection*,ControlObjectStruct*>*) parameter;
     IEC61850ClientConnection* con = connectionCosPair->first;
     ControlObjectStruct* cos = connectionCosPair->second;
+
     cos->state = CONTROL_IDLE;
     con->sendActTerm(cos);
     delete connectionCosPair;
 }
+
+void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string& info)
+{
+    Logger::getLogger()->error("In here : %s", info.c_str());
+    switch (addCause) {
+        case ADD_CAUSE_UNKNOWN:
+            Logger::getLogger()->error("Unknown add cause");
+            break;
+        case ADD_CAUSE_NOT_SUPPORTED:
+            Logger::getLogger()->error("Add cause not supported");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_SWITCHING_HIERARCHY:
+            Logger::getLogger()->error("Blocked by switching hierarchy");
+            break;
+        case ADD_CAUSE_SELECT_FAILED:
+            Logger::getLogger()->error("Select failed");
+            break;
+        case ADD_CAUSE_INVALID_POSITION:
+            Logger::getLogger()->error("Invalid position");
+            break;
+        case ADD_CAUSE_POSITION_REACHED:
+            Logger::getLogger()->error("Position reached");
+            break;
+        case ADD_CAUSE_PARAMETER_CHANGE_IN_EXECUTION:
+            Logger::getLogger()->error("Parameter change in execution");
+            break;
+        case ADD_CAUSE_STEP_LIMIT:
+            Logger::getLogger()->error("Step limit reached");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_MODE:
+            Logger::getLogger()->error("Blocked by mode");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_PROCESS:
+            Logger::getLogger()->error("Blocked by process");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_INTERLOCKING:
+            Logger::getLogger()->error("Blocked by interlocking");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_SYNCHROCHECK:
+            Logger::getLogger()->error("Blocked by synchrocheck");
+            break;
+        case ADD_CAUSE_COMMAND_ALREADY_IN_EXECUTION:
+            Logger::getLogger()->error("Command already in execution");
+            break;
+        case ADD_CAUSE_BLOCKED_BY_HEALTH:
+            Logger::getLogger()->error("Blocked by health status");
+            break;
+        case ADD_CAUSE_1_OF_N_CONTROL:
+            Logger::getLogger()->error("1 of N control error");
+            break;
+        case ADD_CAUSE_ABORTION_BY_CANCEL:
+            Logger::getLogger()->error("Aborted by cancel");
+            break;
+        case ADD_CAUSE_TIME_LIMIT_OVER:
+            Logger::getLogger()->error("Time limit exceeded");
+            break;
+        case ADD_CAUSE_ABORTION_BY_TRIP:
+            Logger::getLogger()->error("Aborted by trip");
+            break;
+        case ADD_CAUSE_OBJECT_NOT_SELECTED:
+            Logger::getLogger()->error("Object not selected");
+            break;
+        case ADD_CAUSE_OBJECT_ALREADY_SELECTED:
+            Logger::getLogger()->error("Object already selected");
+            break;
+        case ADD_CAUSE_NO_ACCESS_AUTHORITY:
+            Logger::getLogger()->error("No access authority");
+            break;
+        case ADD_CAUSE_ENDED_WITH_OVERSHOOT:
+            Logger::getLogger()->error("Ended with overshoot");
+            break;
+        case ADD_CAUSE_ABORTION_DUE_TO_DEVIATION:
+            Logger::getLogger()->error("Aborted due to deviation");
+            break;
+        case ADD_CAUSE_ABORTION_BY_COMMUNICATION_LOSS:
+            Logger::getLogger()->error("Aborted by communication loss");
+            break;
+        case ADD_CAUSE_ABORTION_BY_COMMAND:
+            Logger::getLogger()->error("Aborted by command");
+            break;
+        case ADD_CAUSE_NONE:
+            Logger::getLogger()->info("No add cause error");
+            break;
+        case ADD_CAUSE_INCONSISTENT_PARAMETERS:
+            Logger::getLogger()->error("Inconsistent parameters");
+            break;
+        case ADD_CAUSE_LOCKED_BY_OTHER_CLIENT:
+            Logger::getLogger()->error("Locked by another client");
+            break;
+    }
+
+    switch (lastApplError) {
+        case CONTROL_ERROR_NO_ERROR:
+            Logger::getLogger()->info("No last application error");
+            break;
+        case CONTROL_ERROR_UNKNOWN:
+            Logger::getLogger()->error("Unknown last application error");
+            break;
+        case CONTROL_ERROR_TIMEOUT_TEST:
+            Logger::getLogger()->error("Timeout test error");
+            break;
+        case CONTROL_ERROR_OPERATOR_TEST:
+            Logger::getLogger()->error("Operator test error");
+            break;
+    }
+}
+
 
 void
 IEC61850ClientConnection::m_initialiseControlObjects()
@@ -66,7 +174,7 @@ IEC61850ClientConnection::m_initialiseControlObjects()
     IedClientError err;
     IedConnection_readObject(m_connection,&err,def->objRef.c_str(),IEC61850_FC_ST);
     if(err != IED_ERROR_OK){
-        m_client->logError(err,"Initialise control object");
+        m_client->logIedClientError(err, "Initialise control object");
         continue;
     }
     co->client = ControlObjectClient_create(def->objRef.c_str(),m_connection);

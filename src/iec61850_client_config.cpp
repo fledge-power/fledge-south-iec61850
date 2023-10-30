@@ -84,6 +84,12 @@ IEC61850ClientConfig::deleteExchangeDefinitions() {
   delete m_exchangeDefinitions;
 
   m_exchangeDefinitions = nullptr;
+
+  if (!m_exchangeDefinitionsPivotId) return;
+
+  delete m_exchangeDefinitionsPivotId;
+
+  m_exchangeDefinitionsPivotId = nullptr;
 }
 
 IEC61850ClientConfig::~IEC61850ClientConfig() { deleteExchangeDefinitions(); }
