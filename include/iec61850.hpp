@@ -17,12 +17,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <unordered_map>
 
 #include "iec61850_client_config.hpp"
 #include "iec61850_client_connection.hpp"
 
 #define BACKUP_CONNECTION_TIMEOUT 5000
-#define LOGGER Logger::getLogger()
 
 class IEC61850Client;
 
@@ -79,7 +79,6 @@ public:
     void start();
     void stop();
 
-    // void ingest(Reading& reading);
     void ingest(std::string assetName, std::vector<Datapoint*>& points);
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
@@ -87,12 +86,6 @@ public:
 
 
 private:
-
-    bool m_spc(Datapoint* cdc);
-    bool m_dpc(Datapoint* cdc);
-    bool m_apc(Datapoint* cdc);
-    bool m_inc(Datapoint* cdc);
-    bool m_bsc(Datapoint* cdc);
 
     IEC61850ClientConfig* m_config;
 
@@ -126,7 +119,11 @@ public:
     
     void handleValues();
 
+    bool handleOperation(Datapoint* operation);
+
     void logError(IedClientError err, std::string info);
+
+    void sendCommandAck(const std::string& label, ControlModel mode, bool terminated);
 
 private:
     std::vector<IEC61850ClientConnection*>* m_connections;
@@ -160,6 +157,7 @@ private:
     template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value);
 
     void m_handleMonitoringData(std::string objRef, std::vector<Datapoint*>& datapoints, std::string& label, CDCTYPE type);
+    std::unordered_map<std::string, Datapoint*>* m_outstandingCommands = nullptr;
 };
 
 #endif  // INCLUDE_IEC61850_H_

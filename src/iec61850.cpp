@@ -8,11 +8,17 @@ IEC61850::IEC61850() : m_client(nullptr)
   m_config = new IEC61850ClientConfig();
 }
 
+bool
+isCommandType(CDCTYPE type){
+    return type>=SPC;
+}
+
+
 IEC61850::~IEC61850(){
   delete m_config;
 }
 
-void 
+void
 IEC61850::registerIngest(void* data, INGEST_CB cb)
 {
     m_ingest = cb;
@@ -20,7 +26,7 @@ IEC61850::registerIngest(void* data, INGEST_CB cb)
 }
 
 
-void 
+void
 IEC61850::setJsonConfig(const std::string& protocol_stack,
                              const std::string& exchanged_data,
                              const std::string& tls_configuration)
@@ -37,25 +43,30 @@ IEC61850::setJsonConfig(const std::string& protocol_stack,
 void 
 IEC61850::start()
 {
-    LOGGER->info("Starting iec61850");
+    Logger::getLogger()->info("Starting iec61850");
 
     switch (m_config->LogLevel())
     {
         case 1:
-            LOGGER->setMinLevel("debug");
+            Logger::getLogger()->setMinLevel("debug");
             break;
         case 2:
-            LOGGER->setMinLevel("info");
+            Logger::getLogger()->setMinLevel("info");
             break;
         case 3:
-            LOGGER->setMinLevel("warning");
+            Logger::getLogger()->setMinLevel("warning");
             break;
         default:
-            LOGGER->setMinLevel("error");
+            Logger::getLogger()->setMinLevel("error");
             break;
     }
 
     m_client = new IEC61850Client(this, m_config);
+
+    if(!m_client){
+        Logger::getLogger()->error("Can't start, client is null");
+        return;
+    }
 
     m_client->start();
 }
@@ -83,7 +94,7 @@ getCdc(Datapoint* dp)
     DatapointValue& dpv = dp->getData();
 
     if (dpv.getType() != DatapointValue::T_DP_DICT) {
-      LOGGER->error("Datapoint is not a dictionary %s", dp->getName().c_str());
+      Logger::getLogger()->error("Datapoint is not a dictionary %s", dp->getName().c_str());
     }
 
     std::vector<Datapoint*>* datapoints = dpv.getDpVec();
@@ -98,32 +109,6 @@ getCdc(Datapoint* dp)
 }
 
 bool
-IEC61850::m_spc(Datapoint* cdc){
-  
-  return true;
-}
-
-bool
-IEC61850::m_dpc(Datapoint* cdc){
-  return true;
-}
-
-bool
-IEC61850::m_apc(Datapoint* cdc){
-  return true;
-}
-
-bool
-IEC61850::m_inc(Datapoint* cdc){
-  return true; 
-}
-
-bool
-IEC61850::m_bsc(Datapoint* cdc){
-  return true;
-}
-
-bool
 IEC61850::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
@@ -133,40 +118,31 @@ IEC61850::operation(const std::string& operation, int count,
         return false;
     }
 
-    if (operation == "PivotCommand"){
+    if (operation == "IEC104Command"){
         std::string commandContentJSON = params[0]->value;
         
         Datapoint* commandContent;
 
         commandContent = commandContent->parseJson(commandContentJSON)->at(0);
         
-        LOGGER->debug("Received command: %s", commandContent->toJSONProperty().c_str());
+        Logger::getLogger()->debug("Received command: %s", commandContent->toJSONProperty().c_str());
         
         Datapoint* cdc = getCdc(commandContent);
         
-        CDCTYPE type = (CDCTYPE) IEC61850ClientConfig::getCdcTypeFromString(cdc->getName());
-
-        switch(type){
-          case SPC: return m_spc(cdc);
-          case DPC: return m_dpc(cdc);
-          case APC: return m_apc(cdc);
-          case INC: return m_inc(cdc);
-          case BSC: return m_bsc(cdc);
-          default:{
-            LOGGER->error("Invalid command CDC");
-            return false;
-          }
+        if(!cdc){
+          Logger::getLogger()->warn("Received pivot object has no cdc");
+          return false;
         }
-         
-         
-        // int typeID = m_config->GetTypeIdByName(type);
-        //
-        // switch (typeID){
-        //     default:
-        //         Logger::getLogger()->error("Unrecognised command type %s", type.c_str());
-        //         return false;
-        // }
-    }
+
+        int type = IEC61850ClientConfig::getCdcTypeFromString(cdc->getName());
+
+        if(type == -1 || !isCommandType((CDCTYPE)type)){
+          Logger::getLogger()->warn("Not a command object %s -> ignore", cdc->toJSONProperty().c_str());
+          return false;
+        }
+
+        return m_client->handleOperation(commandContent);
+     }
 
     Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
 

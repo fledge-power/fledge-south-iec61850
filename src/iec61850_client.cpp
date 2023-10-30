@@ -1,20 +1,26 @@
+#include "datapoint.h"
 #include "iec61850_client_config.hpp"
 #include "iec61850_client_connection.hpp"
-#include <cstdint>
 #include <iec61850.hpp>
+#include <utility>
 #include <libiec61850/iec61850_client.h>
 #include <libiec61850/hal_thread.h>
 #include <libiec61850/iec61850_common.h>
 #include "libiec61850/mms_common.h"
 #include "libiec61850/mms_value.h"
-#include "libiec61850/mms_type_spec.h"
+
+
+bool
+isCommandCdcType(CDCTYPE type){
+    return type>=SPC;
+}
 
 static uint64_t
 getMonotonicTimeInMs()
 {
     uint64_t timeVal = 0;
 
-    struct timespec ts;
+    struct timespec ts{};
 
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
         timeVal = ((uint64_t) ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
@@ -38,13 +44,79 @@ getValueInt(Datapoint* dp)
 }
 
 static Datapoint*
+getCdc(Datapoint* dp)
+{
+    DatapointValue& dpv = dp->getData();
+
+    if (dpv.getType() != DatapointValue::T_DP_DICT) {
+        Logger::getLogger()->error("Datapoint is not a dictionary %s", dp->getName().c_str());
+    }
+
+    std::vector<Datapoint*>* datapoints = dpv.getDpVec();
+
+    for (Datapoint* child : *datapoints) {
+        if(IEC61850ClientConfig::getCdcTypeFromString(child->getName()) != -1){
+            return child;
+        }
+    }
+
+    return nullptr;
+}
+
+
+static Datapoint*
+getChild(Datapoint* dp, const std::string& name)
+{
+    Datapoint* childDp = nullptr;
+
+    DatapointValue& dpv = dp->getData();
+
+    
+    if(dpv.getType() != DatapointValue::T_DP_DICT){
+      Logger::getLogger()->warn("Datapoint not a dictionary");
+      return nullptr;
+    }
+
+    std::vector<Datapoint*>* datapoints = dpv.getDpVec();
+
+    if (!datapoints) {
+        Logger::getLogger()->warn("datapoints is nullptr");
+        return nullptr; 
+    }
+
+    for (auto child : *datapoints) {
+        if (child->getName() == name) {
+            childDp = child;
+            break; 
+        }
+    }
+
+    return childDp;
+}
+
+static std::string
+getValueStr(Datapoint* dp)
+{
+    DatapointValue& dpv = dp->getData();
+
+    if (dpv.getType() == DatapointValue::T_STRING) {
+        return dpv.toStringValue();
+    }
+    else {
+       Logger::getLogger()->error("datapoint " + dp->getName() + " has mot a std::string value");
+    }
+    
+   return nullptr;
+}
+
+static Datapoint*
 createDp(const std::string& name)
 {
-    std::vector<Datapoint*>* datapoints = new std::vector<Datapoint*>;
+    auto* datapoints = new std::vector<Datapoint*>;
 
     DatapointValue dpv(datapoints, true);
 
-    Datapoint* dp = new Datapoint(name, dpv);
+    auto* dp = new Datapoint(name, dpv);
 
     return dp;
 }
@@ -55,7 +127,7 @@ createDpWithValue(const std::string& name, const T value)
 {
     DatapointValue dpv(value);
 
-    Datapoint* dp = new Datapoint(name, dpv);
+    auto* dp = new Datapoint(name, dpv);
 
     return dp;
 }
@@ -115,10 +187,6 @@ std::map<PIVOTROOT, std::string> rootToStrMap = {
   {GTIM, "GTIM"}, {GTIS, "GTIS"}, {GTIC, "GTIC"}
 };
 
-bool
-isCommandType(CDCTYPE type){
-  return type>=SPC; 
-}
 
 IEC61850Client::IEC61850Client(IEC61850* iec61850, IEC61850ClientConfig* iec61850_client_config)
           :m_iec61850(iec61850),
@@ -128,6 +196,7 @@ IEC61850Client::IEC61850Client(IEC61850* iec61850, IEC61850ClientConfig* iec6185
 IEC61850Client::~IEC61850Client()
 {
   stop();
+  delete m_outstandingCommands;
   delete m_connections;
 }
 
@@ -159,91 +228,91 @@ IEC61850Client::getRootFromCDC( const CDCTYPE cdc){
 void
 IEC61850Client::logError(IedClientError err, std::string info)
 {
-    LOGGER->error("In here : %s",  info.c_str()); 
+    Logger::getLogger()->error("In here : %s",  info.c_str());
     switch (err) {
         case IED_ERROR_OK:
-            LOGGER->info("No error occurred - service request has been successful");
+            Logger::getLogger()->info("No error occurred - service request has been successful");
             break;
         case IED_ERROR_NOT_CONNECTED:
-            LOGGER->error("Service request can't be executed because the client is not yet connected");
+            Logger::getLogger()->error("Service request can't be executed because the client is not yet connected");
             break;
         case IED_ERROR_ALREADY_CONNECTED:
-            LOGGER->error("Connect service not executed because the client is already connected");
+            Logger::getLogger()->error("Connect service not executed because the client is already connected");
             break;
         case IED_ERROR_CONNECTION_LOST:
-            LOGGER->error("Service request can't be executed due to a loss of connection");
+            Logger::getLogger()->error("Service request can't be executed due to a loss of connection");
             break;
         case IED_ERROR_SERVICE_NOT_SUPPORTED:
-            LOGGER->error("The service or some given parameters are not supported by the client stack or by the server");
+            Logger::getLogger()->error("The service or some given parameters are not supported by the client stack or by the server");
             break;
         case IED_ERROR_CONNECTION_REJECTED:
-            LOGGER->error("Connection rejected by server");
+            Logger::getLogger()->error("Connection rejected by server");
             break;
         case IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED:
-            LOGGER->error("Cannot send request because outstanding call limit is reached");
+            Logger::getLogger()->error("Cannot send request because outstanding call limit is reached");
             break;
         case IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT:
-            LOGGER->error("API function has been called with an invalid argument");
+            Logger::getLogger()->error("API function has been called with an invalid argument");
             break;
         case IED_ERROR_ENABLE_REPORT_FAILED_DATASET_MISMATCH:
-            LOGGER->error("Enable report failed due to dataset mismatch");
+            Logger::getLogger()->error("Enable report failed due to dataset mismatch");
             break;
         case IED_ERROR_OBJECT_REFERENCE_INVALID:
-            LOGGER->error("Provided object reference is invalid");
+            Logger::getLogger()->error("Provided object reference is invalid");
             break;
         case IED_ERROR_UNEXPECTED_VALUE_RECEIVED:
-            LOGGER->error("Received object is of unexpected type");
+            Logger::getLogger()->error("Received object is of unexpected type");
             break;
         case IED_ERROR_TIMEOUT:
-            LOGGER->error("Communication to the server failed with a timeout");
+            Logger::getLogger()->error("Communication to the server failed with a timeout");
             break;
         case IED_ERROR_ACCESS_DENIED:
-            LOGGER->error("Access to the requested object/service was denied by the server");
+            Logger::getLogger()->error("Access to the requested object/service was denied by the server");
             break;
         case IED_ERROR_OBJECT_DOES_NOT_EXIST:
-            LOGGER->error("Server reported that the requested object does not exist");
+            Logger::getLogger()->error("Server reported that the requested object does not exist");
             break;
         case IED_ERROR_OBJECT_EXISTS:
-            LOGGER->error("Server reported that the requested object already exists");
+            Logger::getLogger()->error("Server reported that the requested object already exists");
             break;
         case IED_ERROR_OBJECT_ACCESS_UNSUPPORTED:
-            LOGGER->error("Server does not support the requested access method");
+            Logger::getLogger()->error("Server does not support the requested access method");
             break;
         case IED_ERROR_TYPE_INCONSISTENT:
-            LOGGER->error("Server expected an object of another type");
+            Logger::getLogger()->error("Server expected an object of another type");
             break;
         case IED_ERROR_TEMPORARILY_UNAVAILABLE:
-            LOGGER->error("Object or service is temporarily unavailable");
+            Logger::getLogger()->error("Object or service is temporarily unavailable");
             break;
         case IED_ERROR_OBJECT_UNDEFINED:
-            LOGGER->error("Specified object is not defined in the server");
+            Logger::getLogger()->error("Specified object is not defined in the server");
             break;
         case IED_ERROR_INVALID_ADDRESS:
-            LOGGER->error("Specified address is invalid");
+            Logger::getLogger()->error("Specified address is invalid");
             break;
         case IED_ERROR_HARDWARE_FAULT:
-            LOGGER->error("Service failed due to a hardware fault");
+            Logger::getLogger()->error("Service failed due to a hardware fault");
             break;
         case IED_ERROR_TYPE_UNSUPPORTED:
-            LOGGER->error("Requested data type is not supported by the server");
+            Logger::getLogger()->error("Requested data type is not supported by the server");
             break;
         case IED_ERROR_OBJECT_ATTRIBUTE_INCONSISTENT:
-            LOGGER->error("Provided attributes are inconsistent");
+            Logger::getLogger()->error("Provided attributes are inconsistent");
             break;
         case IED_ERROR_OBJECT_VALUE_INVALID:
-            LOGGER->error("Provided object value is invalid");
+            Logger::getLogger()->error("Provided object value is invalid");
             break;
         case IED_ERROR_OBJECT_INVALIDATED:
-            LOGGER->error("Object is invalidated");
+            Logger::getLogger()->error("Object is invalidated");
             break;
         case IED_ERROR_MALFORMED_MESSAGE:
-            LOGGER->error("Received an invalid response message from the server");
+            Logger::getLogger()->error("Received an invalid response message from the server");
             break;
         case IED_ERROR_SERVICE_NOT_IMPLEMENTED:
-            LOGGER->error("Service not implemented");
+            Logger::getLogger()->error("Service not implemented");
             break;
         case IED_ERROR_UNKNOWN:
-            LOGGER->error("Unknown error");
+            Logger::getLogger()->error("Unknown error");
             break;
     }
 }
@@ -352,7 +421,7 @@ PivotTimestamp::~PivotTimestamp()
 
 void
 PivotTimestamp::setTimeInMs(uint64_t ms){
-    uint32_t timeval32 = (uint32_t) (ms/ 1000LL);
+    auto timeval32 = (uint32_t) (ms/ 1000LL);
 
     m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
     m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -554,8 +623,8 @@ IEC61850Client::_monitoringThread()
 }
 
 void
-IEC61850Client::sendData(vector<Datapoint*> datapoints,
-                            const vector<std::string> labels)
+IEC61850Client::sendData(std::vector<Datapoint*> datapoints,
+                            const std::vector<std::string> labels)
 {
     int i = 0;
 
@@ -572,15 +641,15 @@ IEC61850Client::sendData(vector<Datapoint*> datapoints,
 void
 IEC61850Client::handleValues()
 {
-  std::vector<string> labels;
-  vector<Datapoint*> datapoints;
+  std::vector<std::string> labels;
+  std::vector<Datapoint*> datapoints;
 
   for(auto pair: *m_config->ExchangeDefinition()){
     DataExchangeDefinition* def = pair.second;
 
     CDCTYPE typeId = def->cdcType;
     
-    if(isCommandType(typeId)) continue;
+    if(isCommandCdcType(typeId)) continue;
 
     labels.push_back(def->label);
 
@@ -594,7 +663,7 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
 {
   IedClientError error;
   if(!m_active_connection) {
-    LOGGER->error("No active connection");
+    Logger::getLogger()->error("No active connection");
     return;
   }
   
@@ -613,14 +682,14 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
 
   MmsValue* qualityMms = MmsValue_getSubElement(mmsvalue, varSpec,(char*) "q");
   if(!qualityMms){
-    LOGGER->error("No quality found");
+    Logger::getLogger()->error("No quality found");
     return;
   }
   Quality quality = Quality_fromMmsValue(qualityMms);
 
   MmsValue* timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*) "t");
   if(!timestampMms){
-    LOGGER->error("No timestamp found");
+    Logger::getLogger()->error("No timestamp found");
   }
   uint64_t timestamp = MmsValue_getUtcTimeInMs(timestampMms);
   
@@ -628,7 +697,7 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
     case SPS:{
       MmsValue* stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*) "stVal");
       if(!stVal){
-        LOGGER->error("No value found %s", objRef.c_str());
+        Logger::getLogger()->error("No value found %s", objRef.c_str());
         return;
       } 
       bool value = MmsValue_getBoolean(stVal);
@@ -644,7 +713,7 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
     case MV:{
       MmsValue* mag = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag");
       if(!mag){
-        LOGGER->error("No mag found %s", objRef.c_str());
+        Logger::getLogger()->error("No mag found %s", objRef.c_str());
         return;
       }
       MmsValue* i = MmsValue_getSubElement(mag, varSpec, (char *) "i");
@@ -659,14 +728,14 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
         datapoints.push_back(m_createDatapoint(label,objRef,(double)value, quality, timestamp));
         return;
       }
-      LOGGER->error("No value found %s", objRef.c_str());
+      Logger::getLogger()->error("No value found %s", objRef.c_str());
       return;
     }
     case ENS:
     case INS: {
       MmsValue* stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"stVal");
       if(!stVal){
-        LOGGER->error("No stVal found %s", objRef.c_str());
+        Logger::getLogger()->error("No stVal found %s", objRef.c_str());
         return;
       }
       long value = MmsValue_toInt32(stVal);
@@ -674,7 +743,7 @@ IEC61850Client::m_handleMonitoringData(std::string objRef, std::vector<Datapoint
       return;
     }
     default:{
-      LOGGER->error("Invalid cdc type %s" ,objRef.c_str());
+      Logger::getLogger()->error("Invalid cdc type %s" ,objRef.c_str());
     }
   }
   
@@ -788,13 +857,101 @@ IEC61850Client::addValueDp(Datapoint* cdcDp, CDCTYPE type, T value)
       break;
     }
     case BSC:{
-
+        break;
     }
     default:
       {
-        LOGGER->error("Invalid cdcType %d", type);
+        Logger::getLogger()->error("Invalid cdcType %d", type);
         break;
       }
   }
+}
+
+bool
+IEC61850Client::handleOperation(Datapoint* operation){
+  if(!m_outstandingCommands) m_outstandingCommands = new std::unordered_map<std::string, Datapoint*>();
+
+  Datapoint* identifierDp = getChild(operation, "Identifier");
+
+  if(!identifierDp || identifierDp->getData().getType() != DatapointValue::T_STRING){
+    Logger::getLogger()->warn("Operation has no identifier");
+    return false;
+  }
+
+  std::string id = getValueStr(identifierDp);
+
+  DataExchangeDefinition* def = m_config->getExchangeDefinitionByPivotId(id);
+
+  if(!def){
+    Logger::getLogger()->warn("No exchange definition found for pivot id %s", id.c_str());
+    return false;
+  }
+
+  std::string label = def->label;
+
+  std::string objRef = def->objRef;
+
+  Datapoint* cdcDp = getCdc(operation);
+
+  if(!cdcDp){
+      Logger::getLogger()->error("Operation has no cdc");
+      return false;
+  }
+
+  Datapoint* valueDp = getChild(cdcDp, "ctlVal");
+
+  if(!valueDp){
+      Logger::getLogger()->error("Operation has no value");
+      return false;
+  }
+
+  DatapointValue value = valueDp->getData();
+
+  bool res =  m_active_connection->operate(objRef,value);
+
+  (*m_outstandingCommands)[label] = operation;
+
+  return res;
+}
+
+void IEC61850Client::sendCommandAck(const std::string& label, ControlModel mode, bool terminated) {
+    if(!m_outstandingCommands){
+        Logger::getLogger()->error("No outstanding commands");
+        return;
+    }
+
+    auto it = m_outstandingCommands->find(label);
+    if(it == m_outstandingCommands->end()){
+        Logger::getLogger()->error("No outstanding command with label %s found", label.c_str());
+        return;
+    }
+
+    Datapoint* pivotRoot = createDp("PIVOT");
+    Datapoint* command = addElementWithValue(pivotRoot,"GTIC", it->second->getData());
+    int cot = terminated ? 10 : 7;
+    Datapoint* causeDp = nullptr;
+    causeDp = getChild(command,"Cause");
+    if(causeDp){
+        Datapoint* stVal = getChild(causeDp,"stVal");
+        if(!stVal){
+            Logger::getLogger()->error("Cause dp has no stVal");
+            return;
+        }
+        stVal->getData().setValue((long) cot);
+    }
+    else {
+        causeDp = addElement(command, "Cause");
+        addElementWithValue(causeDp, "stVal", (long) cot);
+    }
+
+    std::vector<Datapoint*> datapoints;
+    std::vector<std::string> labels;
+    labels.push_back(label);
+    datapoints.push_back(pivotRoot);
+    sendData(datapoints,labels);
+
+    if (terminated || (!terminated && (mode == CONTROL_MODEL_SBO_NORMAL || mode == CONTROL_MODEL_DIRECT_NORMAL))) {
+        m_outstandingCommands->erase(label);
+    }
 }
 

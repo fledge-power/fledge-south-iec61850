@@ -22,13 +22,13 @@ typedef struct {
     string objRef;
     CDCTYPE cdcType;
     string label;
+    string id;
 } DataExchangeDefinition;
 
 class IEC61850ClientConfig
 {
 public:
     IEC61850ClientConfig() {if(m_exchangeDefinitions) m_exchangeDefinitions->clear();};
-    //IEC61850ClientConfig(const string& protocolConfig, const string& exchangeConfig);
     ~IEC61850ClientConfig();
 
     int LogLevel() {return 1;};
@@ -44,7 +44,7 @@ public:
     std::vector<std::string>& GetCaCertificates() {return m_caCertificates;};
 
     static bool isValidIPAddress(const string& addrStr);
-    
+
     static int getCdcTypeFromString(const std::string& cdc);
 
     std::map<std::string , DataExchangeDefinition*>* ExchangeDefinition() {return m_exchangeDefinitions;};
@@ -54,6 +54,8 @@ public:
     std::string* checkExchangeDataLayer(int typeId, string& objRef);
 
     DataExchangeDefinition* getExchangeDefinitionByLabel(std::string& label);
+    DataExchangeDefinition* getExchangeDefinitionByPivotId(std::string& pivotId);
+
 
     long getPollingInterval(){return pollingInterval;}
 
@@ -66,6 +68,7 @@ private:
     void deleteExchangeDefinitions();
 
     std::map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitions = nullptr;
+    std::map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsPivotId = nullptr;
 
     bool m_protocolConfigComplete = false;
     bool m_exchangeConfigComplete = false;

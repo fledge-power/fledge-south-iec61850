@@ -3,6 +3,7 @@
 
 #include "iec61850_client_config.hpp"
 #include <libiec61850/iec61850_client.h>
+#include "datapoint.h"
 #include <mutex>
 #include <thread>
 
@@ -30,6 +31,8 @@ public:
 
     MmsVariableSpecification* getVariableSpec(IedClientError* error, const char* objRef);
 
+    bool operate(const std::string& objRef, DatapointValue value);
+
 private:
     bool prepareConnection();
     IedConnection m_connection = nullptr; 
@@ -49,6 +52,28 @@ private:
     
     ConState m_connectionState = CON_STATE_IDLE;
 
+    typedef enum {
+      CONTROL_IDLE,
+      CONTROL_WAIT_FOR_SELECT,
+      CONTROL_WAIT_FOR_SELECT_WITH_VALUE,
+      CONTROL_SELECTED,
+      CONTROL_WAIT_FOR_ACT_CON,
+      CONTROL_WAIT_FOR_ACT_TERM
+    } OperationState;
+
+    typedef struct{
+      ControlObjectClient client;
+      OperationState state;
+      ControlModel mode;
+      MmsValue* value;
+      std::string label;
+    } ControlObjectStruct;
+
+
+    std::map<std::string, ControlObjectStruct*>* m_controlObjects = nullptr;
+
+    void m_initialiseControlObjects();
+
     int  m_tcpPort;
     std::string m_serverIp;  
     bool m_connected = false;
@@ -67,6 +92,16 @@ private:
 
     bool m_connect = false; 
     bool m_disconnect = false;
+
+    static void
+    controlActionHandler(uint32_t invokeId, void *parameter, IedClientError err, ControlActionType type, bool success);
+
+    void sendActCon(ControlObjectStruct *cos);
+
+    void sendActTerm(ControlObjectStruct *cos);
+
+    static
+    void commandTerminationHandler(void *parameter, ControlObjectClient connection);
 };
 
 #endif
