@@ -1,10 +1,13 @@
 #ifndef IEC61850_CLIENT_CONFIG_H
 #define IEC61850_CLIENT_CONFIG_H
 
+#include "libiec61850/iec61850_client.h"
 
 #include <logger.h>
 #include <map>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 
@@ -23,7 +26,23 @@ typedef struct {
     CDCTYPE cdcType;
     string label;
     string id;
+    MmsVariableSpecification* spec;
 } DataExchangeDefinition;
+
+typedef struct{
+    std::string rcbRef;
+    std::string datasetRef;
+    int trgops;
+    int buftm;
+    int intgpd;
+} ReportSubscription ;
+
+typedef struct{
+    std::string datasetRef;
+    std::vector<DataExchangeDefinition*>* entries;
+    bool dynamic;
+} Dataset ;
+
 
 class IEC61850ClientConfig
 {
@@ -47,15 +66,18 @@ public:
 
     static int getCdcTypeFromString(const std::string& cdc);
 
-    std::map<std::string , DataExchangeDefinition*>* ExchangeDefinition() {return m_exchangeDefinitions;};
+    std::unordered_map<std::string , DataExchangeDefinition*>* ExchangeDefinition() {return m_exchangeDefinitions;};
 
     static int GetTypeIdByName(const string& name);
 
     std::string* checkExchangeDataLayer(int typeId, string& objRef);
 
-    DataExchangeDefinition* getExchangeDefinitionByLabel(std::string& label);
-    DataExchangeDefinition* getExchangeDefinitionByPivotId(std::string& pivotId);
+    DataExchangeDefinition* getExchangeDefinitionByLabel(const std::string& label);
+    DataExchangeDefinition* getExchangeDefinitionByPivotId(const std::string& pivotId);
+    DataExchangeDefinition* getExchangeDefinitionByObjRef(const std::string& objRef);
 
+    const std::unordered_map<std::string, std::shared_ptr<ReportSubscription>>& getReportSubscriptions() const {return m_reportSubscriptions;};
+    const std::unordered_map<std::string, std::shared_ptr<Dataset>>* getDatasets() const {return m_datasets;};
 
     long getPollingInterval(){return pollingInterval;}
 
@@ -67,8 +89,12 @@ private:
 
     void deleteExchangeDefinitions();
 
-    std::map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitions = nullptr;
-    std::map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsPivotId = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<Dataset>>* m_datasets = nullptr;
+    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitions = nullptr;
+    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsPivotId = nullptr;
+    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsObjRef = nullptr;
+
+    std::unordered_map<std::string, std::shared_ptr<ReportSubscription>> m_reportSubscriptions;
 
     bool m_protocolConfigComplete = false;
     bool m_exchangeConfigComplete = false;

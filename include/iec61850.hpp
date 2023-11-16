@@ -1,7 +1,6 @@
 #ifndef INCLUDE_IEC61850_H_
 #define INCLUDE_IEC61850_H_
 
-#include "libiec61850/iec61850_client.h"
 #include <cstdint>
 #include <logger.h>
 #include <plugin_api.h>
@@ -117,13 +116,15 @@ public:
     
     void prepareConnections();
     
-    void handleValues();
+    void handleValue(std::string objRef, MmsValue* mmsValue);
+    void handleAllValues();
 
     bool handleOperation(Datapoint* operation);
 
     void logIedClientError(IedClientError err, std::string info);
 
     void sendCommandAck(const std::string& label, ControlModel mode, bool terminated);
+
 
 private:
     std::vector<IEC61850ClientConnection*>* m_connections;
@@ -149,14 +150,14 @@ private:
     IEC61850ClientConfig* m_config;
     IEC61850* m_iec61850;
 
-    template <class T> Datapoint* m_createDatapoint(std::string& label, std::string objRef, T value, Quality quality, uint64_t timestampMs);
+    template <class T> Datapoint* m_createDatapoint(const std::string& label, const std::string& objRef, T value, Quality quality, uint64_t timestampMs);
     static int getRootFromCDC(const CDCTYPE cdc);
    
     void addQualityDp(Datapoint* cdcDp, Quality quality);
     void addTimestampDp(Datapoint* cdcDp, uint64_t timestampMs);
     template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value);
 
-    void m_handleMonitoringData(std::string objRef, std::vector<Datapoint*>& datapoints, std::string& label, CDCTYPE type);
+    void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
     std::unordered_map<std::string, Datapoint*>* m_outstandingCommands = nullptr;
 };
 

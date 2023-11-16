@@ -32,7 +32,17 @@
 
 using namespace rapidjson;
 
+static
+std::map<std::string, int> trgOptions = {
+        {"data_changed", TRG_OPT_DATA_CHANGED},
+        {"quality_changed", TRG_OPT_QUALITY_CHANGED},
+        {"data_update", TRG_OPT_DATA_UPDATE},
+        {"integrity", TRG_OPT_INTEGRITY},
+        {"gi", TRG_OPT_GI},
+        {"transient", TRG_OPT_TRANSIENT}
+};
 
+static
 std::map<std::string,CDCTYPE> cdcMap = {
     {"SpsTyp",SPS}, {"DpsTyp",DPS},
     {"BscTyp",BSC}, {"MvTyp",MV},
@@ -49,7 +59,7 @@ IEC61850ClientConfig::getCdcTypeFromString( const std::string& cdc) {
 }
 
 DataExchangeDefinition*
-IEC61850ClientConfig::getExchangeDefinitionByLabel(std::string& label){
+IEC61850ClientConfig::getExchangeDefinitionByLabel(const std::string& label){
   auto it = m_exchangeDefinitions->find(label);
   if(it !=  m_exchangeDefinitions->end()){
     return it->second;
@@ -58,7 +68,7 @@ IEC61850ClientConfig::getExchangeDefinitionByLabel(std::string& label){
 }
 
 DataExchangeDefinition*
-IEC61850ClientConfig::getExchangeDefinitionByPivotId(std::string &pivotId) {
+IEC61850ClientConfig::getExchangeDefinitionByPivotId(const std::string &pivotId) {
     auto it = m_exchangeDefinitionsPivotId->find(pivotId);
     if(it !=  m_exchangeDefinitionsPivotId->end()){
         return it->second;
@@ -90,6 +100,12 @@ IEC61850ClientConfig::deleteExchangeDefinitions() {
   delete m_exchangeDefinitionsPivotId;
 
   m_exchangeDefinitionsPivotId = nullptr;
+
+    if (!m_exchangeDefinitionsObjRef) return;
+
+    delete m_exchangeDefinitionsObjRef;
+
+    m_exchangeDefinitionsObjRef = nullptr;
 }
 
 IEC61850ClientConfig::~IEC61850ClientConfig() { deleteExchangeDefinitions(); }
@@ -180,6 +196,86 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
     }
     pollingInterval = intVal;
   }
+
+  if (applicationLayer.HasMember(JSON_DATASETS) && applicationLayer[JSON_DATASETS].IsArray()) {
+      m_datasets = new std::unordered_map<std::string, std::shared_ptr<Dataset>>();
+      for (const auto& datasetVal : applicationLayer[JSON_DATASETS].GetArray()) {
+          if (!datasetVal.IsObject() || !datasetVal.HasMember(JSON_DATASET_REF) || !datasetVal[JSON_DATASET_REF].IsString()) continue;
+
+          std::string datasetRef = datasetVal[JSON_DATASET_REF].GetString();
+          auto dataset = std::make_shared<Dataset>();
+          dataset->entries = nullptr;
+          if (datasetVal.HasMember(JSON_DATASET_ENTRIES) && datasetVal[JSON_DATASET_ENTRIES].IsArray()) {
+              dataset->entries = new std::vector<DataExchangeDefinition*>();
+              for (const auto& entryVal : datasetVal[JSON_DATASET_ENTRIES].GetArray()) {
+                  if (entryVal.IsString()) {
+                      std::string objref = entryVal.GetString();
+                      DataExchangeDefinition* def = getExchangeDefinitionByObjRef(objref);
+                      if (def) {
+                          Logger::getLogger()->debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
+                          dataset->entries->push_back(def);
+                      }
+                  }
+              }
+          }
+          m_datasets->insert({datasetRef, dataset});
+      }
+    }
+
+    if (!applicationLayer.HasMember(JSON_REPORT_SUBSCRIPTIONS) ||
+        !applicationLayer[JSON_REPORT_SUBSCRIPTIONS].IsArray()) {
+        Logger::getLogger()->error("No report subscriptions are configured");
+        return;
+    }
+
+    for (const auto& reportVal : applicationLayer[JSON_REPORT_SUBSCRIPTIONS].GetArray()) {
+        if (!reportVal.IsObject()) continue;
+        auto report = std::make_shared<ReportSubscription>();
+
+        if (reportVal.HasMember(JSON_RCB_REF) && reportVal[JSON_RCB_REF].IsString()) {
+            report->rcbRef = reportVal[JSON_RCB_REF].GetString();
+        }
+        else{
+            continue;
+        }
+
+        if (reportVal.HasMember(JSON_DATASET_REF) && reportVal[JSON_DATASET_REF].IsString()) {
+            report->datasetRef = reportVal[JSON_DATASET_REF].GetString();
+        }
+        else{
+            report->datasetRef = "";
+        }
+
+        if (reportVal.HasMember(JSON_TRGOPS) && reportVal[JSON_TRGOPS].IsArray()) {
+            for (const auto& trgopVal : reportVal[JSON_TRGOPS].GetArray()) {
+                if (trgopVal.IsString()) {
+                    auto it = trgOptions.find(trgopVal.GetString());
+                    if(it == trgOptions.end()) continue;
+                    report->trgops |= it->second;
+                }
+            }
+        }
+        else{
+            report->trgops = -1;
+        }
+
+        if (reportVal.HasMember("buftm") && reportVal["buftm"].IsInt()) {
+            report->buftm = reportVal["buftm"].GetInt();
+        }
+        else{
+            report->buftm = -1;
+        }
+
+        if (reportVal.HasMember("intgpd") && reportVal["intgpd"].IsInt()) {
+            report->intgpd = reportVal["intgpd"].GetInt();
+        }
+        else{
+            report->intgpd = -1;
+        }
+
+        m_reportSubscriptions.insert({report->rcbRef, std::move(report)});
+    }
+
 }
 
 void
@@ -188,8 +284,9 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
   deleteExchangeDefinitions();
 
-  m_exchangeDefinitions = new std::map<std::string, DataExchangeDefinition*>();
-  m_exchangeDefinitionsPivotId = new std::map<std::string, DataExchangeDefinition*>();
+  m_exchangeDefinitions = new std::unordered_map<std::string, DataExchangeDefinition*>();
+  m_exchangeDefinitionsPivotId = new std::unordered_map<std::string, DataExchangeDefinition*>();
+  m_exchangeDefinitionsObjRef = new std::unordered_map<std::string, DataExchangeDefinition*>();
 
   Document document;
 
@@ -296,8 +393,18 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
       m_exchangeDefinitions->insert({label, def});
       m_exchangeDefinitionsPivotId->insert({pivot_id, def});
+      m_exchangeDefinitionsObjRef->insert({objRef, def});
     }
   }
+}
+
+DataExchangeDefinition*
+IEC61850ClientConfig::getExchangeDefinitionByObjRef(const std::string &objRef) {
+    auto it = m_exchangeDefinitionsObjRef->find(objRef);
+    if(it !=  m_exchangeDefinitionsObjRef->end()){
+        return it->second;
+    }
+    return nullptr;
 }
 
 

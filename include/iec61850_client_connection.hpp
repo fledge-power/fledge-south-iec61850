@@ -27,9 +27,11 @@ public:
     bool Connected() {return m_connected;};
     bool Active() {return m_active;};
 
-    MmsValue* readValue(IedClientError* err, const char* objRef);
+    MmsValue* readValue(IedClientError* err, const char* objRef, FunctionalConstraint fc);
 
-    MmsVariableSpecification* getVariableSpec(IedClientError* error, const char* objRef);
+    MmsValue* readDatasetValues(IedClientError* error, const char* datasetRef);
+
+    MmsVariableSpecification* getVariableSpec(IedClientError* error, const char* objRef, FunctionalConstraint fc);
 
     bool operate(const std::string& objRef, DatapointValue value);
 
@@ -40,6 +42,8 @@ private:
 
     IEC61850Client* m_client;
     IEC61850ClientConfig* m_config;
+
+    static void reportCallbackFunction(void* parameter, ClientReport report);
 
     typedef enum {
         CON_STATE_IDLE,
@@ -71,8 +75,13 @@ private:
 
 
     std::map<std::string, ControlObjectStruct*>* m_controlObjects = nullptr;
+    std::vector<std::pair<IEC61850ClientConnection*,LinkedList>*>* m_connDataSetDirectoryPairs = nullptr;
 
     void m_initialiseControlObjects();
+    void m_configDatasets();
+    void m_configRcb();
+    void m_setVarSpecs();
+
 
     int  m_tcpPort;
     std::string m_serverIp;  
@@ -82,6 +91,7 @@ private:
     bool m_started = false;
 
     std::mutex m_conLock;
+    std::mutex m_reportLock;
     
     uint64_t m_delayExpirationTime;
   

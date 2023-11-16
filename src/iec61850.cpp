@@ -35,8 +35,8 @@ IEC61850::setJsonConfig(const std::string& protocol_stack,
 
   m_config = new IEC61850ClientConfig();
 
-  m_config->importProtocolConfig(protocol_stack);
   m_config->importExchangeConfig(exchanged_data);
+  m_config->importProtocolConfig(protocol_stack);
 //   m_config->importTlsConfig(tls_configuration);
  }
 
@@ -118,7 +118,7 @@ IEC61850::operation(const std::string& operation, int count,
         return false;
     }
 
-    if (operation == "IEC104Command"){
+    if (operation == "PivotCommand"){
         std::string commandContentJSON = params[0]->value;
         
         Datapoint* commandContent;
