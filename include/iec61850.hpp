@@ -29,20 +29,20 @@ class IEC61850Client;
 class PivotTimestamp
 {
 public:
-    PivotTimestamp(Datapoint* timestampData);
-    PivotTimestamp(uint64_t ms);
+    explicit PivotTimestamp(Datapoint* timestampData);
+    explicit PivotTimestamp(uint64_t ms);
     ~PivotTimestamp();
 
     void setTimeInMs(uint64_t ms);
 
-    int SecondSinceEpoch();
-    int FractionOfSecond();
-    uint64_t getTimeInMs();
+    int SecondSinceEpoch() const;
+    int FractionOfSecond() const;
+    uint64_t getTimeInMs() const;
 
-    bool ClockFailure() {return m_clockFailure;};
-    bool LeapSecondKnown() {return m_leapSecondKnown;};
-    bool ClockNotSynchronized() {return m_clockNotSynchronized;};
-    int TimeAccuracy() {return m_timeAccuracy;};
+    bool ClockFailure() const {return m_clockFailure;};
+    bool LeapSecondKnown() const {return m_leapSecondKnown;};
+    bool ClockNotSynchronized() const {return m_clockNotSynchronized;};
+    int TimeAccuracy() const {return m_timeAccuracy;};
 
     static uint64_t GetCurrentTimeInMs();
 
@@ -65,7 +65,7 @@ private:
 class IEC61850
 {
 public:
-    typedef void (*INGEST_CB)(void*, Reading);
+    using INGEST_CB = void (*)(void*, Reading);
 
     IEC61850();
     ~IEC61850();
@@ -90,9 +90,7 @@ private:
 
     std::string m_asset;
 
-protected:
 
-private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
@@ -121,13 +119,13 @@ public:
 
     bool handleOperation(Datapoint* operation);
 
-    void logIedClientError(IedClientError err, std::string info);
+    void logIedClientError(IedClientError err, const std::string& info);
 
     void sendCommandAck(const std::string& label, ControlModel mode, bool terminated);
 
 
 private:
-    std::vector<IEC61850ClientConnection*>* m_connections;
+    std::shared_ptr<std::vector<IEC61850ClientConnection*>> m_connections = nullptr;
     
     IEC61850ClientConnection* m_active_connection = nullptr;
     std::mutex m_activeConnectionMtx;
@@ -158,7 +156,7 @@ private:
     template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value);
 
     void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
-    std::unordered_map<std::string, Datapoint*>* m_outstandingCommands = nullptr;
+    std::shared_ptr<std::unordered_map<std::string, Datapoint*>> m_outstandingCommands = nullptr;
 };
 
 #endif  // INCLUDE_IEC61850_H_

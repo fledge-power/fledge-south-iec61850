@@ -22,10 +22,10 @@ public:
     void Disconnect();
     void Connect();
 
-    bool Disconnected() {return ((m_connecting == false) && (m_connected == false));};
-    bool Connecting() {return m_connecting;};
-    bool Connected() {return m_connected;};
-    bool Active() {return m_active;};
+    bool Disconnected() const {return ((m_connecting == false) && (m_connected == false));};
+    bool Connecting() const {return m_connecting;};
+    bool Connected() const {return m_connected;};
+    bool Active() const {return m_active;};
 
     MmsValue* readValue(IedClientError* err, const char* objRef, FunctionalConstraint fc);
 
@@ -45,37 +45,37 @@ private:
 
     static void reportCallbackFunction(void* parameter, ClientReport report);
 
-    typedef enum {
+    using ConState = enum {
         CON_STATE_IDLE,
         CON_STATE_CONNECTING,
         CON_STATE_CONNECTED,
         CON_STATE_CLOSED,
         CON_STATE_WAIT_FOR_RECONNECT,
         CON_STATE_FATAL_ERROR
-    } ConState;
+    };
     
     ConState m_connectionState = CON_STATE_IDLE;
 
-    typedef enum {
+    using OperationState = enum {
       CONTROL_IDLE,
       CONTROL_WAIT_FOR_SELECT,
       CONTROL_WAIT_FOR_SELECT_WITH_VALUE,
       CONTROL_SELECTED,
       CONTROL_WAIT_FOR_ACT_CON,
       CONTROL_WAIT_FOR_ACT_TERM
-    } OperationState;
+    };
 
-    typedef struct{
+    using ControlObjectStruct = struct{
       ControlObjectClient client;
       OperationState state;
       ControlModel mode;
       MmsValue* value;
       std::string label;
-    } ControlObjectStruct;
+    };
 
 
-    std::map<std::string, ControlObjectStruct*>* m_controlObjects = nullptr;
-    std::vector<std::pair<IEC61850ClientConnection*,LinkedList>*>* m_connDataSetDirectoryPairs = nullptr;
+    std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>>> m_controlObjects = nullptr;
+    std::shared_ptr<std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>>> m_connDataSetDirectoryPairs = nullptr;
 
     void m_initialiseControlObjects();
     void m_configDatasets();
@@ -97,7 +97,7 @@ private:
   
     uint64_t m_nextPollingTime = 0;
     
-    std::thread* m_conThread = nullptr;
+    std::unique_ptr<std::thread> m_conThread = nullptr;
     void _conThread();
 
     bool m_connect = false; 
@@ -106,9 +106,9 @@ private:
     static void
     controlActionHandler(uint32_t invokeId, void *parameter, IedClientError err, ControlActionType type, bool success);
 
-    void sendActCon(ControlObjectStruct *cos);
+    void sendActCon(const ControlObjectStruct *cos);
 
-    void sendActTerm(ControlObjectStruct *cos);
+    void sendActTerm(const ControlObjectStruct *cos);
 
     static
     void commandTerminationHandler(void *parameter, ControlObjectClient connection);

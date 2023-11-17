@@ -12,7 +12,7 @@
 
 
 FunctionalConstraint stringToFunctionalConstraint(const std::string& str) {
-    static const std::map<std::string, FunctionalConstraint> mapping {
+    static const std::unordered_map<std::string, FunctionalConstraint> mapping {
         {"ST", IEC61850_FC_ST}, {"MX", IEC61850_FC_MX}, {"SP", IEC61850_FC_SP},
         {"SV", IEC61850_FC_SV}, {"CF", IEC61850_FC_CF}, {"DC", IEC61850_FC_DC},
         {"SG", IEC61850_FC_SG}, {"SE", IEC61850_FC_SE}, {"SR", IEC61850_FC_SR},
@@ -54,7 +54,7 @@ getMonotonicTimeInMs()
 static long
 getValueInt(Datapoint *dp)
 {
-  DatapointValue &dpv = dp->getData();
+  DatapointValue const &dpv = dp->getData();
 
   if (dpv.getType() == DatapointValue::T_INTEGER)
   {
@@ -77,7 +77,7 @@ getCdc(Datapoint *dp)
     Logger::getLogger()->error("Datapoint is not a dictionary %s", dp->getName().c_str());
   }
 
-  std::vector<Datapoint *> *datapoints = dpv.getDpVec();
+  std::vector<Datapoint *> const *datapoints = dpv.getDpVec();
 
   for (Datapoint *child : *datapoints)
   {
@@ -103,7 +103,7 @@ getChild(Datapoint *dp, const std::string &name)
     return nullptr;
   }
 
-  std::vector<Datapoint *> *datapoints = dpv.getDpVec();
+  std::vector<Datapoint *> const *datapoints = dpv.getDpVec();
 
   if (!datapoints)
   {
@@ -126,7 +126,7 @@ getChild(Datapoint *dp, const std::string &name)
 static std::string
 getValueStr(Datapoint *dp)
 {
-  DatapointValue &dpv = dp->getData();
+  const DatapointValue &dpv = dp->getData();
 
   if (dpv.getType() == DatapointValue::T_STRING)
   {
@@ -198,7 +198,7 @@ addElementWithValue(Datapoint *dp, const std::string &name, const T value)
   return element;
 }
 
-std::map<CDCTYPE, std::string> cdcToStrMap = {
+const std::map<CDCTYPE, std::string> cdcToStrMap = {
     {SPS, "SpsTyp"},
     {DPS, "DpsTyp"},
     {BSC, "BscTyp"},
@@ -208,23 +208,21 @@ std::map<CDCTYPE, std::string> cdcToStrMap = {
     {APC, "ApcTyp"},
     {INC, "IncTyp"}};
 
-std::map<CDCTYPE, PIVOTROOT> rootMap = {
+const std::map<CDCTYPE, PIVOTROOT> rootMap = {
     {SPS, GTIS}, {DPS, GTIS}, {BSC, GTIS}, {MV, GTIM}, {SPC, GTIC}, {DPS, GTIC}, {APC, GTIC}, {INC, GTIC}};
 
-std::map<PIVOTROOT, std::string> rootToStrMap = {
+const std::map<PIVOTROOT, std::string> rootToStrMap = {
     {GTIM, "GTIM"}, {GTIS, "GTIS"}, {GTIC, "GTIC"}};
 
 IEC61850Client::IEC61850Client(IEC61850 *iec61850, IEC61850ClientConfig *iec61850_client_config)
-    : m_iec61850(iec61850),
-      m_config(iec61850_client_config)
+    : m_config(iec61850_client_config),
+      m_iec61850(iec61850)
 {
 }
 
 IEC61850Client::~IEC61850Client()
 {
   stop();
-  delete m_outstandingCommands;
-  delete m_connections;
 }
 
 void IEC61850Client::stop()
@@ -254,7 +252,7 @@ int IEC61850Client::getRootFromCDC(const CDCTYPE cdc)
   return -1;
 }
 
-void IEC61850Client::logIedClientError(IedClientError err, std::string info)
+void IEC61850Client::logIedClientError(IedClientError err, const std::string& info)
 {
   Logger::getLogger()->error("In here : %s", info.c_str());
   switch (err)
@@ -362,34 +360,25 @@ void PivotTimestamp::handleTimeQuality(Datapoint *timeQuality)
 
   if (dpv.getType() == DatapointValue::T_DP_DICT)
   {
-    std::vector<Datapoint *> *datapoints = dpv.getDpVec();
+    std::vector<Datapoint *> const *datapoints = dpv.getDpVec();
 
     for (Datapoint *child : *datapoints)
     {
       if (child->getName() == "clockFailure")
       {
-        if (getValueInt(child) > 0)
-          m_clockFailure = true;
-        else
-          m_clockFailure = false;
+        m_clockFailure = getValueInt(child) > 0;
       }
       else if (child->getName() == "clockNotSynchronized")
       {
-        if (getValueInt(child) > 0)
-          m_clockNotSynchronized = true;
-        else
-          m_clockNotSynchronized = false;
+        m_clockNotSynchronized = getValueInt(child) > 0;
       }
       else if (child->getName() == "leapSecondKnown")
       {
-        if (getValueInt(child) > 0)
-          m_leapSecondKnown = true;
-        else
-          m_leapSecondKnown = false;
+        m_leapSecondKnown = getValueInt(child) > 0;
       }
       else if (child->getName() == "timeAccuracy")
       {
-        m_timeAccuracy = getValueInt(child);
+        m_timeAccuracy = (int) getValueInt(child);
       }
     }
   }
@@ -402,13 +391,13 @@ PivotTimestamp::PivotTimestamp(Datapoint *timestampData)
 
   if (dpv.getType() == DatapointValue::T_DP_DICT)
   {
-    std::vector<Datapoint *> *datapoints = dpv.getDpVec();
+    std::vector<Datapoint *> const *datapoints = dpv.getDpVec();
 
     for (Datapoint *child : *datapoints)
     {
       if (child->getName() == "SecondSinceEpoch")
       {
-        uint32_t secondSinceEpoch = getValueInt(child);
+        auto secondSinceEpoch = (uint32_t) getValueInt(child);
 
         m_valueArray[0] = (secondSinceEpoch / 0x1000000 & 0xff);
         m_valueArray[1] = (secondSinceEpoch / 0x10000 & 0xff);
@@ -417,7 +406,7 @@ PivotTimestamp::PivotTimestamp(Datapoint *timestampData)
       }
       else if (child->getName() == "FractionOfSecond")
       {
-        uint32_t fractionOfSecond = getValueInt(child);
+        auto fractionOfSecond = (uint32_t) getValueInt(child);
 
         m_valueArray[4] = ((fractionOfSecond >> 16) & 0xff);
         m_valueArray[5] = ((fractionOfSecond >> 8) & 0xff);
@@ -434,7 +423,7 @@ PivotTimestamp::PivotTimestamp(Datapoint *timestampData)
 PivotTimestamp::PivotTimestamp(uint64_t ms)
 {
   m_valueArray = new uint8_t[7];
-  uint32_t timeval32 = (uint32_t)(ms / 1000LL);
+  auto timeval32 = (uint32_t)(ms / 1000LL);
 
   m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
   m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -442,7 +431,7 @@ PivotTimestamp::PivotTimestamp(uint64_t ms)
   m_valueArray[3] = (timeval32 & 0xff);
 
   uint32_t remainder = (ms % 1000LL);
-  uint32_t fractionOfSecond = (remainder) * 16777 + ((remainder * 216) / 1000);
+  uint32_t fractionOfSecond = remainder * 16777 + ((remainder * 216) / 1000);
 
   m_valueArray[4] = ((fractionOfSecond >> 16) & 0xff);
   m_valueArray[5] = ((fractionOfSecond >> 8) & 0xff);
@@ -472,7 +461,7 @@ void PivotTimestamp::setTimeInMs(uint64_t ms)
 }
 
 uint64_t
-PivotTimestamp::getTimeInMs()
+PivotTimestamp::getTimeInMs() const
 {
   uint32_t timeval32;
 
@@ -491,10 +480,10 @@ PivotTimestamp::getTimeInMs()
 
   uint64_t msVal = (timeval32 * 1000LL) + remainder;
 
-  return (uint64_t)msVal;
+  return msVal;
 }
 
-int PivotTimestamp::FractionOfSecond()
+int PivotTimestamp::FractionOfSecond() const 
 {
   uint32_t fractionOfSecond = 0;
 
@@ -505,7 +494,7 @@ int PivotTimestamp::FractionOfSecond()
   return fractionOfSecond;
 }
 
-int PivotTimestamp::SecondSinceEpoch()
+int PivotTimestamp::SecondSinceEpoch() const
 {
   int32_t timeval32;
 
@@ -529,7 +518,7 @@ void IEC61850Client::start()
 
 void IEC61850Client::prepareConnections()
 {
-  m_connections = new std::vector<IEC61850ClientConnection *>();
+  m_connections = std::make_shared<std::vector<IEC61850ClientConnection *>>();
   for (RedGroup *redgroup : *m_config->GetConnections())
   {
     Logger::getLogger()->info("Add connection: %s", redgroup->ipAddr.c_str());
@@ -710,7 +699,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
   size_t secondDotPos = objRef.find('.', objRef.find('.') + 1);
   size_t bracketPos = objRef.find('[');
 
-  if (secondDotPos == std::string::npos || bracketPos == std::string::npos)
+  if (bracketPos == std::string::npos)
   {
     Logger::getLogger()->error("String parsing failed in handleValue for objRef: %s", objRef.c_str());
     return;
@@ -720,20 +709,20 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
   std::string fcString;
   FunctionalConstraint fcValue = IEC61850_FC_NONE;
 
-  if (secondDotPos < bracketPos)
-  {
+  if(secondDotPos != std::string::npos) {
     extracted = objRef.substr(secondDotPos + 1, bracketPos - secondDotPos - 1);
-    fcString = objRef.substr(bracketPos + 1, objRef.find(']') - bracketPos - 1);
-    fcValue = stringToFunctionalConstraint(fcString);
+  }
+  
+  fcString = objRef.substr(bracketPos + 1, objRef.find(']') - bracketPos - 1);
+  fcValue = stringToFunctionalConstraint(fcString);
+  if(secondDotPos != std::string::npos) {
     objRef.erase(secondDotPos);
   }
-  else
-  {
-    Logger::getLogger()->error("Invalid format in objRef: %s", objRef.c_str());
-    return;
+  else{
+    objRef.erase(bracketPos);
   }
 
-  DataExchangeDefinition *def = m_config->getExchangeDefinitionByObjRef(objRef);
+  DataExchangeDefinition const *def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
     Logger::getLogger()->debug("No exchange definition found for %s", objRef.c_str());
@@ -777,7 +766,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   DataExchangeDefinition *def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
-    Logger::getLogger()->error("No exchange definition %s", def->objRef.c_str());
+    Logger::getLogger()->error("No exchange definition %s", objRef.c_str());
     return;
   }
 
@@ -791,14 +780,14 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
 
   Quality quality;
 
-  MmsValue *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"q");
+  MmsValue const *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"q");
   if (!qualityMms && attribute!="q")
   {
     quality = QUALITY_VALIDITY_GOOD;
   }
   else quality = Quality_fromMmsValue(qualityMms);
 
-  MmsValue *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"t");
+  MmsValue const *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"t");
   
   uint64_t timestamp;
   if (!timestampMms && attribute!="t")
@@ -812,7 +801,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case SPC:
   case SPS:
   {
-    MmsValue *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
+    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
     if (!stVal)
     {
       if(attribute == "stVal"){
@@ -838,20 +827,26 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case APC:
   case MV:
   {
-    MmsValue *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag");
-    if (!mag)
+    MmsValue const *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag");
+    if (!mag && attribute.substr(0,3) != "mag")
     {
       Logger::getLogger()->error("No mag found %s", objRef.c_str());
       return;
     }
-    MmsValue *i = MmsValue_getSubElement(mag, varSpec, (char *)"i");
+    MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag$i");
+    if(!i && attribute.substr(4,1) == "i") {
+      i = mmsvalue;
+    }
     if (i)
     {
       long value = MmsValue_toInt32(i);
       datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
       return;
     }
-    MmsValue *f = MmsValue_getSubElement(mag, varSpec, (char *)"f");
+    MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag$f");
+    if(!f && attribute.substr(4,1) == "f") {
+      f = mmsvalue;
+    }
     if (f)
     {
       double value = MmsValue_toFloat(f);
@@ -866,7 +861,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case DPC:
   case INC:
   {
-    MmsValue *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
+    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
     if (!stVal)
     {
       Logger::getLogger()->error("No stVal found %s", objRef.c_str());
@@ -893,10 +888,10 @@ IEC61850Client::m_createDatapoint(const std::string &label, const std::string& o
 
   PIVOTROOT root = (PIVOTROOT)getRootFromCDC(def->cdcType);
 
-  Datapoint *rootDp = addElement(pivotDp, rootToStrMap[root]);
+  Datapoint *rootDp = addElement(pivotDp, rootToStrMap.at(root));
   Datapoint *comingFromDp = addElementWithValue(rootDp, "ComingFrom", (std::string) "iec61850");
   Datapoint *identifierDp = addElementWithValue(rootDp, "Identifier", (std::string)def->label);
-  Datapoint *cdcDp = addElement(rootDp, cdcToStrMap[def->cdcType]);
+  Datapoint *cdcDp = addElement(rootDp, cdcToStrMap.at(def->cdcType));
 
   addValueDp(cdcDp, def->cdcType, value);
   addQualityDp(cdcDp, quality);
@@ -1027,7 +1022,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value)
 bool IEC61850Client::handleOperation(Datapoint *operation)
 {
   if (!m_outstandingCommands)
-    m_outstandingCommands = new std::unordered_map<std::string, Datapoint *>();
+    m_outstandingCommands = std::make_shared<std::unordered_map<std::string, Datapoint *>>();
 
   Datapoint *identifierDp = getChild(operation, "Identifier");
 
@@ -1102,6 +1097,7 @@ void IEC61850Client::sendCommandAck(const std::string &label, ControlModel mode,
     if (!stVal)
     {
       Logger::getLogger()->error("Cause dp has no stVal");
+      delete pivotRoot;
       return;
     }
     stVal->getData().setValue((long)cot);

@@ -35,11 +35,12 @@ typedef struct{
     int trgops;
     int buftm;
     int intgpd;
+    bool gi;
 } ReportSubscription ;
 
 typedef struct{
     std::string datasetRef;
-    std::vector<DataExchangeDefinition*>* entries;
+    std::vector<std::string>* entries;
     bool dynamic;
 } Dataset ;
 

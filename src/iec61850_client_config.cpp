@@ -33,7 +33,7 @@
 using namespace rapidjson;
 
 static
-std::map<std::string, int> trgOptions = {
+std::unordered_map<std::string, int> trgOptions = {
         {"data_changed", TRG_OPT_DATA_CHANGED},
         {"quality_changed", TRG_OPT_QUALITY_CHANGED},
         {"data_update", TRG_OPT_DATA_UPDATE},
@@ -43,7 +43,7 @@ std::map<std::string, int> trgOptions = {
 };
 
 static
-std::map<std::string,CDCTYPE> cdcMap = {
+std::unordered_map<std::string,CDCTYPE> cdcMap = {
     {"SpsTyp",SPS}, {"DpsTyp",DPS},
     {"BscTyp",BSC}, {"MvTyp",MV},
     {"SpcTyp",SPC}, {"DpcTyp",DPC},
@@ -204,20 +204,25 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
           std::string datasetRef = datasetVal[JSON_DATASET_REF].GetString();
           auto dataset = std::make_shared<Dataset>();
+          dataset->datasetRef = datasetRef;
           dataset->entries = nullptr;
           if (datasetVal.HasMember(JSON_DATASET_ENTRIES) && datasetVal[JSON_DATASET_ENTRIES].IsArray()) {
-              dataset->entries = new std::vector<DataExchangeDefinition*>();
+              dataset->entries = new std::vector<std::string>();
               for (const auto& entryVal : datasetVal[JSON_DATASET_ENTRIES].GetArray()) {
                   if (entryVal.IsString()) {
                       std::string objref = entryVal.GetString();
-                      DataExchangeDefinition* def = getExchangeDefinitionByObjRef(objref);
-                      if (def) {
-                          Logger::getLogger()->debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
-                          dataset->entries->push_back(def);
-                      }
+                      Logger::getLogger()->debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
+                      dataset->entries->push_back(objref);
                   }
               }
           }
+          if(datasetVal.HasMember("dynamic") && datasetVal["dynamic"].IsBool()){
+            dataset->dynamic = datasetVal["dynamic"].GetBool(); 
+          }
+          else{
+            Logger::getLogger()->warn("Dataset %s has no dynamic value -> defaulting to static", dataset->datasetRef.c_str());
+            dataset->dynamic = false;
+          } 
           m_datasets->insert({datasetRef, dataset});
       }
     }
@@ -271,6 +276,14 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
         }
         else{
             report->intgpd = -1;
+        }
+
+        if(reportVal.HasMember("gi") && reportVal["gi"].IsBool()){
+          report->gi = reportVal["gi"].GetBool();
+        }
+        else{
+          Logger::getLogger()->error("Report %s has no gi value, defaulting to disabled", report->rcbRef.c_str());
+          report->gi = false;
         }
 
         m_reportSubscriptions.insert({report->rcbRef, std::move(report)});

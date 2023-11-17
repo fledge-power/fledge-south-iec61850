@@ -13,12 +13,10 @@ IEC61850ClientConnection::IEC61850ClientConnection(IEC61850Client *client,
                                                    IEC61850ClientConfig *config,
                                                    const std::string &ip,
                                                    const int tcpPort)
+: m_client(client), m_config(config), m_tcpPort(tcpPort), m_serverIp(ip)
 {
-    m_client = client;
-    m_config = config;
-    m_serverIp = ip;
-    m_tcpPort = tcpPort;
 }
+
 
 IEC61850ClientConnection::~IEC61850ClientConnection()
 {
@@ -55,7 +53,6 @@ void IEC61850ClientConnection::commandTerminationHandler(void *parameter, Contro
 
     cos->state = CONTROL_IDLE;
     con->sendActTerm(cos);
-    delete connectionCosPair;
 }
 
 void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info)
@@ -168,16 +165,20 @@ void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, Contro
 
 void IEC61850ClientConnection::m_configDatasets()
 {
-    for (auto pair : *m_config->getDatasets())
+    for (auto const& pair : *m_config->getDatasets())
     {
         IedClientError error;
         std::shared_ptr<Dataset> dataset = pair.second;
+                    Logger::getLogger()->debug("Dataset dynamic %d", dataset->dynamic);
         if (dataset->dynamic)
         {
+            Logger::getLogger()->debug("Create new dataset %s", dataset->datasetRef.c_str());
             LinkedList newDataSetEntries = LinkedList_create();
             for (auto entry : *dataset->entries)
             {
-                LinkedList_add(newDataSetEntries, (void *)entry->objRef.c_str());
+                auto strCopy = new char[entry.length() + 1];
+                std::strcpy(strCopy, entry.c_str());
+                LinkedList_add(newDataSetEntries, (void *)strCopy);  
             }
             IedConnection_createDataSet(m_connection, &error, dataset->datasetRef.c_str(), newDataSetEntries);
             if (error != IED_ERROR_OK)
@@ -195,7 +196,7 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
     IEC61850ClientConnection *con = pair->first;
     LinkedList dataSetDirectory = pair->second;
 
-    MmsValue *dataSetValues = ClientReport_getDataSetValues(report);
+    MmsValue const *dataSetValues = ClientReport_getDataSetValues(report);
 
     Logger::getLogger()->debug("received report for %s with rptId %s\n", ClientReport_getRcbReference(report), ClientReport_getRptId(report));
 
@@ -203,35 +204,28 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
     {
         time_t unixTime = ClientReport_getTimestamp(report) / 1000;
 
-        char timeBuf[30];
-        ctime_r(&unixTime, timeBuf);
-        Logger::getLogger()->debug("  report contains timestamp (%u): %s", (unsigned int)unixTime, timeBuf);
+        Logger::getLogger()->debug("  report contains timestamp (%u)", (unsigned int)unixTime);
     }
 
     if (dataSetDirectory)
     {
-        int i;
-        for (i = 0; i < LinkedList_size(dataSetDirectory); i++)
+        for (int i = 0; i < LinkedList_size(dataSetDirectory); i++)
         {
             ReasonForInclusion reason = ClientReport_getReasonForInclusion(report, i);
 
             if (reason != IEC61850_REASON_NOT_INCLUDED)
             {
-                char valBuffer[500];
-                sprintf(valBuffer, "no value");
 
                 LinkedList entry = LinkedList_get(dataSetDirectory, i);
 
-                char *entryName = (char *)entry->data;
-
+                auto *entryName = (char *)entry->data;
 
                 if (dataSetValues)
                 {
                     MmsValue *value = MmsValue_getElement(dataSetValues, i);
                     if (value)
                     {
-                        MmsValue_printToBuffer(value,valBuffer,500);
-                        Logger::getLogger()->debug("  %s (included for reason %i): %s\n", entryName, reason, valBuffer);
+                        Logger::getLogger()->debug("  %s (included for reason %i)s\n", entryName, reason);
 
                         con->m_client->handleValue(std::string(entryName), value);
                     }
@@ -246,8 +240,11 @@ static int
 configureRcb(const std::shared_ptr<ReportSubscription> &rs, ClientReportControlBlock rcb)
 {
     uint32_t parametersMask = 0;   
-    parametersMask |= RCB_ELEMENT_RESV;
-    // parametersMask |= RCB_ELEMENT_RESV_TMS;
+
+    bool isBuffered = ClientReportControlBlock_isBuffered(rcb);
+
+    if(isBuffered) parametersMask |= RCB_ELEMENT_RESV_TMS;
+    else parametersMask |= RCB_ELEMENT_RESV;
 
     if (rs->trgops != -1)
     {
@@ -264,6 +261,12 @@ configureRcb(const std::shared_ptr<ReportSubscription> &rs, ClientReportControlB
         parametersMask |=  RCB_ELEMENT_INTG_PD;
         ClientReportControlBlock_setIntgPd(rcb, rs->intgpd);
     }
+    if(rs->gi)
+    {   
+        parametersMask |= RCB_ELEMENT_GI;
+        ClientReportControlBlock_setGI(rcb,rs->gi);
+    }
+    
     if (!rs->datasetRef.empty())
     {
         parametersMask |= RCB_ELEMENT_DATSET;
@@ -272,10 +275,9 @@ configureRcb(const std::shared_ptr<ReportSubscription> &rs, ClientReportControlB
         ClientReportControlBlock_setDataSetReference(rcb, modifiedDataSetRef.c_str());
     }
 
-    //if(rs->enabled){
-        ClientReportControlBlock_setRptEna(rcb,true);
-        parametersMask |= RCB_ELEMENT_RPT_ENA;
-    //}
+    ClientReportControlBlock_setRptEna(rcb,true);
+    parametersMask |= RCB_ELEMENT_RPT_ENA;
+    
 
     return parametersMask;
 }
@@ -284,7 +286,7 @@ void IEC61850ClientConnection::m_configRcb()
 {
     if (m_connDataSetDirectoryPairs == nullptr)
     {
-        m_connDataSetDirectoryPairs = new std::vector<std::pair<IEC61850ClientConnection *, LinkedList> *>();
+        m_connDataSetDirectoryPairs = std::make_shared<std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>>>();
     }
 
     for (const auto &pair : m_config->getReportSubscriptions())
@@ -329,7 +331,7 @@ void IEC61850ClientConnection::m_configRcb()
 
         uint32_t parametersMask = configureRcb(rs, rcb);
 
-        auto connDataSetPair = new std::pair<IEC61850ClientConnection *, LinkedList>(this, dataSetDirectory);
+        auto connDataSetPair = std::make_shared<std::pair<IEC61850ClientConnection *, LinkedList>>(this, dataSetDirectory);
         m_connDataSetDirectoryPairs->push_back(connDataSetPair);
 
         IedConnection_installReportHandler(
@@ -337,7 +339,7 @@ void IEC61850ClientConnection::m_configRcb()
             rs->rcbRef.c_str(),
             ClientReportControlBlock_getRptId(rcb),
             reportCallbackFunction,
-            static_cast<void *>(connDataSetPair));
+            static_cast<void *>(connDataSetPair.get()));
         
         IedConnection_setRCBValues(m_connection, &error, rcb,  parametersMask , true);
 
@@ -362,21 +364,21 @@ void IEC61850ClientConnection::m_setVarSpecs()
 
 void IEC61850ClientConnection::m_initialiseControlObjects()
 {
-    m_controlObjects = new std::map<std::string, ControlObjectStruct *>();
+    m_controlObjects = std::make_shared<std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>>>();
 
     for (const auto &entry : *m_config->ExchangeDefinition())
     {
         DataExchangeDefinition *def = entry.second;
         if (def->cdcType < SPC)
             continue;
-        auto *co = new ControlObjectStruct;
-        IedClientError err;
+    IedClientError err;
         IedConnection_readObject(m_connection, &err, def->objRef.c_str(), IEC61850_FC_ST);
         if (err != IED_ERROR_OK)
         {
             m_client->logIedClientError(err, "Initialise control object");
             continue;
         }
+        auto co = std::make_shared<ControlObjectStruct>();
         co->client = ControlObjectClient_create(def->objRef.c_str(), m_connection);
         co->mode = ControlObjectClient_getControlModel(co->client);
         co->state = CONTROL_IDLE;
@@ -423,8 +425,7 @@ void IEC61850ClientConnection::Start()
 
         m_started = true;
 
-        m_conThread = new std::thread(&IEC61850ClientConnection::_conThread, this);
-    }
+        m_conThread.reset(new std::thread(&IEC61850ClientConnection::_conThread, this));    }
 }
 
 void IEC61850ClientConnection::Stop()
@@ -438,17 +439,10 @@ void IEC61850ClientConnection::Stop()
         return;
 
     m_conThread->join();
-    delete m_conThread;
     m_conThread = nullptr;
     if (m_connDataSetDirectoryPairs)
     {
-        for (auto cdsp : *m_connDataSetDirectoryPairs)
-        {
-            delete cdsp;
-        }
-
         m_connDataSetDirectoryPairs->clear();
-        delete m_connDataSetDirectoryPairs;
     }
 }
 
@@ -488,7 +482,7 @@ IEC61850ClientConnection::readValue(IedClientError *error, const char *objRef, F
 MmsValue *
 IEC61850ClientConnection::readDatasetValues(IedClientError *error, const char *datasetRef)
 {
-    ClientDataSet dataset = IedConnection_readDataSetValues(m_connection, error, datasetRef, NULL);
+    ClientDataSet dataset = IedConnection_readDataSetValues(m_connection, error, datasetRef, nullptr);
     if (*error == IED_ERROR_OK)
     {
         return ClientDataSet_getValues(dataset);
@@ -516,7 +510,6 @@ void IEC61850ClientConnection::controlActionHandler(uint32_t invokeId, void *par
             else
             {
                 cos->state = CONTROL_IDLE;
-                delete connectionCosPair;
             }
             connection->sendActCon(cos);
             break;
@@ -528,6 +521,7 @@ void IEC61850ClientConnection::controlActionHandler(uint32_t invokeId, void *par
         }
         case CONTROL_ACTION_TYPE_CANCEL:
         {
+            break;
         }
         }
     }
@@ -536,13 +530,10 @@ void IEC61850ClientConnection::controlActionHandler(uint32_t invokeId, void *par
 void IEC61850ClientConnection::executePeriodicTasks()
 {
     uint64_t currentTime = getMonotonicTimeInMs();
-    if (m_config->getPollingInterval() > 0)
+    if (m_config->getPollingInterval() > 0 && currentTime >= m_nextPollingTime)
     {
-        if (currentTime >= m_nextPollingTime)
-        {
-            m_client->handleAllValues();
-            m_nextPollingTime = currentTime + m_config->getPollingInterval();
-        }
+        m_client->handleAllValues();
+        m_nextPollingTime = currentTime + m_config->getPollingInterval();
     }
 
     if (!m_controlObjects)
@@ -550,13 +541,16 @@ void IEC61850ClientConnection::executePeriodicTasks()
 
     for (const auto &co : *m_controlObjects)
     {
-        ControlObjectStruct *cos = co.second;
+        ControlObjectStruct *cos = co.second.get();
+        
+        auto pair = std::make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, cos);
+
         if (cos->state == CONTROL_IDLE)
             continue;
         else if (cos->state == CONTROL_SELECTED)
         {
             IedClientError error;
-            ControlObjectClient_operateAsync(cos->client, &error, cos->value, 0, controlActionHandler, new std::pair<IEC61850ClientConnection *, ControlObjectStruct *>(this, cos));
+            ControlObjectClient_operateAsync(cos->client, &error, cos->value, 0, controlActionHandler, pair.get());
         }
     }
 }
@@ -724,12 +718,13 @@ void IEC61850ClientConnection::_conThread()
     }
 }
 
-void IEC61850ClientConnection::sendActCon(IEC61850ClientConnection::ControlObjectStruct *cos)
+
+void IEC61850ClientConnection::sendActCon(const IEC61850ClientConnection::ControlObjectStruct *cos)
 {
     m_client->sendCommandAck(cos->label, cos->mode, false);
 }
 
-void IEC61850ClientConnection::sendActTerm(IEC61850ClientConnection::ControlObjectStruct *cos)
+void IEC61850ClientConnection::sendActTerm(const IEC61850ClientConnection::ControlObjectStruct *cos)
 {
     m_client->sendCommandAck(cos->label, cos->mode, true);
 }
@@ -744,7 +739,7 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
         return false;
     }
 
-    ControlObjectStruct *co = it->second;
+    ControlObjectStruct *co = it->second.get();
 
     MmsValue *mmsValue = co->value;
 
@@ -759,7 +754,7 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
         MmsValue_setInt32(mmsValue, (int)value.toInt());
         break;
     case MMS_BIT_STRING:
-        MmsValue_setBitStringFromInteger(mmsValue, value.toInt());
+        MmsValue_setBitStringFromInteger(mmsValue, (uint32_t)value.toInt());
         break;
     case MMS_FLOAT:
         MmsValue_setFloat(mmsValue, (float)value.toDouble());
@@ -770,11 +765,11 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     }
     IedClientError error;
 
-    auto connectionControlPair = new std::pair<IEC61850ClientConnection *, ControlObjectStruct *>(this, co);
+    auto connectionControlPair = make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, co);
 
     if (co->mode == CONTROL_MODEL_DIRECT_ENHANCED || co->mode == CONTROL_MODEL_SBO_ENHANCED)
     {
-        ControlObjectClient_setCommandTerminationHandler(co->client, commandTerminationHandler, connectionControlPair);
+        ControlObjectClient_setCommandTerminationHandler(co->client, commandTerminationHandler, connectionControlPair.get());
     }
 
     switch (co->mode)
@@ -782,15 +777,15 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     case CONTROL_MODEL_DIRECT_ENHANCED:
     case CONTROL_MODEL_DIRECT_NORMAL:
         co->state = CONTROL_WAIT_FOR_ACT_CON;
-        ControlObjectClient_operateAsync(co->client, &error, mmsValue, 0, controlActionHandler, connectionControlPair);
+        ControlObjectClient_operateAsync(co->client, &error, mmsValue, 0, controlActionHandler, connectionControlPair.get());
         break;
     case CONTROL_MODEL_SBO_NORMAL:
         co->state = CONTROL_WAIT_FOR_SELECT;
-        ControlObjectClient_selectAsync(co->client, &error, controlActionHandler, connectionControlPair);
+        ControlObjectClient_selectAsync(co->client, &error, controlActionHandler, connectionControlPair.get());
         break;
     case CONTROL_MODEL_SBO_ENHANCED:
         co->state = CONTROL_WAIT_FOR_SELECT_WITH_VALUE;
-        ControlObjectClient_selectWithValueAsync(co->client, &error, mmsValue, controlActionHandler, connectionControlPair);
+        ControlObjectClient_selectWithValueAsync(co->client, &error, mmsValue, controlActionHandler, connectionControlPair.get());
         break;
     case CONTROL_MODEL_STATUS_ONLY:
         break;

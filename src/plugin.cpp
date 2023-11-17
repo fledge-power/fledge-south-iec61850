@@ -68,7 +68,8 @@ static const char *default_config = QUOTE({
                         {
                             "rcb_ref" : "",
                             "dataset_ref" : "",
-                            "trgops" : ""
+                            "trgops" : "",
+                            "gi" : true
                         }
                     ]
                 }
