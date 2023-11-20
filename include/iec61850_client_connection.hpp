@@ -1,7 +1,8 @@
-#ifndef IEC104_CLIENT_CONNECTION_H
-#define IEC104_CLIENT_CONNECTION_H
+#ifndef IEC61850_CLIENT_CONNECTION_H
+#define IEC61850_CLIENT_CONNECTION_H
 
 #include "iec61850_client_config.hpp"
+#include <gtest/gtest.h>
 #include <libiec61850/iec61850_client.h>
 #include "datapoint.h"
 #include <mutex>
@@ -74,8 +75,8 @@ private:
     };
 
 
-    std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>> m_controlObjects;
-    std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>> m_connDataSetDirectoryPairs;
+    std::unordered_map<std::string, ControlObjectStruct*> m_controlObjects;
+    std::vector<std::pair<IEC61850ClientConnection*,LinkedList>*> m_connDataSetDirectoryPairs;
 
     void m_initialiseControlObjects();
     void m_configDatasets();
@@ -116,6 +117,7 @@ private:
 
     static
     void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
 };
 
 #endif

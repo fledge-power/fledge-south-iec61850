@@ -1,8 +1,9 @@
 #ifndef IEC61850_CLIENT_CONFIG_H
 #define IEC61850_CLIENT_CONFIG_H
 
+#include<gtest/gtest.h>
 #include "libiec61850/iec61850_client.h"
-
+#include "iec61850_utility.hpp"
 #include <logger.h>
 #include <map>
 #include <vector>
@@ -132,6 +133,7 @@ private:
     std::vector<std::string> m_caCertificates;
 
     long pollingInterval = 0;
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
 };
 
 #endif /* IEC61850_CLIENT_CONFIG_H */

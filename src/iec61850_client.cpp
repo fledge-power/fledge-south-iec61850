@@ -62,7 +62,7 @@ getValueInt(Datapoint *dp)
   }
   else
   {
-    Logger::getLogger()->error("Value is not int %s", dp->toJSONProperty().c_str());
+    Iec61850Utility::log_error("Value is not int %s", dp->toJSONProperty().c_str());
   }
   return -1;
 }
@@ -74,7 +74,7 @@ getCdc(Datapoint *dp)
 
   if (dpv.getType() != DatapointValue::T_DP_DICT)
   {
-    Logger::getLogger()->error("Datapoint is not a dictionary %s", dp->getName().c_str());
+    Iec61850Utility::log_error("Datapoint is not a dictionary %s", dp->getName().c_str());
   }
 
   std::vector<Datapoint *> const *datapoints = dpv.getDpVec();
@@ -99,7 +99,7 @@ getChild(Datapoint *dp, const std::string &name)
 
   if (dpv.getType() != DatapointValue::T_DP_DICT)
   {
-    Logger::getLogger()->warn("Datapoint not a dictionary");
+    Iec61850Utility::log_warn("Datapoint not a dictionary");
     return nullptr;
   }
 
@@ -107,7 +107,7 @@ getChild(Datapoint *dp, const std::string &name)
 
   if (!datapoints)
   {
-    Logger::getLogger()->warn("datapoints is nullptr");
+    Iec61850Utility::log_warn("datapoints is nullptr");
     return nullptr;
   }
 
@@ -134,7 +134,7 @@ getValueStr(Datapoint *dp)
   }
   else
   {
-    Logger::getLogger()->error(("datapoint " + dp->getName() + " has mot a std::string value").c_str());
+    Iec61850Utility::log_error(("datapoint " + dp->getName() + " has mot a std::string value").c_str());
   }
 
   return nullptr;
@@ -254,92 +254,92 @@ int IEC61850Client::getRootFromCDC(const CDCTYPE cdc)
 
 void IEC61850Client::logIedClientError(IedClientError err, const std::string& info) const
 {
-  Logger::getLogger()->error("In here : %s", info.c_str());
+  Iec61850Utility::log_error("In here : %s", info.c_str());
   switch (err)
   {
   case IED_ERROR_OK:
-    Logger::getLogger()->info("No error occurred - service request has been successful");
+    Iec61850Utility::log_info("No error occurred - service request has been successful");
     break;
   case IED_ERROR_NOT_CONNECTED:
-    Logger::getLogger()->error("Service request can't be executed because the client is not yet connected");
+    Iec61850Utility::log_error("Service request can't be executed because the client is not yet connected");
     break;
   case IED_ERROR_ALREADY_CONNECTED:
-    Logger::getLogger()->error("Connect service not executed because the client is already connected");
+    Iec61850Utility::log_error("Connect service not executed because the client is already connected");
     break;
   case IED_ERROR_CONNECTION_LOST:
-    Logger::getLogger()->error("Service request can't be executed due to a loss of connection");
+    Iec61850Utility::log_error("Service request can't be executed due to a loss of connection");
     break;
   case IED_ERROR_SERVICE_NOT_SUPPORTED:
-    Logger::getLogger()->error("The service or some given parameters are not supported by the client stack or by the server");
+    Iec61850Utility::log_error("The service or some given parameters are not supported by the client stack or by the server");
     break;
   case IED_ERROR_CONNECTION_REJECTED:
-    Logger::getLogger()->error("Connection rejected by server");
+    Iec61850Utility::log_error("Connection rejected by server");
     break;
   case IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED:
-    Logger::getLogger()->error("Cannot send request because outstanding call limit is reached");
+    Iec61850Utility::log_error("Cannot send request because outstanding call limit is reached");
     break;
   case IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT:
-    Logger::getLogger()->error("API function has been called with an invalid argument");
+    Iec61850Utility::log_error("API function has been called with an invalid argument");
     break;
   case IED_ERROR_ENABLE_REPORT_FAILED_DATASET_MISMATCH:
-    Logger::getLogger()->error("Enable report failed due to dataset mismatch");
+    Iec61850Utility::log_error("Enable report failed due to dataset mismatch");
     break;
   case IED_ERROR_OBJECT_REFERENCE_INVALID:
-    Logger::getLogger()->error("Provided object reference is invalid");
+    Iec61850Utility::log_error("Provided object reference is invalid");
     break;
   case IED_ERROR_UNEXPECTED_VALUE_RECEIVED:
-    Logger::getLogger()->error("Received object is of unexpected type");
+    Iec61850Utility::log_error("Received object is of unexpected type");
     break;
   case IED_ERROR_TIMEOUT:
-    Logger::getLogger()->error("Communication to the server failed with a timeout");
+    Iec61850Utility::log_error("Communication to the server failed with a timeout");
     break;
   case IED_ERROR_ACCESS_DENIED:
-    Logger::getLogger()->error("Access to the requested object/service was denied by the server");
+    Iec61850Utility::log_error("Access to the requested object/service was denied by the server");
     break;
   case IED_ERROR_OBJECT_DOES_NOT_EXIST:
-    Logger::getLogger()->error("Server reported that the requested object does not exist");
+    Iec61850Utility::log_error("Server reported that the requested object does not exist");
     break;
   case IED_ERROR_OBJECT_EXISTS:
-    Logger::getLogger()->error("Server reported that the requested object already exists");
+    Iec61850Utility::log_error("Server reported that the requested object already exists");
     break;
   case IED_ERROR_OBJECT_ACCESS_UNSUPPORTED:
-    Logger::getLogger()->error("Server does not support the requested access method");
+    Iec61850Utility::log_error("Server does not support the requested access method");
     break;
   case IED_ERROR_TYPE_INCONSISTENT:
-    Logger::getLogger()->error("Server expected an object of another type");
+    Iec61850Utility::log_error("Server expected an object of another type");
     break;
   case IED_ERROR_TEMPORARILY_UNAVAILABLE:
-    Logger::getLogger()->error("Object or service is temporarily unavailable");
+    Iec61850Utility::log_error("Object or service is temporarily unavailable");
     break;
   case IED_ERROR_OBJECT_UNDEFINED:
-    Logger::getLogger()->error("Specified object is not defined in the server");
+    Iec61850Utility::log_error("Specified object is not defined in the server");
     break;
   case IED_ERROR_INVALID_ADDRESS:
-    Logger::getLogger()->error("Specified address is invalid");
+    Iec61850Utility::log_error("Specified address is invalid");
     break;
   case IED_ERROR_HARDWARE_FAULT:
-    Logger::getLogger()->error("Service failed due to a hardware fault");
+    Iec61850Utility::log_error("Service failed due to a hardware fault");
     break;
   case IED_ERROR_TYPE_UNSUPPORTED:
-    Logger::getLogger()->error("Requested data type is not supported by the server");
+    Iec61850Utility::log_error("Requested data type is not supported by the server");
     break;
   case IED_ERROR_OBJECT_ATTRIBUTE_INCONSISTENT:
-    Logger::getLogger()->error("Provided attributes are inconsistent");
+    Iec61850Utility::log_error("Provided attributes are inconsistent");
     break;
   case IED_ERROR_OBJECT_VALUE_INVALID:
-    Logger::getLogger()->error("Provided object value is invalid");
+    Iec61850Utility::log_error("Provided object value is invalid");
     break;
   case IED_ERROR_OBJECT_INVALIDATED:
-    Logger::getLogger()->error("Object is invalidated");
+    Iec61850Utility::log_error("Object is invalidated");
     break;
   case IED_ERROR_MALFORMED_MESSAGE:
-    Logger::getLogger()->error("Received an invalid response message from the server");
+    Iec61850Utility::log_error("Received an invalid response message from the server");
     break;
   case IED_ERROR_SERVICE_NOT_IMPLEMENTED:
-    Logger::getLogger()->error("Service not implemented");
+    Iec61850Utility::log_error("Service not implemented");
     break;
   case IED_ERROR_UNKNOWN:
-    Logger::getLogger()->error("Unknown error");
+    Iec61850Utility::log_error("Unknown error");
     break;
   }
 }
@@ -514,7 +514,7 @@ void IEC61850Client::prepareConnections()
   m_connections = std::make_shared<std::vector<IEC61850ClientConnection *>>();
   for (const auto redgroup : m_config->GetConnections())
   {
-    Logger::getLogger()->info("Add connection: %s", redgroup->ipAddr.c_str());
+    Iec61850Utility::log_info("Add connection: %s", redgroup->ipAddr.c_str());
     OsiParameters* osiParameters = nullptr;
     if(redgroup->isOsiParametersEnabled) osiParameters = &redgroup->osiParameters;
     auto connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort, osiParameters);
@@ -633,8 +633,6 @@ void IEC61850Client::_monitoringThread()
 
   for (auto clientConnection : *m_connections)
   {
-    clientConnection->Stop();
-
     delete clientConnection;
   }
 
@@ -680,7 +678,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
   std::vector<std::string> labels;
   std::vector<Datapoint *> datapoints;
 
-  Logger::getLogger()->debug("Handle value %s", objRef.c_str());
+  Iec61850Utility::log_debug("Handle value %s", objRef.c_str());
 
 
   size_t secondDotPos = objRef.find('.', objRef.find('.') + 1);
@@ -688,7 +686,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
 
   if (bracketPos == std::string::npos)
   {
-    Logger::getLogger()->error("String parsing failed in handleValue for objRef: %s", objRef.c_str());
+    Iec61850Utility::log_error("String parsing failed in handleValue for objRef: %s", objRef.c_str());
     return;
   }
 
@@ -712,7 +710,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
   const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
-    Logger::getLogger()->debug("No exchange definition found for %s", objRef.c_str());
+    Iec61850Utility::log_debug("No exchange definition found for %s", objRef.c_str());
     return;
   }
   IedClientError error;
@@ -722,7 +720,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
   labels.push_back(def->label);
 
   m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, mmsValue,extracted, fcValue);
-  Logger::getLogger()->debug("Send %s", datapoints[0]->toJSONProperty().c_str());
+  Iec61850Utility::log_debug("Send %s", datapoints[0]->toJSONProperty().c_str());
   sendData(datapoints, labels);
 }
 
@@ -731,7 +729,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   IedClientError error;
   if (!m_active_connection)
   {
-    Logger::getLogger()->error("No active connection");
+    Iec61850Utility::log_error("No active connection");
     return;
   }
 
@@ -753,7 +751,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
-    Logger::getLogger()->error("No exchange definition %s", objRef.c_str());
+    Iec61850Utility::log_error("No exchange definition %s", objRef.c_str());
     return;
   }
 
@@ -761,7 +759,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
 
   if (!varSpec)
   {
-    Logger::getLogger()->error("No var spec %s", def->objRef.c_str());
+    Iec61850Utility::log_error("No var spec %s", def->objRef.c_str());
     return;
   }
 
@@ -795,7 +793,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
         stVal = mmsvalue;
       }
       else{
-        Logger::getLogger()->error("No value found %s", objRef.c_str());
+        Iec61850Utility::log_error("No value found %s", objRef.c_str());
         return;
       } 
     }
@@ -817,7 +815,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     MmsValue const *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag");
     if (!mag && attribute.substr(0,3) != "mag")
     {
-      Logger::getLogger()->error("No mag found %s", objRef.c_str());
+      Iec61850Utility::log_error("No mag found %s", objRef.c_str());
       return;
     }
     MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$i");
@@ -840,7 +838,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
       datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
       return;
     }
-    Logger::getLogger()->error("No value found %s", objRef.c_str());
+    Iec61850Utility::log_error("No value found %s", objRef.c_str());
     return;
   }
   case ENS:
@@ -855,7 +853,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
         stVal = mmsvalue;
       }
       else{
-        Logger::getLogger()->error("No stVal found %s", objRef.c_str());
+        Iec61850Utility::log_error("No stVal found %s", objRef.c_str());
         return;
       }
     }
@@ -865,7 +863,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   }
   default:
   {
-    Logger::getLogger()->error("Invalid cdc type %s", objRef.c_str());
+    Iec61850Utility::log_error("Invalid cdc type %s", objRef.c_str());
   }
   }
 }
@@ -993,7 +991,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
     }
     else
     {
-      Logger::getLogger()->error("Invalid mag data type");
+      Iec61850Utility::log_error("Invalid mag data type");
     }
     break;
   }
@@ -1003,7 +1001,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
   }
   default:
   {
-    Logger::getLogger()->error("Invalid cdcType %d", type);
+    Iec61850Utility::log_error("Invalid cdcType %d", type);
     break;
   }
   }
@@ -1018,7 +1016,7 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   if (!identifierDp || identifierDp->getData().getType() != DatapointValue::T_STRING)
   {
-    Logger::getLogger()->warn("Operation has no identifier");
+    Iec61850Utility::log_warn("Operation has no identifier");
     return false;
   }
 
@@ -1028,7 +1026,7 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   if (!def)
   {
-    Logger::getLogger()->warn("No exchange definition found for pivot id %s", id.c_str());
+    Iec61850Utility::log_warn("No exchange definition found for pivot id %s", id.c_str());
     return false;
   }
 
@@ -1040,7 +1038,7 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   if (!cdcDp)
   {
-    Logger::getLogger()->error("Operation has no cdc");
+    Iec61850Utility::log_error("Operation has no cdc");
     return false;
   }
 
@@ -1048,7 +1046,7 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   if (!valueDp)
   {
-    Logger::getLogger()->error("Operation has no value");
+    Iec61850Utility::log_error("Operation has no value");
     return false;
   }
 
@@ -1065,14 +1063,14 @@ void IEC61850Client::sendCommandAck(const std::string &label, ControlModel mode,
 {
   if (!m_outstandingCommands)
   {
-    Logger::getLogger()->error("No outstanding commands");
+    Iec61850Utility::log_error("No outstanding commands");
     return;
   }
 
   auto it = m_outstandingCommands->find(label);
   if (it == m_outstandingCommands->end())
   {
-    Logger::getLogger()->error("No outstanding command with label %s found", label.c_str());
+    Iec61850Utility::log_error("No outstanding command with label %s found", label.c_str());
     return;
   }
 
@@ -1086,7 +1084,7 @@ void IEC61850Client::sendCommandAck(const std::string &label, ControlModel mode,
     Datapoint *stVal = getChild(causeDp, "stVal");
     if (!stVal)
     {
-      Logger::getLogger()->error("Cause dp has no stVal");
+      Iec61850Utility::log_error("Cause dp has no stVal");
       delete pivotRoot;
       return;
     }

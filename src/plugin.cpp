@@ -146,7 +146,7 @@ extern "C"
      */
     PLUGIN_INFORMATION *plugin_info()
     {
-        Logger::getLogger()->info("61850 Config is %s", info.config);
+        Iec61850Utility::log_info("61850 Config is %s", info.config);
         return &info;
     }
 
@@ -156,7 +156,7 @@ extern "C"
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)
     {
         IEC61850* iec61850 = nullptr;
-        Logger::getLogger()->info("Initializing the plugin");
+        Iec61850Utility::log_info("Initializing the plugin");
 
         iec61850 = new IEC61850();
 
@@ -184,7 +184,7 @@ extern "C"
     {
         if (!handle) return;
 
-        Logger::getLogger()->info("Starting the plugin");
+        Iec61850Utility::log_info("Starting the plugin");
 
         auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
         iec61850->start();
@@ -230,12 +230,12 @@ extern "C"
         if (config.itemExists("asset"))
         {
             iec61850->setAssetName(config.getValue("asset"));
-            Logger::getLogger()->info(
+            Iec61850Utility::log_info(
                 "61850 plugin restart after reconfigure asset");
             iec61850->start();
         }
         else {
-            Logger::getLogger()->error(
+            Iec61850Utility::log_error(
                 "61850 plugin restart failed");
         }
     }

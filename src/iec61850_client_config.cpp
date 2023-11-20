@@ -106,7 +106,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
   if (document.Parse(protocolConfig.c_str())
           .HasParseError()) {
-    Logger::getLogger()->fatal("Parsing error in protocol configuration");
+    Iec61850Utility::log_fatal("Parsing error in protocol configuration");
     printf("Parsing error in protocol configuration\n");
     return;
   }
@@ -124,7 +124,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
   if (!protocolStack.HasMember(JSON_TRANSPORT_LAYER) ||
       !protocolStack[JSON_TRANSPORT_LAYER].IsObject()) {
-    Logger::getLogger()->fatal("transport layer configuration is missing");
+    Iec61850Utility::log_fatal("transport layer configuration is missing");
     return;
   }
 
@@ -132,7 +132,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
   
   if (!transportLayer.HasMember(JSON_CONNECTIONS) ||
       !transportLayer[JSON_CONNECTIONS].IsArray()){
-    Logger::getLogger()->fatal("no connections are configured");
+    Iec61850Utility::log_fatal("no connections are configured");
     return;
   }
   
@@ -142,13 +142,13 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
    if (connection.HasMember(JSON_IP) && connection[JSON_IP].IsString()){
       std::string srvIp = connection[JSON_IP].GetString();
       if(!isValidIPAddress(srvIp)){
-        Logger::getLogger()->error("Invalid Ip address %s", srvIp.c_str());
+        Iec61850Utility::log_error("Invalid Ip address %s", srvIp.c_str());
         continue;
       }
       if (connection.HasMember(JSON_PORT) && connection[JSON_PORT].IsInt()){
         int portVal = connection[JSON_PORT].GetInt();
         if(portVal <= 0 || portVal >= 65636){
-          Logger::getLogger()->error("Invalid port %d", portVal);
+          Iec61850Utility::log_error("Invalid port %d", portVal);
           continue;
         }
       }
@@ -166,7 +166,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
   
   if (!protocolStack.HasMember(JSON_APPLICATION_LAYER) ||
     !protocolStack[JSON_APPLICATION_LAYER].IsObject()) {
-    Logger::getLogger()->fatal("transport layer configuration is missing");
+    Iec61850Utility::log_fatal("transport layer configuration is missing");
     return;
   }
    
@@ -174,12 +174,12 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
   if(applicationLayer.HasMember(JSON_POLLING_INTERVAL)){
     if(!applicationLayer[JSON_POLLING_INTERVAL].IsInt()){
-      Logger::getLogger()->error("polling_interval has invalid data type");
+      Iec61850Utility::log_error("polling_interval has invalid data type");
       return;
     }
     int intVal = applicationLayer[JSON_POLLING_INTERVAL].GetInt();
     if(intVal < 0){
-      Logger::getLogger()->error("polling_interval must be positive");
+      Iec61850Utility::log_error("polling_interval must be positive");
       return;
     }
     pollingInterval = intVal;
@@ -196,7 +196,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
               for (const auto& entryVal : datasetVal[JSON_DATASET_ENTRIES].GetArray()) {
                   if (entryVal.IsString()) {
                       std::string objref = entryVal.GetString();
-                      Logger::getLogger()->debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
+                      Iec61850Utility::log_debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
                       dataset->entries.push_back(objref);
                   }
               }
@@ -205,7 +205,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
             dataset->dynamic = datasetVal["dynamic"].GetBool(); 
           }
           else{
-            Logger::getLogger()->warn("Dataset %s has no dynamic value -> defaulting to static", dataset->datasetRef.c_str());
+            Iec61850Utility::log_warn("Dataset %s has no dynamic value -> defaulting to static", dataset->datasetRef.c_str());
             dataset->dynamic = false;
           } 
           m_datasets.insert({datasetRef, dataset});
@@ -214,7 +214,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
     if (!applicationLayer.HasMember(JSON_REPORT_SUBSCRIPTIONS) ||
         !applicationLayer[JSON_REPORT_SUBSCRIPTIONS].IsArray()) {
-        Logger::getLogger()->error("No report subscriptions are configured");
+        Iec61850Utility::log_error("No report subscriptions are configured");
         return;
     }
 
@@ -267,7 +267,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
           report->gi = reportVal["gi"].GetBool();
         }
         else{
-          Logger::getLogger()->error("Report %s has no gi value, defaulting to disabled", report->rcbRef.c_str());
+          Iec61850Utility::log_error("Report %s has no gi value, defaulting to disabled", report->rcbRef.c_str());
           report->gi = false;
         }
 
@@ -479,18 +479,18 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
   if (document.Parse(exchangeConfig.c_str())
           .HasParseError()) {
-    Logger::getLogger()->fatal("Parsing error in data exchange configuration");
+    Iec61850Utility::log_fatal("Parsing error in data exchange configuration");
 
     return;
   }
 
   if (!document.IsObject()) {
-    Logger::getLogger()->error("NO DOCUMENT OBJECT FOR EXCHANGED DATA");
+    Iec61850Utility::log_error("NO DOCUMENT OBJECT FOR EXCHANGED DATA");
     return;
   }
   if (!document.HasMember(JSON_EXCHANGED_DATA) ||
       !document[JSON_EXCHANGED_DATA].IsObject()) {
-    Logger::getLogger()->error("EXCHANGED DATA NOT AN OBJECT");
+    Iec61850Utility::log_error("EXCHANGED DATA NOT AN OBJECT");
     return;
   }
 
@@ -498,7 +498,7 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
   if (!exchangeData.HasMember(JSON_DATAPOINTS) ||
       !exchangeData[JSON_DATAPOINTS].IsArray()) {
-        Logger::getLogger()->error("NO EXCHANGED DATA DATAPOINTS");
+        Iec61850Utility::log_error("NO EXCHANGED DATA DATAPOINTS");
     return;
   }
 
@@ -506,18 +506,18 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
   for (const Value& datapoint : datapoints.GetArray()) {
     if (!datapoint.IsObject()){
-      Logger::getLogger()->error("DATAPOINT NOT AN OBJECT");
+      Iec61850Utility::log_error("DATAPOINT NOT AN OBJECT");
       return;
     }
     
     if (!datapoint.HasMember(JSON_LABEL) || !datapoint[JSON_LABEL].IsString()){
-      Logger::getLogger()->error("DATAPOINT MISSING LABEL");
+      Iec61850Utility::log_error("DATAPOINT MISSING LABEL");
       return;
     }
     std::string label = datapoint[JSON_LABEL].GetString();
 
     if (!datapoint.HasMember(JSON_PIVOT_ID) || !datapoint[JSON_PIVOT_ID].IsString()){
-        Logger::getLogger()->error("DATAPOINT MISSING PIVOT ID");
+        Iec61850Utility::log_error("DATAPOINT MISSING PIVOT ID");
         return;
     }
 
@@ -525,13 +525,13 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
     if (!datapoint.HasMember(JSON_PROTOCOLS) ||
         !datapoint[JSON_PROTOCOLS].IsArray()){
-      Logger::getLogger()->error("DATAPOINT MISSING PROTOCOLS ARRAY");
+      Iec61850Utility::log_error("DATAPOINT MISSING PROTOCOLS ARRAY");
       return;
     }
     for (const Value& protocol : datapoint[JSON_PROTOCOLS].GetArray()) {
       if (!protocol.HasMember(JSON_PROT_NAME) ||
           !protocol[JSON_PROT_NAME].IsString()){
-        Logger::getLogger()->error("PROTOCOL MISSING NAME");
+        Iec61850Utility::log_error("PROTOCOL MISSING NAME");
         return;
       }
       std::string protocolName = protocol[JSON_PROT_NAME].GetString();
@@ -541,24 +541,24 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
       } 
       if (!protocol.HasMember(JSON_PROT_OBJ_REF) ||
           !protocol[JSON_PROT_OBJ_REF].IsString()){
-            Logger::getLogger()->error("PROTOCOL HAS NO OBJECT REFERENCE");
+            Iec61850Utility::log_error("PROTOCOL HAS NO OBJECT REFERENCE");
         return;
       }
       if (!protocol.HasMember(JSON_PROT_CDC) ||
           !protocol[JSON_PROT_CDC].IsString()){
-          Logger::getLogger()->error("PROTOCOL HAS NO CDC");
+          Iec61850Utility::log_error("PROTOCOL HAS NO CDC");
           return;
       }
 
       const std::string objRef = protocol[JSON_PROT_OBJ_REF].GetString();
       const std::string typeIdStr = protocol[JSON_PROT_CDC].GetString();
 
-      Logger::getLogger()->info("  address: %s type: %s label: %s \n ", objRef.c_str(), typeIdStr.c_str(), label.c_str());
+      Iec61850Utility::log_info("  address: %s type: %s label: %s \n ", objRef.c_str(), typeIdStr.c_str(), label.c_str());
             
       int typeId = getCdcTypeFromString(typeIdStr);
       
       if(typeId == -1){
-        Logger::getLogger()->error("Invalid CDC type, skip", typeIdStr.c_str());
+        Iec61850Utility::log_error("Invalid CDC type, skip", typeIdStr.c_str());
         continue;
       }
      
@@ -567,7 +567,7 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
       auto it = m_exchangeDefinitions.find(label);
 
       if(it!=m_exchangeDefinitions.end()){
-        Logger::getLogger()->warn("DataExchangeDefinition with label %s already exists -> ignore", label.c_str());
+        Iec61850Utility::log_warn("DataExchangeDefinition with label %s already exists -> ignore", label.c_str());
         continue;
       }
             

@@ -5,6 +5,7 @@
 #include <logger.h>
 #include <plugin_api.h>
 #include <reading.h>
+#include <gtest/gtest.h>
 
 #include <mutex>
 #include <chrono>
@@ -94,6 +95,7 @@ private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
 };
 
 
@@ -157,6 +159,7 @@ private:
 
     void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
     std::shared_ptr<std::unordered_map<std::string, Datapoint*>> m_outstandingCommands = nullptr;
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
 };
 
 #endif  // INCLUDE_IEC61850_H_

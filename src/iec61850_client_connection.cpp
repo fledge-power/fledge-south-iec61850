@@ -44,7 +44,7 @@ void IEC61850ClientConnection::commandTerminationHandler(void *parameter, Contro
     if (lastApplError.error != CONTROL_ERROR_NO_ERROR)
     {
         logControlErrors(lastApplError.addCause, lastApplError.error, std::string(ControlObjectClient_getObjectReference(connection)));
-        Logger::getLogger()->error("Couldn't terminate command");
+        Iec61850Utility::log_error("Couldn't terminate command");
         return;
     }
 
@@ -58,108 +58,108 @@ void IEC61850ClientConnection::commandTerminationHandler(void *parameter, Contro
 
 void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info)
 {
-    Logger::getLogger()->error("In here : %s", info.c_str());
+    Iec61850Utility::log_error("In here : %s", info.c_str());
     switch (addCause)
     {
     case ADD_CAUSE_UNKNOWN:
-        Logger::getLogger()->error("Unknown add cause");
+        Iec61850Utility::log_error("Unknown add cause");
         break;
     case ADD_CAUSE_NOT_SUPPORTED:
-        Logger::getLogger()->error("Add cause not supported");
+        Iec61850Utility::log_error("Add cause not supported");
         break;
     case ADD_CAUSE_BLOCKED_BY_SWITCHING_HIERARCHY:
-        Logger::getLogger()->error("Blocked by switching hierarchy");
+        Iec61850Utility::log_error("Blocked by switching hierarchy");
         break;
     case ADD_CAUSE_SELECT_FAILED:
-        Logger::getLogger()->error("Select failed");
+        Iec61850Utility::log_error("Select failed");
         break;
     case ADD_CAUSE_INVALID_POSITION:
-        Logger::getLogger()->error("Invalid position");
+        Iec61850Utility::log_error("Invalid position");
         break;
     case ADD_CAUSE_POSITION_REACHED:
-        Logger::getLogger()->error("Position reached");
+        Iec61850Utility::log_error("Position reached");
         break;
     case ADD_CAUSE_PARAMETER_CHANGE_IN_EXECUTION:
-        Logger::getLogger()->error("Parameter change in execution");
+        Iec61850Utility::log_error("Parameter change in execution");
         break;
     case ADD_CAUSE_STEP_LIMIT:
-        Logger::getLogger()->error("Step limit reached");
+        Iec61850Utility::log_error("Step limit reached");
         break;
     case ADD_CAUSE_BLOCKED_BY_MODE:
-        Logger::getLogger()->error("Blocked by mode");
+        Iec61850Utility::log_error("Blocked by mode");
         break;
     case ADD_CAUSE_BLOCKED_BY_PROCESS:
-        Logger::getLogger()->error("Blocked by process");
+        Iec61850Utility::log_error("Blocked by process");
         break;
     case ADD_CAUSE_BLOCKED_BY_INTERLOCKING:
-        Logger::getLogger()->error("Blocked by interlocking");
+        Iec61850Utility::log_error("Blocked by interlocking");
         break;
     case ADD_CAUSE_BLOCKED_BY_SYNCHROCHECK:
-        Logger::getLogger()->error("Blocked by synchrocheck");
+        Iec61850Utility::log_error("Blocked by synchrocheck");
         break;
     case ADD_CAUSE_COMMAND_ALREADY_IN_EXECUTION:
-        Logger::getLogger()->error("Command already in execution");
+        Iec61850Utility::log_error("Command already in execution");
         break;
     case ADD_CAUSE_BLOCKED_BY_HEALTH:
-        Logger::getLogger()->error("Blocked by health status");
+        Iec61850Utility::log_error("Blocked by health status");
         break;
     case ADD_CAUSE_1_OF_N_CONTROL:
-        Logger::getLogger()->error("1 of N control error");
+        Iec61850Utility::log_error("1 of N control error");
         break;
     case ADD_CAUSE_ABORTION_BY_CANCEL:
-        Logger::getLogger()->error("Aborted by cancel");
+        Iec61850Utility::log_error("Aborted by cancel");
         break;
     case ADD_CAUSE_TIME_LIMIT_OVER:
-        Logger::getLogger()->error("Time limit exceeded");
+        Iec61850Utility::log_error("Time limit exceeded");
         break;
     case ADD_CAUSE_ABORTION_BY_TRIP:
-        Logger::getLogger()->error("Aborted by trip");
+        Iec61850Utility::log_error("Aborted by trip");
         break;
     case ADD_CAUSE_OBJECT_NOT_SELECTED:
-        Logger::getLogger()->error("Object not selected");
+        Iec61850Utility::log_error("Object not selected");
         break;
     case ADD_CAUSE_OBJECT_ALREADY_SELECTED:
-        Logger::getLogger()->error("Object already selected");
+        Iec61850Utility::log_error("Object already selected");
         break;
     case ADD_CAUSE_NO_ACCESS_AUTHORITY:
-        Logger::getLogger()->error("No access authority");
+        Iec61850Utility::log_error("No access authority");
         break;
     case ADD_CAUSE_ENDED_WITH_OVERSHOOT:
-        Logger::getLogger()->error("Ended with overshoot");
+        Iec61850Utility::log_error("Ended with overshoot");
         break;
     case ADD_CAUSE_ABORTION_DUE_TO_DEVIATION:
-        Logger::getLogger()->error("Aborted due to deviation");
+        Iec61850Utility::log_error("Aborted due to deviation");
         break;
     case ADD_CAUSE_ABORTION_BY_COMMUNICATION_LOSS:
-        Logger::getLogger()->error("Aborted by communication loss");
+        Iec61850Utility::log_error("Aborted by communication loss");
         break;
     case ADD_CAUSE_ABORTION_BY_COMMAND:
-        Logger::getLogger()->error("Aborted by command");
+        Iec61850Utility::log_error("Aborted by command");
         break;
     case ADD_CAUSE_NONE:
-        Logger::getLogger()->info("No add cause error");
+        Iec61850Utility::log_info("No add cause error");
         break;
     case ADD_CAUSE_INCONSISTENT_PARAMETERS:
-        Logger::getLogger()->error("Inconsistent parameters");
+        Iec61850Utility::log_error("Inconsistent parameters");
         break;
     case ADD_CAUSE_LOCKED_BY_OTHER_CLIENT:
-        Logger::getLogger()->error("Locked by another client");
+        Iec61850Utility::log_error("Locked by another client");
         break;
     }
 
     switch (lastApplError)
     {
     case CONTROL_ERROR_NO_ERROR:
-        Logger::getLogger()->info("No last application error");
+        Iec61850Utility::log_info("No last application error");
         break;
     case CONTROL_ERROR_UNKNOWN:
-        Logger::getLogger()->error("Unknown last application error");
+        Iec61850Utility::log_error("Unknown last application error");
         break;
     case CONTROL_ERROR_TIMEOUT_TEST:
-        Logger::getLogger()->error("Timeout test error");
+        Iec61850Utility::log_error("Timeout test error");
         break;
     case CONTROL_ERROR_OPERATOR_TEST:
-        Logger::getLogger()->error("Operator test error");
+        Iec61850Utility::log_error("Operator test error");
         break;
     }
 }
@@ -198,30 +198,42 @@ void IEC61850ClientConnection::m_setOsiConnectionParameters()
 
 void IEC61850ClientConnection::m_configDatasets()
 {
-    for (auto const& pair : m_config->getDatasets())
+    for (const auto& pair : m_config->getDatasets())
     {
         IedClientError error;
         std::shared_ptr<Dataset> dataset = pair.second;
 
         if (dataset->dynamic)
         {
-            Logger::getLogger()->debug("Create new dataset %s", dataset->datasetRef.c_str());
+            Iec61850Utility::log_debug("Create new dataset %s", dataset->datasetRef.c_str());
             LinkedList newDataSetEntries = LinkedList_create();
+
+            if (newDataSetEntries == nullptr) {
+                continue;
+            }
+
             for (const auto &entry : dataset->entries)
             {
-                auto strCopy = new char[entry.length() + 1];
-                std::strcpy(strCopy, entry.c_str());
-                LinkedList_add(newDataSetEntries, (void *)strCopy);  
+                char *strCopy = static_cast<char *>(malloc(entry.length() + 1));
+                if (strCopy != nullptr)
+                {
+                    std::strcpy(strCopy, entry.c_str());
+                    LinkedList_add(newDataSetEntries, static_cast<void *>(strCopy));
+                }
             }
+
             IedConnection_createDataSet(m_connection, &error, dataset->datasetRef.c_str(), newDataSetEntries);
+
             if (error != IED_ERROR_OK)
             {
-                m_client->logIedClientError(error, std::string("Create Dataset"));
+                m_client->logIedClientError(error, "Create Dataset");
             }
-            LinkedList_destroyStatic(newDataSetEntries);
+
+            LinkedList_destroyDeep(newDataSetEntries, free);
         }
     }
 }
+
 
 void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientReport report)
 {
@@ -231,13 +243,13 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
 
     MmsValue const *dataSetValues = ClientReport_getDataSetValues(report);
 
-    Logger::getLogger()->debug("received report for %s with rptId %s\n", ClientReport_getRcbReference(report), ClientReport_getRptId(report));
+    Iec61850Utility::log_debug("received report for %s with rptId %s\n", ClientReport_getRcbReference(report), ClientReport_getRptId(report));
 
     if (ClientReport_hasTimestamp(report))
     {
         time_t unixTime = ClientReport_getTimestamp(report) / 1000;
 
-        Logger::getLogger()->debug("  report contains timestamp (%u)", (unsigned int)unixTime);
+        Iec61850Utility::log_debug("  report contains timestamp (%u)", (unsigned int)unixTime);
     }
 
     if (dataSetDirectory)
@@ -258,7 +270,7 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
                     MmsValue *value = MmsValue_getElement(dataSetValues, i);
                     if (value)
                     {
-                        Logger::getLogger()->debug("  %s (included for reason %i)s\n", entryName, reason);
+                        Iec61850Utility::log_debug("  %s (included for reason %i)s\n", entryName, reason);
 
                         con->m_client->handleValue(std::string(entryName), value);
                     }
@@ -331,13 +343,13 @@ void IEC61850ClientConnection::m_configRcb()
            << ", trgops: " << rs->trgops
            << ", buftm: " << rs->buftm
            << ", intgpd: " << rs->intgpd;
-        Logger::getLogger()->debug("%s", ss.str().c_str());
+        Iec61850Utility::log_debug("%s", ss.str().c_str());
 
         dataSetDirectory = IedConnection_getDataSetDirectory(m_connection, &error, rs->datasetRef.c_str(), nullptr);
 
         if (error != IED_ERROR_OK)
         {
-            Logger::getLogger()->error("Reading data set directory failed!\n");
+            Iec61850Utility::log_error("Reading data set directory failed!\n");
             continue;
         }
 
@@ -345,7 +357,7 @@ void IEC61850ClientConnection::m_configRcb()
 
         if (clientDataSet == nullptr)
         {
-            Logger::getLogger()->error("Failed to read dataset\n");
+            Iec61850Utility::log_error("Failed to read dataset\n");
             continue;
         }
 
@@ -353,13 +365,13 @@ void IEC61850ClientConnection::m_configRcb()
 
         if (error != IED_ERROR_OK)
         {
-            Logger::getLogger()->error("GetRCBValues service error!\n");
+            Iec61850Utility::log_error("GetRCBValues service error!\n");
             continue;
         }
 
         uint32_t parametersMask = configureRcb(rs, rcb);
 
-        auto connDataSetPair = std::make_shared<std::pair<IEC61850ClientConnection *, LinkedList>>(this, dataSetDirectory);
+        auto connDataSetPair = new std::pair<IEC61850ClientConnection *, LinkedList>(this, dataSetDirectory);
         m_connDataSetDirectoryPairs.push_back(connDataSetPair);
 
         IedConnection_installReportHandler(
@@ -367,9 +379,15 @@ void IEC61850ClientConnection::m_configRcb()
             rs->rcbRef.c_str(),
             ClientReportControlBlock_getRptId(rcb),
             reportCallbackFunction,
-            static_cast<void *>(connDataSetPair.get()));
+            static_cast<void *>(connDataSetPair));
         
         IedConnection_setRCBValues(m_connection, &error, rcb,  parametersMask , true);
+
+        if (clientDataSet)
+            ClientDataSet_destroy(clientDataSet);
+
+        if (rcb)
+            ClientReportControlBlock_destroy(rcb);
 
         if (error != IED_ERROR_OK)
         {
@@ -406,7 +424,7 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
             m_client->logIedClientError(err, "Initialise control object");
             continue;
         }
-        auto co = std::make_shared<ControlObjectStruct>();
+        auto co = new ControlObjectStruct;
         co->client = ControlObjectClient_create(def->objRef.c_str(), m_connection);
         co->mode = ControlObjectClient_getControlModel(co->client);
         co->state = CONTROL_IDLE;
@@ -436,11 +454,11 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
         }
         default:
         {
-            Logger::getLogger()->error("Invalid cdc type");
+            Iec61850Utility::log_error("Invalid cdc type");
             return;
         }
         }
-        Logger::getLogger()->debug("Added control object %s , %s ", co->label.c_str(), def->objRef.c_str());
+        Iec61850Utility::log_debug("Added control object %s , %s ", co->label.c_str(), def->objRef.c_str());
         m_controlObjects.insert({def->objRef, co});
     }
 }
@@ -461,16 +479,38 @@ void IEC61850ClientConnection::Stop()
     if (!m_started)
         return;
 
+
+    for(const auto &entry :m_connDataSetDirectoryPairs){
+        LinkedList dataSetDirectory = entry->second;
+        LinkedList_destroy(dataSetDirectory);
+        delete entry;
+    }
+    m_connDataSetDirectoryPairs.clear();
+
+    for(auto& co : m_controlObjects)
+    {
+        ControlObjectStruct* cos = co.second;
+        if (cos && cos->client)
+        {
+            ControlObjectClient_destroy(cos->client);
+            MmsValue_delete(cos->value);
+            delete cos;
+            cos = nullptr;
+        }
+    }
+    m_controlObjects.clear(); 
+
     m_started = false;
 
-    if (!m_conThread)
-        return;
+    if (m_conThread)
+    {
+        m_conThread->join();
+        m_conThread = nullptr;
+    }
 
-    m_conThread->join();
-    m_conThread = nullptr;
-
-    m_connDataSetDirectoryPairs.clear();
+    
 }
+
 
 bool IEC61850ClientConnection::prepareConnection()
 {
@@ -564,7 +604,7 @@ void IEC61850ClientConnection::executePeriodicTasks()
 
     for (const auto &co : m_controlObjects)
     {
-        ControlObjectStruct *cos = co.second.get();
+        ControlObjectStruct *cos = co.second;
         
         auto pair = std::make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, cos);
 
@@ -623,19 +663,19 @@ void IEC61850ClientConnection::_conThread()
 
                     if (error == IED_ERROR_OK)
                     {
-                        Logger::getLogger()->info("Connecting to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                        Iec61850Utility::log_info("Connecting to %s:%d", m_serverIp.c_str(), m_tcpPort);
                         m_connectionState = CON_STATE_CONNECTING;
                     }
 
                     else
                     {
-                        Logger::getLogger()->error("Failed to connect to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                        Iec61850Utility::log_error("Failed to connect to %s:%d", m_serverIp.c_str(), m_tcpPort);
                     }
                 }
                 else
                 {
                     m_connectionState = CON_STATE_FATAL_ERROR;
-                    Logger::getLogger()->error("Fatal configuration error");
+                    Iec61850Utility::log_error("Fatal configuration error");
 
                     m_conLock.unlock();
                 }
@@ -654,13 +694,13 @@ void IEC61850ClientConnection::_conThread()
                 m_initialiseControlObjects();
                 m_configDatasets();
                 m_configRcb();
-                Logger::getLogger()->info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                Iec61850Utility::log_info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
                 m_connectionState = CON_STATE_CONNECTED;
             }
 
             else if (getMonotonicTimeInMs() > m_delayExpirationTime)
             {
-                Logger::getLogger()->warn("Timeout while connecting");
+                Iec61850Utility::log_warn("Timeout while connecting");
                 m_connectionState = CON_STATE_IDLE;
             }
 
@@ -759,11 +799,11 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
 
     if (it == m_controlObjects.end())
     {
-        Logger::getLogger()->error("Control object with objRef %s not found", objRef.c_str());
+        Iec61850Utility::log_error("Control object with objRef %s not found", objRef.c_str());
         return false;
     }
 
-    ControlObjectStruct *co = it->second.get();
+    ControlObjectStruct *co = it->second;
 
     MmsValue *mmsValue = co->value;
 
@@ -784,7 +824,7 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
         MmsValue_setFloat(mmsValue, (float)value.toDouble());
         break;
     default:
-        Logger::getLogger()->error("Invalid mms value type");
+        Iec61850Utility::log_error("Invalid mms value type");
         return false;
     }
     IedClientError error;
