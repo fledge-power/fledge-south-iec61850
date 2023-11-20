@@ -890,7 +890,7 @@ IEC61850Client::m_createDatapoint(const std::string &label, const std::string& o
   return pivotDp;
 }
 
-void IEC61850Client::addQualityDp(Datapoint *cdcDp, Quality quality)
+void IEC61850Client::addQualityDp(Datapoint *cdcDp, Quality quality) const
 {
   Datapoint *qualityDp = addElement(cdcDp, "q");
   addElementWithValue(qualityDp, "test", (long)Quality_isFlagSet(&quality, QUALITY_TEST));
@@ -939,7 +939,7 @@ void IEC61850Client::addQualityDp(Datapoint *cdcDp, Quality quality)
   }
 }
 
-void IEC61850Client::addTimestampDp(Datapoint *cdcDp, uint64_t timestampMs)
+void IEC61850Client::addTimestampDp(Datapoint *cdcDp, uint64_t timestampMs) const
 {
   std::unique_ptr<PivotTimestamp> ts(new PivotTimestamp(timestampMs));
   Datapoint *tsDp = addElement(cdcDp, "t");
@@ -948,7 +948,7 @@ void IEC61850Client::addTimestampDp(Datapoint *cdcDp, uint64_t timestampMs)
 }
 
 template <class T>
-void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value)
+void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
 {
   switch (type)
   {

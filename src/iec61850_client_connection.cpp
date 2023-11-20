@@ -284,11 +284,6 @@ configureRcb(const std::shared_ptr<ReportSubscription> &rs, ClientReportControlB
 
 void IEC61850ClientConnection::m_configRcb()
 {
-    if (m_connDataSetDirectoryPairs == nullptr)
-    {
-        m_connDataSetDirectoryPairs = std::make_shared<std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>>>();
-    }
-
     for (const auto &pair : m_config->getReportSubscriptions())
     {
         IedClientError error;
@@ -332,7 +327,7 @@ void IEC61850ClientConnection::m_configRcb()
         uint32_t parametersMask = configureRcb(rs, rcb);
 
         auto connDataSetPair = std::make_shared<std::pair<IEC61850ClientConnection *, LinkedList>>(this, dataSetDirectory);
-        m_connDataSetDirectoryPairs->push_back(connDataSetPair);
+        m_connDataSetDirectoryPairs.push_back(connDataSetPair);
 
         IedConnection_installReportHandler(
             m_connection,
@@ -366,8 +361,6 @@ void IEC61850ClientConnection::m_setVarSpecs()
 
 void IEC61850ClientConnection::m_initialiseControlObjects()
 {
-    m_controlObjects = std::make_shared<std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>>>();
-
     for (const auto &entry : m_config->ExchangeDefinition())
     {
         auto def = entry.second;
@@ -415,7 +408,7 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
         }
         }
         Logger::getLogger()->debug("Added control object %s , %s ", co->label.c_str(), def->objRef.c_str());
-        m_controlObjects->insert({def->objRef, co});
+        m_controlObjects.insert({def->objRef, co});
     }
 }
 
@@ -442,10 +435,8 @@ void IEC61850ClientConnection::Stop()
 
     m_conThread->join();
     m_conThread = nullptr;
-    if (m_connDataSetDirectoryPairs)
-    {
-        m_connDataSetDirectoryPairs->clear();
-    }
+
+    m_connDataSetDirectoryPairs.clear();
 }
 
 bool IEC61850ClientConnection::prepareConnection()
@@ -538,10 +529,7 @@ void IEC61850ClientConnection::executePeriodicTasks()
         m_nextPollingTime = currentTime + m_config->getPollingInterval();
     }
 
-    if (!m_controlObjects)
-        return;
-
-    for (const auto &co : *m_controlObjects)
+    for (const auto &co : m_controlObjects)
     {
         ControlObjectStruct *cos = co.second.get();
         
@@ -733,9 +721,9 @@ void IEC61850ClientConnection::sendActTerm(const IEC61850ClientConnection::Contr
 
 bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue value)
 {
-    auto it = m_controlObjects->find(objRef);
+    auto it = m_controlObjects.find(objRef);
 
-    if (it == m_controlObjects->end())
+    if (it == m_controlObjects.end())
     {
         Logger::getLogger()->error("Control object with objRef %s not found", objRef.c_str());
         return false;

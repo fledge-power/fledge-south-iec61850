@@ -74,8 +74,8 @@ private:
     };
 
 
-    std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>>> m_controlObjects = nullptr;
-    std::shared_ptr<std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>>> m_connDataSetDirectoryPairs = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>> m_controlObjects;
+    std::vector<std::shared_ptr<std::pair<IEC61850ClientConnection*,LinkedList>>> m_connDataSetDirectoryPairs;
 
     void m_initialiseControlObjects();
     void m_configDatasets();

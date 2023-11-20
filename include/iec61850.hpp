@@ -151,9 +151,9 @@ private:
     template <class T> Datapoint* m_createDatapoint(const std::string& label, const std::string& objRef, T value, Quality quality, uint64_t timestampMs);
     static int getRootFromCDC(const CDCTYPE cdc);
    
-    void addQualityDp(Datapoint* cdcDp, Quality quality);
-    void addTimestampDp(Datapoint* cdcDp, uint64_t timestampMs);
-    template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value);
+    void addQualityDp(Datapoint* cdcDp, Quality quality) const;
+    void addTimestampDp(Datapoint* cdcDp, uint64_t timestampMs) const;
+    template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value) const;
 
     void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
     std::shared_ptr<std::unordered_map<std::string, Datapoint*>> m_outstandingCommands = nullptr;
