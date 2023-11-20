@@ -515,7 +515,9 @@ void IEC61850Client::prepareConnections()
   for (const auto redgroup : m_config->GetConnections())
   {
     Logger::getLogger()->info("Add connection: %s", redgroup->ipAddr.c_str());
-    auto connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort);
+    OsiParameters* osiParameters = nullptr;
+    if(redgroup->isOsiParametersEnabled) osiParameters = &redgroup->osiParameters;
+    auto connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort, osiParameters);
 
     m_connections->push_back(connection);
   }

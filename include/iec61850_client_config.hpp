@@ -14,33 +14,55 @@
 typedef enum { GTIS, GTIM, GTIC } PIVOTROOT;
 typedef enum { SPS, DPS, BSC, MV, INS, ENS, SPC, DPC, APC, INC } CDCTYPE;
 
-typedef struct{
+class ConfigurationException: public std::logic_error
+{
+    public:
+        explicit ConfigurationException(std::string const &msg):
+            std::logic_error("Configuration exception: " + msg) {}
+};
+
+using OsiSelectorSize = uint8_t;
+struct OsiParameters{
+    std::string localApTitle{""};
+    int localAeQualifier{0};
+    std::string remoteApTitle{""};
+    int remoteAeQualifier{0};
+    TSelector localTSelector;
+    TSelector remoteTSelector;
+    SSelector localSSelector;
+    SSelector remoteSSelector;
+    PSelector localPSelector;
+    PSelector remotePSelector;
+};
+
+struct RedGroup{
   std::string ipAddr;
   int tcpPort;
-} RedGroup;
+  OsiParameters osiParameters;
+  bool isOsiParametersEnabled;
+} ;
 
-typedef struct {
+struct DataExchangeDefinition{
     std::string objRef;
     CDCTYPE cdcType;
     std::string label;
     std::string id;
     MmsVariableSpecification* spec;
-} DataExchangeDefinition;
-
-typedef struct{
+} ;
+struct ReportSubscription{
     std::string rcbRef;
     std::string datasetRef;
     int trgops;
     int buftm;
     int intgpd;
     bool gi;
-} ReportSubscription ;
+}  ;
 
-typedef struct{
+struct Dataset{
     std::string datasetRef;
     std::vector<std::string> entries;
     bool dynamic;
-} Dataset ;
+} ;
 
 
 class IEC61850ClientConfig
@@ -52,7 +74,13 @@ public:
     int LogLevel() const{return 1;};
 
     void importProtocolConfig(const std::string& protocolConfig);
-    void importExchangeConfig(const std::string& exchangeConfig);
+    void importJsonConnectionOsiConfig(const rapidjson::Value &connOsiConfig, RedGroup &iedConnectionParam);
+    void importJsonConnectionOsiSelectors(const rapidjson::Value &connOsiConfig, OsiParameters *osiParams);
+    OsiSelectorSize parseOsiPSelector(std::string &inputOsiSelector, PSelector *pselector);
+    OsiSelectorSize parseOsiSSelector(std::string &inputOsiSelector, SSelector *sselector);
+    OsiSelectorSize parseOsiTSelector(std::string &inputOsiSelector, TSelector *tselector);
+    OsiSelectorSize parseOsiSelector(std::string &inputOsiSelector, uint8_t *selectorValue, const uint8_t selectorSize);
+    void importExchangeConfig(const std::string &exchangeConfig);
     void importTlsConfig(const std::string& tlsConfig);
 
     std::vector<std::shared_ptr<RedGroup>>& GetConnections(){return m_connections;};

@@ -12,8 +12,9 @@
 IEC61850ClientConnection::IEC61850ClientConnection(IEC61850Client *client,
                                                    IEC61850ClientConfig *config,
                                                    const std::string &ip,
-                                                   const int tcpPort)
-: m_client(client), m_config(config), m_tcpPort(tcpPort), m_serverIp(ip)
+                                                   const int tcpPort,
+                                                   OsiParameters* osiParameters)
+: m_client(client), m_config(config), m_osiParameters(osiParameters), m_tcpPort(tcpPort), m_serverIp(ip)
 {
 }
 
@@ -162,6 +163,38 @@ void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, Contro
         break;
     }
 }
+
+void IEC61850ClientConnection::m_setOsiConnectionParameters()
+{
+    MmsConnection mmsConnection = IedConnection_getMmsConnection(m_connection);
+    IsoConnectionParameters libiecIsoParams = MmsConnection_getIsoConnectionParameters(mmsConnection);
+    const OsiParameters &osiParams = *m_osiParameters;
+
+    // set Remote 'AP Title' and 'AE Qualifier'
+    if (! osiParams.remoteApTitle.empty()) {
+        IsoConnectionParameters_setRemoteApTitle(libiecIsoParams,
+                osiParams.remoteApTitle.c_str(),
+                osiParams.remoteAeQualifier);
+    }
+
+    // set Local 'AP Title' and 'AE Qualifier'
+    if (! osiParams.localApTitle.empty()) {
+        IsoConnectionParameters_setLocalApTitle(libiecIsoParams,
+                                                osiParams.localApTitle.c_str(),
+                                                osiParams.localAeQualifier);
+    }
+
+    /* change parameters for presentation, session and transport layers */
+    IsoConnectionParameters_setRemoteAddresses(libiecIsoParams,
+            osiParams.remotePSelector,
+            osiParams.remoteSSelector,
+            osiParams.localTSelector);
+    IsoConnectionParameters_setLocalAddresses(libiecIsoParams,
+            osiParams.localPSelector,
+            osiParams.localSSelector,
+            osiParams.remoteTSelector);
+}
+
 
 void IEC61850ClientConnection::m_configDatasets()
 {
@@ -584,7 +617,8 @@ void IEC61850ClientConnection::_conThread()
                     m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
 
                     m_conLock.unlock();
-
+                    
+                    if(m_osiParameters) m_setOsiConnectionParameters();
                     IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
 
                     if (error == IED_ERROR_OK)

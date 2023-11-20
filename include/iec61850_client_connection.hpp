@@ -12,7 +12,7 @@ class IEC61850Client;
 class IEC61850ClientConnection
 {
 public:
-    IEC61850ClientConnection(IEC61850Client* client, IEC61850ClientConfig* config, const std::string& ip, int tcpPort);
+    IEC61850ClientConnection(IEC61850Client* client, IEC61850ClientConfig* config, const std::string& ip, int tcpPort, OsiParameters* osiParameters);
     ~IEC61850ClientConnection();
 
     void Start();
@@ -81,8 +81,9 @@ private:
     void m_configDatasets();
     void m_configRcb();
     void m_setVarSpecs();
+    void m_setOsiConnectionParameters();
 
-
+    OsiParameters* m_osiParameters;
     int  m_tcpPort;
     std::string m_serverIp;  
     bool m_connected = false;
