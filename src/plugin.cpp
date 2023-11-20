@@ -213,7 +213,7 @@ extern "C"
     /**
      * Reconfigure the plugin
      */
-    void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig)
+    void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
     {
         ConfigCategory config("newConfig", newConfig);
         auto *iec61850 = reinterpret_cast<IEC61850 *>(*handle);
@@ -255,7 +255,7 @@ extern "C"
      * plugin plugin_write entry point
      * NOT USED
      */
-    bool plugin_write(PLUGIN_HANDLE *handle, string &name, string &value)
+    bool plugin_write(PLUGIN_HANDLE *handle, std::string &name, std::string &value)
     {
         return false;
     }
@@ -263,7 +263,7 @@ extern "C"
     /**
      * plugin plugin_operation entry point
      */
-    bool plugin_operation(PLUGIN_HANDLE *handle, string &operation, int count,
+    bool plugin_operation(PLUGIN_HANDLE *handle, std::string &operation, int count,
                           PLUGIN_PARAMETER **params)
     {
         if (!handle) throw exception();

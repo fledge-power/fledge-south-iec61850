@@ -252,7 +252,7 @@ int IEC61850Client::getRootFromCDC(const CDCTYPE cdc)
   return -1;
 }
 
-void IEC61850Client::logIedClientError(IedClientError err, const std::string& info)
+void IEC61850Client::logIedClientError(IedClientError err, const std::string& info) const
 {
   Logger::getLogger()->error("In here : %s", info.c_str());
   switch (err)
@@ -387,7 +387,6 @@ void PivotTimestamp::handleTimeQuality(Datapoint *timeQuality)
 PivotTimestamp::PivotTimestamp(Datapoint *timestampData)
 {
   DatapointValue &dpv = timestampData->getData();
-  m_valueArray = new uint8_t[7];
 
   if (dpv.getType() == DatapointValue::T_DP_DICT)
   {
@@ -422,7 +421,6 @@ PivotTimestamp::PivotTimestamp(Datapoint *timestampData)
 
 PivotTimestamp::PivotTimestamp(uint64_t ms)
 {
-  m_valueArray = new uint8_t[7];
   auto timeval32 = (uint32_t)(ms / 1000LL);
 
   m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
@@ -438,11 +436,6 @@ PivotTimestamp::PivotTimestamp(uint64_t ms)
   m_valueArray[6] = (fractionOfSecond & 0xff);
 }
 
-PivotTimestamp::~PivotTimestamp()
-{
-  delete[] m_valueArray;
-}
-
 void PivotTimestamp::setTimeInMs(uint64_t ms)
 {
   auto timeval32 = (uint32_t)(ms / 1000LL);
@@ -453,7 +446,7 @@ void PivotTimestamp::setTimeInMs(uint64_t ms)
   m_valueArray[3] = (timeval32 & 0xff);
 
   uint32_t remainder = (ms % 1000LL);
-  uint32_t fractionOfSecond = (remainder) * 16777 + ((remainder * 216) / 1000);
+  uint32_t fractionOfSecond = remainder * 16777 + ((remainder * 216) / 1000);
 
   m_valueArray[4] = ((fractionOfSecond >> 16) & 0xff);
   m_valueArray[5] = ((fractionOfSecond >> 8) & 0xff);
@@ -519,10 +512,10 @@ void IEC61850Client::start()
 void IEC61850Client::prepareConnections()
 {
   m_connections = std::make_shared<std::vector<IEC61850ClientConnection *>>();
-  for (RedGroup *redgroup : *m_config->GetConnections())
+  for (const auto redgroup : m_config->GetConnections())
   {
     Logger::getLogger()->info("Add connection: %s", redgroup->ipAddr.c_str());
-    IEC61850ClientConnection *connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort);
+    auto connection = new IEC61850ClientConnection(this, m_config, redgroup->ipAddr, redgroup->tcpPort);
 
     m_connections->push_back(connection);
   }
@@ -553,8 +546,6 @@ void IEC61850Client::_monitoringThread()
   }
 
   updateConnectionStatus(ConnectionStatus::NOT_CONNECTED);
-
-  // updateQualityForAllDataObjects(IEC60870_QUALITY_INVALID);
 
   uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
 
@@ -600,7 +591,6 @@ void IEC61850Client::_monitoringThread()
             {
               if (getMonotonicTimeInMs() > qualityUpdateTimer)
               {
-                // updateQualityForAllDataObjects(IEC60870_QUALITY_NON_TOPICAL);
                 qualityUpdated = true;
               }
             }
@@ -630,10 +620,6 @@ void IEC61850Client::_monitoringThread()
     else
     {
       backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
-
-      if (m_active_connection->Connected() == false)
-      {
-      }
     }
 
     m_activeConnectionMtx.unlock();
@@ -653,8 +639,8 @@ void IEC61850Client::_monitoringThread()
   m_connections->clear();
 }
 
-void IEC61850Client::sendData(std::vector<Datapoint *> datapoints,
-                              const std::vector<std::string> labels)
+void IEC61850Client::sendData(const std::vector<Datapoint *>& datapoints,
+                              const std::vector<std::string>& labels)
 {
   int i = 0;
 
@@ -673,13 +659,12 @@ void IEC61850Client::handleAllValues()
   std::vector<std::string> labels;
   std::vector<Datapoint *> datapoints;
 
-  for (auto pair : *m_config->ExchangeDefinition())
+  for (const auto &pair : m_config->ExchangeDefinition())
   {
-    DataExchangeDefinition *def = pair.second;
+    const std::shared_ptr<DataExchangeDefinition> def = pair.second;
 
     CDCTYPE typeId = def->cdcType;
 
-    IedClientError error;
     labels.push_back(def->label);
     FunctionalConstraint fc = def->cdcType == MV || def->cdcType == APC ? IEC61850_FC_MX : IEC61850_FC_ST;
 
@@ -722,7 +707,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
     objRef.erase(bracketPos);
   }
 
-  DataExchangeDefinition const *def = m_config->getExchangeDefinitionByObjRef(objRef);
+  const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
     Logger::getLogger()->debug("No exchange definition found for %s", objRef.c_str());
@@ -763,7 +748,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     mmsvalue = mmsVal;
   }
 
-  DataExchangeDefinition *def = m_config->getExchangeDefinitionByObjRef(objRef);
+  const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByObjRef(objRef);
 
   if(!def){
     Logger::getLogger()->error("No exchange definition %s", objRef.c_str());
@@ -780,14 +765,14 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
 
   Quality quality;
 
-  MmsValue const *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"q");
+  MmsValue const *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"q");
   if (!qualityMms && attribute!="q")
   {
     quality = QUALITY_VALIDITY_GOOD;
   }
   else quality = Quality_fromMmsValue(qualityMms);
 
-  MmsValue const *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"t");
+  MmsValue const *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"t");
   
   uint64_t timestamp;
   if (!timestampMms && attribute!="t")
@@ -801,7 +786,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case SPC:
   case SPS:
   {
-    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
+    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"stVal");
     if (!stVal)
     {
       if(attribute == "stVal"){
@@ -827,30 +812,30 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case APC:
   case MV:
   {
-    MmsValue const *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag");
+    MmsValue const *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag");
     if (!mag && attribute.substr(0,3) != "mag")
     {
       Logger::getLogger()->error("No mag found %s", objRef.c_str());
       return;
     }
-    MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag$i");
+    MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$i");
     if(!i && attribute.substr(4,1) == "i") {
       i = mmsvalue;
     }
     if (i)
     {
       long value = MmsValue_toInt32(i);
-      datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
+      datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
       return;
     }
-    MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"mag$f");
+    MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$f");
     if(!f && attribute.substr(4,1) == "f") {
       f = mmsvalue;
     }
     if (f)
     {
       double value = MmsValue_toFloat(f);
-      datapoints.push_back(m_createDatapoint(label, objRef, (double)value, quality, timestamp));
+      datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
       return;
     }
     Logger::getLogger()->error("No value found %s", objRef.c_str());
@@ -861,14 +846,19 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
   case DPC:
   case INC:
   {
-    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char *)"stVal");
+    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"stVal");
     if (!stVal)
     {
-      Logger::getLogger()->error("No stVal found %s", objRef.c_str());
-      return;
+      if(attribute == "stVal"){
+        stVal = mmsvalue;
+      }
+      else{
+        Logger::getLogger()->error("No stVal found %s", objRef.c_str());
+        return;
+      }
     }
     long value = MmsValue_toInt32(stVal);
-    datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
+    datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
     return;
   }
   default:
@@ -882,15 +872,15 @@ template <class T>
 Datapoint *
 IEC61850Client::m_createDatapoint(const std::string &label, const std::string& objRef, T value, Quality quality, uint64_t timestamp)
 {
-  DataExchangeDefinition *def = m_config->getExchangeDefinitionByLabel(label);
+  auto def = m_config->getExchangeDefinitionByLabel(label);
 
   Datapoint *pivotDp = createDp("PIVOT");
 
-  PIVOTROOT root = (PIVOTROOT)getRootFromCDC(def->cdcType);
+  auto root = (PIVOTROOT)getRootFromCDC(def->cdcType);
 
   Datapoint *rootDp = addElement(pivotDp, rootToStrMap.at(root));
-  Datapoint *comingFromDp = addElementWithValue(rootDp, "ComingFrom", (std::string) "iec61850");
-  Datapoint *identifierDp = addElementWithValue(rootDp, "Identifier", (std::string)def->label);
+  addElementWithValue(rootDp, "ComingFrom", (std::string) "iec61850");
+  addElementWithValue(rootDp, "Identifier", (std::string)def->label);
   Datapoint *cdcDp = addElement(rootDp, cdcToStrMap.at(def->cdcType));
 
   addValueDp(cdcDp, def->cdcType, value);
@@ -951,12 +941,10 @@ void IEC61850Client::addQualityDp(Datapoint *cdcDp, Quality quality)
 
 void IEC61850Client::addTimestampDp(Datapoint *cdcDp, uint64_t timestampMs)
 {
-  PivotTimestamp *ts = new PivotTimestamp(timestampMs);
+  std::unique_ptr<PivotTimestamp> ts(new PivotTimestamp(timestampMs));
   Datapoint *tsDp = addElement(cdcDp, "t");
   addElementWithValue(tsDp, "SecondSinceEpoch", (long)ts->SecondSinceEpoch());
   addElementWithValue(tsDp, "FractionOfSecond", (long)ts->FractionOfSecond());
-
-  delete ts;
 }
 
 template <class T>
@@ -976,7 +964,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value)
   }
   case DPS:
   {
-    long valueInt = (long)value;
+    auto valueInt = (long)value;
     std::string stVal;
     if (valueInt == 0)
       stVal = "intermediate-state";
@@ -1034,7 +1022,7 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   std::string id = getValueStr(identifierDp);
 
-  DataExchangeDefinition *def = m_config->getExchangeDefinitionByPivotId(id);
+  const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByPivotId(id);
 
   if (!def)
   {

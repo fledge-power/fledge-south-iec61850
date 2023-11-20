@@ -2,12 +2,6 @@
 #include "plugin_api.h"
 #include <iec61850.hpp>
 
-
-IEC61850::IEC61850() : m_client(nullptr)
-{
-  m_config = new IEC61850ClientConfig();
-}
-
 bool
 isCommandType(CDCTYPE type){
     return type>=SPC;
@@ -37,7 +31,7 @@ IEC61850::setJsonConfig(const std::string& protocol_stack,
 
   m_config->importExchangeConfig(exchanged_data);
   m_config->importProtocolConfig(protocol_stack);
-//   m_config->importTlsConfig(tls_configuration);
+  m_config->importTlsConfig(tls_configuration);
  }
 
 void 
@@ -81,7 +75,7 @@ void IEC61850::stop()
   m_client = nullptr;
 }
 
-void IEC61850::ingest(std::string assetName, std::vector<Datapoint*>& points)
+void IEC61850::ingest(const std::string& assetName, const std::vector<Datapoint*>& points)
 {
   if (m_ingest){
     m_ingest(m_data, Reading(assetName, points));
@@ -123,8 +117,10 @@ IEC61850::operation(const std::string& operation, int count,
         
         Datapoint* commandContent;
 
-        commandContent = commandContent->parseJson(commandContentJSON)->at(0);
-        
+        DatapointValue temp((long)1);
+        std::unique_ptr<Datapoint> parserDp (new Datapoint("Parser", temp));
+        commandContent = parserDp->parseJson(commandContentJSON)->at(0);
+                
         Logger::getLogger()->debug("Received command: %s", commandContent->toJSONProperty().c_str());
         
         Datapoint* cdc = getCdc(commandContent);

@@ -165,16 +165,16 @@ void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, Contro
 
 void IEC61850ClientConnection::m_configDatasets()
 {
-    for (auto const& pair : *m_config->getDatasets())
+    for (auto const& pair : m_config->getDatasets())
     {
         IedClientError error;
         std::shared_ptr<Dataset> dataset = pair.second;
-                    Logger::getLogger()->debug("Dataset dynamic %d", dataset->dynamic);
+
         if (dataset->dynamic)
         {
             Logger::getLogger()->debug("Create new dataset %s", dataset->datasetRef.c_str());
             LinkedList newDataSetEntries = LinkedList_create();
-            for (auto entry : *dataset->entries)
+            for (const auto &entry : dataset->entries)
             {
                 auto strCopy = new char[entry.length() + 1];
                 std::strcpy(strCopy, entry.c_str());
@@ -354,11 +354,13 @@ void IEC61850ClientConnection::m_configRcb()
 void IEC61850ClientConnection::m_setVarSpecs()
 {
     IedClientError err;
-    for(auto &entry : *m_config->ExchangeDefinition()){
-        DataExchangeDefinition *def = entry.second;
+    for(const auto &entry : m_config->ExchangeDefinition()){
+        auto def = entry.second;
         FunctionalConstraint fc = def->cdcType == MV || def->cdcType == APC ? IEC61850_FC_MX : IEC61850_FC_ST;
         MmsVariableSpecification* spec = getVariableSpec(&err, def->objRef.c_str(),fc);
-        if(spec) def->spec = spec;
+        if(spec) {
+            def->spec = spec;
+        }
     }
 }
 
@@ -366,9 +368,9 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
 {
     m_controlObjects = std::make_shared<std::unordered_map<std::string, std::shared_ptr<ControlObjectStruct>>>();
 
-    for (const auto &entry : *m_config->ExchangeDefinition())
+    for (const auto &entry : m_config->ExchangeDefinition())
     {
-        DataExchangeDefinition *def = entry.second;
+        auto def = entry.second;
         if (def->cdcType < SPC)
             continue;
     IedClientError err;
@@ -626,12 +628,12 @@ void IEC61850ClientConnection::_conThread()
 
             if (newState == IED_STATE_CONNECTED)
             {
-                Logger::getLogger()->info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
-                m_connectionState = CON_STATE_CONNECTED;
+                m_setVarSpecs();
                 m_initialiseControlObjects();
                 m_configDatasets();
                 m_configRcb();
-                m_setVarSpecs();
+                Logger::getLogger()->info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                m_connectionState = CON_STATE_CONNECTED;
             }
 
             else if (getMonotonicTimeInMs() > m_delayExpirationTime)
@@ -765,7 +767,7 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     }
     IedClientError error;
 
-    auto connectionControlPair = make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, co);
+    auto connectionControlPair = std::make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, co);
 
     if (co->mode == CONTROL_MODEL_DIRECT_ENHANCED || co->mode == CONTROL_MODEL_SBO_ENHANCED)
     {

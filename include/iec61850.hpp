@@ -31,7 +31,7 @@ class PivotTimestamp
 public:
     explicit PivotTimestamp(Datapoint* timestampData);
     explicit PivotTimestamp(uint64_t ms);
-    ~PivotTimestamp();
+    ~PivotTimestamp() = default;
 
     void setTimeInMs(uint64_t ms);
 
@@ -50,7 +50,7 @@ private:
 
     void handleTimeQuality(Datapoint* timeQuality);
 
-    uint8_t* m_valueArray;
+    std::vector<uint8_t> m_valueArray = std::vector<uint8_t>(7);
 
     int m_secondSinceEpoch;
     int m_fractionOfSecond;
@@ -67,7 +67,7 @@ class IEC61850
 public:
     using INGEST_CB = void (*)(void*, Reading);
 
-    IEC61850();
+    IEC61850() = default;
     ~IEC61850();
 
     void setAssetName(const std::string& asset) { m_asset = asset; }
@@ -78,7 +78,7 @@ public:
     void start();
     void stop();
 
-    void ingest(std::string assetName, std::vector<Datapoint*>& points);
+    void ingest(const std::string& assetName, const std::vector<Datapoint*>& points);
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
@@ -86,7 +86,7 @@ public:
 
 private:
 
-    IEC61850ClientConfig* m_config;
+    IEC61850ClientConfig* m_config = new IEC61850ClientConfig();;
 
     std::string m_asset;
 
@@ -105,8 +105,8 @@ public:
 
     ~IEC61850Client();
 
-    void sendData(std::vector<Datapoint*> data,
-                  const std::vector<std::string> labels);
+    void sendData(const std::vector<Datapoint*>& data,
+                  const std::vector<std::string>& labels);
 
     void start();
 
@@ -119,7 +119,7 @@ public:
 
     bool handleOperation(Datapoint* operation);
 
-    void logIedClientError(IedClientError err, const std::string& info);
+    void logIedClientError(IedClientError err, const std::string& info) const;
 
     void sendCommandAck(const std::string& label, ControlModel mode, bool terminated);
 

@@ -11,21 +11,19 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 
-using namespace std;
-
 typedef enum { GTIS, GTIM, GTIC } PIVOTROOT;
 typedef enum { SPS, DPS, BSC, MV, INS, ENS, SPC, DPC, APC, INC } CDCTYPE;
 
 typedef struct{
- string ipAddr;
+  std::string ipAddr;
   int tcpPort;
 } RedGroup;
 
 typedef struct {
-    string objRef;
+    std::string objRef;
     CDCTYPE cdcType;
-    string label;
-    string id;
+    std::string label;
+    std::string id;
     MmsVariableSpecification* spec;
 } DataExchangeDefinition;
 
@@ -40,7 +38,7 @@ typedef struct{
 
 typedef struct{
     std::string datasetRef;
-    std::vector<std::string>* entries;
+    std::vector<std::string> entries;
     bool dynamic;
 } Dataset ;
 
@@ -48,52 +46,52 @@ typedef struct{
 class IEC61850ClientConfig
 {
 public:
-    IEC61850ClientConfig() {if(m_exchangeDefinitions) m_exchangeDefinitions->clear();};
+    IEC61850ClientConfig() {m_exchangeDefinitions.clear();};
     ~IEC61850ClientConfig();
 
-    int LogLevel() {return 1;};
+    int LogLevel() const{return 1;};
 
-    void importProtocolConfig(const string& protocolConfig);
-    void importExchangeConfig(const string& exchangeConfig);
-    void importTlsConfig(const string& tlsConfig);
+    void importProtocolConfig(const std::string& protocolConfig);
+    void importExchangeConfig(const std::string& exchangeConfig);
+    void importTlsConfig(const std::string& tlsConfig);
 
-    std::vector<RedGroup*>* GetConnections(){return m_connections;};
+    std::vector<std::shared_ptr<RedGroup>>& GetConnections(){return m_connections;};
     std::string& GetPrivateKey() {return m_privateKey;};
     std::string& GetOwnCertificate() {return m_ownCertificate;};
     std::vector<std::string>& GetRemoteCertificates() {return m_remoteCertificates;};
     std::vector<std::string>& GetCaCertificates() {return m_caCertificates;};
 
-    static bool isValidIPAddress(const string& addrStr);
+    static bool isValidIPAddress(const std::string& addrStr);
 
     static int getCdcTypeFromString(const std::string& cdc);
 
-    std::unordered_map<std::string , DataExchangeDefinition*>* ExchangeDefinition() {return m_exchangeDefinitions;};
+    std::unordered_map<std::string , std::shared_ptr<DataExchangeDefinition>>& ExchangeDefinition() {return m_exchangeDefinitions;};
 
-    static int GetTypeIdByName(const string& name);
+    static int GetTypeIdByName(const std::string& name);
 
-    std::string* checkExchangeDataLayer(int typeId, string& objRef);
+    std::string* checkExchangeDataLayer(int typeId, std::string& objRef);
 
-    DataExchangeDefinition* getExchangeDefinitionByLabel(const std::string& label);
-    DataExchangeDefinition* getExchangeDefinitionByPivotId(const std::string& pivotId);
-    DataExchangeDefinition* getExchangeDefinitionByObjRef(const std::string& objRef);
+    std::shared_ptr<DataExchangeDefinition> getExchangeDefinitionByLabel(const std::string& label);
+    std::shared_ptr<DataExchangeDefinition> getExchangeDefinitionByPivotId(const std::string& pivotId);
+    std::shared_ptr<DataExchangeDefinition> getExchangeDefinitionByObjRef(const std::string& objRef);
 
     const std::unordered_map<std::string, std::shared_ptr<ReportSubscription>>& getReportSubscriptions() const {return m_reportSubscriptions;};
-    const std::unordered_map<std::string, std::shared_ptr<Dataset>>* getDatasets() const {return m_datasets;};
+    const std::unordered_map<std::string, std::shared_ptr<Dataset>>& getDatasets() const {return m_datasets;};
 
-    long getPollingInterval(){return pollingInterval;}
+    long getPollingInterval() const{return pollingInterval;}
 
 private:
 
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
-    std::vector<RedGroup*>* m_connections = nullptr;
+    std::vector<std::shared_ptr<RedGroup>> m_connections;
 
     void deleteExchangeDefinitions();
 
-    std::unordered_map<std::string, std::shared_ptr<Dataset>>* m_datasets = nullptr;
-    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitions = nullptr;
-    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsPivotId = nullptr;
-    std::unordered_map<std::string,  DataExchangeDefinition*>* m_exchangeDefinitionsObjRef = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<Dataset>> m_datasets;
+    std::unordered_map<std::string,  std::shared_ptr<DataExchangeDefinition>> m_exchangeDefinitions;
+    std::unordered_map<std::string,  std::shared_ptr<DataExchangeDefinition>> m_exchangeDefinitionsPivotId;
+    std::unordered_map<std::string,  std::shared_ptr<DataExchangeDefinition>> m_exchangeDefinitionsObjRef;
 
     std::unordered_map<std::string, std::shared_ptr<ReportSubscription>> m_reportSubscriptions;
 

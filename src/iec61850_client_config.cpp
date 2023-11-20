@@ -33,7 +33,7 @@
 using namespace rapidjson;
 
 static
-std::unordered_map<std::string, int> trgOptions = {
+const std::unordered_map<std::string, int> trgOptions = {
         {"data_changed", TRG_OPT_DATA_CHANGED},
         {"quality_changed", TRG_OPT_QUALITY_CHANGED},
         {"data_update", TRG_OPT_DATA_UPDATE},
@@ -43,7 +43,7 @@ std::unordered_map<std::string, int> trgOptions = {
 };
 
 static
-std::unordered_map<std::string,CDCTYPE> cdcMap = {
+const std::unordered_map<std::string,CDCTYPE> cdcMap = {
     {"SpsTyp",SPS}, {"DpsTyp",DPS},
     {"BscTyp",BSC}, {"MvTyp",MV},
     {"SpcTyp",SPC}, {"DpcTyp",DPC},
@@ -58,19 +58,19 @@ IEC61850ClientConfig::getCdcTypeFromString( const std::string& cdc) {
   return -1;
 }
 
-DataExchangeDefinition*
+std::shared_ptr<DataExchangeDefinition>
 IEC61850ClientConfig::getExchangeDefinitionByLabel(const std::string& label){
-  auto it = m_exchangeDefinitions->find(label);
-  if(it !=  m_exchangeDefinitions->end()){
+  auto it = m_exchangeDefinitions.find(label);
+  if(it !=  m_exchangeDefinitions.end()){
     return it->second;
   }
   return nullptr;
 }
 
-DataExchangeDefinition*
+std::shared_ptr<DataExchangeDefinition>
 IEC61850ClientConfig::getExchangeDefinitionByPivotId(const std::string &pivotId) {
-    auto it = m_exchangeDefinitionsPivotId->find(pivotId);
-    if(it !=  m_exchangeDefinitionsPivotId->end()){
+    auto it = m_exchangeDefinitionsPivotId.find(pivotId);
+    if(it !=  m_exchangeDefinitionsPivotId.end()){
         return it->second;
     }
     return nullptr;
@@ -89,23 +89,9 @@ IEC61850ClientConfig::isValidIPAddress(const std::string& addrStr) {
 
 void 
 IEC61850ClientConfig::deleteExchangeDefinitions() {
-  if (!m_exchangeDefinitions) return;
-
-  delete m_exchangeDefinitions;
-
-  m_exchangeDefinitions = nullptr;
-
-  if (!m_exchangeDefinitionsPivotId) return;
-
-  delete m_exchangeDefinitionsPivotId;
-
-  m_exchangeDefinitionsPivotId = nullptr;
-
-    if (!m_exchangeDefinitionsObjRef) return;
-
-    delete m_exchangeDefinitionsObjRef;
-
-    m_exchangeDefinitionsObjRef = nullptr;
+  m_exchangeDefinitions.clear();
+  m_exchangeDefinitionsObjRef.clear();
+  m_exchangeDefinitionsPivotId.clear();
 }
 
 IEC61850ClientConfig::~IEC61850ClientConfig() { deleteExchangeDefinitions(); }
@@ -116,7 +102,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
 
   Document document;
 
-  if (document.Parse(const_cast<char*>(protocolConfig.c_str()))
+  if (document.Parse(protocolConfig.c_str())
           .HasParseError()) {
     Logger::getLogger()->fatal("Parsing error in protocol configuration");
     printf("Parsing error in protocol configuration\n");
@@ -150,8 +136,6 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
   
   const Value& connections = transportLayer[JSON_CONNECTIONS];
 
-  m_connections = new std::vector<RedGroup*>();
-
   for(const Value& connection : connections.GetArray()){
    if (connection.HasMember(JSON_IP) && connection[JSON_IP].IsString()){
       std::string srvIp = connection[JSON_IP].GetString();
@@ -167,12 +151,12 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
         }
       }
 
-      RedGroup* group = new RedGroup;
+      auto group = std::make_shared<RedGroup>();
       
       group->ipAddr = connection[JSON_IP].GetString();
       group->tcpPort = connection[JSON_PORT].GetInt();
 
-      m_connections->push_back(group);
+      m_connections.push_back(group);
     }
   }
   
@@ -198,21 +182,18 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
   }
 
   if (applicationLayer.HasMember(JSON_DATASETS) && applicationLayer[JSON_DATASETS].IsArray()) {
-      m_datasets = new std::unordered_map<std::string, std::shared_ptr<Dataset>>();
       for (const auto& datasetVal : applicationLayer[JSON_DATASETS].GetArray()) {
           if (!datasetVal.IsObject() || !datasetVal.HasMember(JSON_DATASET_REF) || !datasetVal[JSON_DATASET_REF].IsString()) continue;
 
           std::string datasetRef = datasetVal[JSON_DATASET_REF].GetString();
           auto dataset = std::make_shared<Dataset>();
           dataset->datasetRef = datasetRef;
-          dataset->entries = nullptr;
           if (datasetVal.HasMember(JSON_DATASET_ENTRIES) && datasetVal[JSON_DATASET_ENTRIES].IsArray()) {
-              dataset->entries = new std::vector<std::string>();
               for (const auto& entryVal : datasetVal[JSON_DATASET_ENTRIES].GetArray()) {
                   if (entryVal.IsString()) {
                       std::string objref = entryVal.GetString();
                       Logger::getLogger()->debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
-                      dataset->entries->push_back(objref);
+                      dataset->entries.push_back(objref);
                   }
               }
           }
@@ -223,7 +204,7 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
             Logger::getLogger()->warn("Dataset %s has no dynamic value -> defaulting to static", dataset->datasetRef.c_str());
             dataset->dynamic = false;
           } 
-          m_datasets->insert({datasetRef, dataset});
+          m_datasets.insert({datasetRef, dataset});
       }
     }
 
@@ -297,13 +278,9 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
 
   deleteExchangeDefinitions();
 
-  m_exchangeDefinitions = new std::unordered_map<std::string, DataExchangeDefinition*>();
-  m_exchangeDefinitionsPivotId = new std::unordered_map<std::string, DataExchangeDefinition*>();
-  m_exchangeDefinitionsObjRef = new std::unordered_map<std::string, DataExchangeDefinition*>();
-
   Document document;
 
-  if (document.Parse(const_cast<char*>(exchangeConfig.c_str()))
+  if (document.Parse(exchangeConfig.c_str())
           .HasParseError()) {
     Logger::getLogger()->fatal("Parsing error in data exchange configuration");
 
@@ -388,36 +365,41 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
         continue;
       }
      
-      CDCTYPE cdcType = static_cast<CDCTYPE>(typeId);
+      auto cdcType = static_cast<CDCTYPE>(typeId);
       
-      auto it = m_exchangeDefinitions->find(label);
+      auto it = m_exchangeDefinitions.find(label);
 
-      if(it!=m_exchangeDefinitions->end()){
+      if(it!=m_exchangeDefinitions.end()){
         Logger::getLogger()->warn("DataExchangeDefinition with label %s already exists -> ignore", label.c_str());
         continue;
       }
             
-      DataExchangeDefinition* def = new DataExchangeDefinition;
+      auto def = std::make_shared<DataExchangeDefinition>();
 
       def->objRef = objRef;
       def->cdcType = cdcType;
       def->label = label;
       def->id = pivot_id;
 
-      m_exchangeDefinitions->insert({label, def});
-      m_exchangeDefinitionsPivotId->insert({pivot_id, def});
-      m_exchangeDefinitionsObjRef->insert({objRef, def});
+      m_exchangeDefinitions.insert({label, def});
+      m_exchangeDefinitionsPivotId.insert({pivot_id, def});
+      m_exchangeDefinitionsObjRef.insert({objRef, def});
     }
   }
 }
 
-DataExchangeDefinition*
+std::shared_ptr<DataExchangeDefinition>
 IEC61850ClientConfig::getExchangeDefinitionByObjRef(const std::string &objRef) {
-    auto it = m_exchangeDefinitionsObjRef->find(objRef);
-    if(it !=  m_exchangeDefinitionsObjRef->end()){
+    auto it = m_exchangeDefinitionsObjRef.find(objRef);
+    if(it !=  m_exchangeDefinitionsObjRef.end()){
         return it->second;
     }
     return nullptr;
 }
 
 
+void 
+IEC61850ClientConfig::importTlsConfig(const std::string& tlsConfig)
+{
+  return;
+}
