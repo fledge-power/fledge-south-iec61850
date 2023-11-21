@@ -483,9 +483,6 @@ void IEC61850ClientConnection::cleanUp(){
         }
     }
 
-    for(auto &rs : m_config->getReportSubscriptions()){
-        IedConnection_uninstallReportHandler(m_connection, rs.second->rcbRef.c_str());
-    }
 
     if(!m_connDataSetDirectoryPairs.empty()){
         for (const auto &entry : m_connDataSetDirectoryPairs)
