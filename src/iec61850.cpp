@@ -91,7 +91,7 @@ getCdc(Datapoint* dp)
       Iec61850Utility::log_error("Datapoint is not a dictionary %s", dp->getName().c_str());
     }
 
-    std::vector<Datapoint*>* datapoints = dpv.getDpVec();
+    std::vector<Datapoint*> const* datapoints = dpv.getDpVec();
 
     for (Datapoint* child : *datapoints) {
       if(IEC61850ClientConfig::getCdcTypeFromString(child->getName()) != -1){
@@ -114,7 +114,8 @@ IEC61850::operation(const std::string& operation, int count,
 
     if (operation == "PivotCommand"){
         std::string commandContentJSON = params[0]->value;
-        
+                Iec61850Utility::log_debug("Received command: %s", commandContentJSON.c_str());
+
         Datapoint* commandContent;
 
         DatapointValue temp((long)1);
@@ -137,7 +138,8 @@ IEC61850::operation(const std::string& operation, int count,
           return false;
         }
 
-        return m_client->handleOperation(commandContent);
+        bool res = m_client->handleOperation(commandContent);
+        return res;
      }
 
     Iec61850Utility::log_error("Unrecognised operation %s", operation.c_str());

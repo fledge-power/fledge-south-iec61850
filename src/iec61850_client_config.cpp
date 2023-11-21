@@ -107,7 +107,6 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
   if (document.Parse(protocolConfig.c_str())
           .HasParseError()) {
     Iec61850Utility::log_fatal("Parsing error in protocol configuration");
-    printf("Parsing error in protocol configuration\n");
     return;
   }
 

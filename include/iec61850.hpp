@@ -96,7 +96,7 @@ private:
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-};
+    FRIEND_TEST(ControlTest,   SingleCommand);};
 
 
 class IEC61850Client
@@ -142,6 +142,9 @@ private:
 
     void updateConnectionStatus(ConnectionStatus newState);
 
+    std::mutex connectionsMutex;
+    std::mutex statusMutex;
+
     std::thread* m_monitoringThread = nullptr;
     void _monitoringThread();
 
@@ -158,8 +161,8 @@ private:
     template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value) const;
 
     void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
-    std::shared_ptr<std::unordered_map<std::string, Datapoint*>> m_outstandingCommands = nullptr;
+    std::unordered_map<std::string, Datapoint*> m_outstandingCommands;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-};
+    FRIEND_TEST(ControlTest,   SingleCommand);};
 
 #endif  // INCLUDE_IEC61850_H_

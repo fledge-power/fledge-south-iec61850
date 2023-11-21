@@ -134,6 +134,6 @@ private:
 
     long pollingInterval = 0;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-};
+    FRIEND_TEST(ControlTest,   SingleCommand);};
 
 #endif /* IEC61850_CLIENT_CONFIG_H */

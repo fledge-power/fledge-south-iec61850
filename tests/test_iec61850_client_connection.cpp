@@ -348,7 +348,7 @@ TEST_F(ConnectionHandlingTest, SingleConnection)
     IedServer_start(server,10002);
     iec61850->start();
 
-    Thread_sleep(1000);
+    Thread_sleep(100);
  
     ASSERT_TRUE(IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) == IED_STATE_CONNECTED);
 

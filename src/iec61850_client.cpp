@@ -511,6 +511,7 @@ void IEC61850Client::start()
 
 void IEC61850Client::prepareConnections()
 {
+  std::lock_guard<std::mutex> lock(connectionsMutex);
   m_connections = std::make_shared<std::vector<IEC61850ClientConnection *>>();
   for (const auto redgroup : m_config->GetConnections())
   {
@@ -525,6 +526,7 @@ void IEC61850Client::prepareConnections()
 
 void IEC61850Client::updateConnectionStatus(ConnectionStatus newState)
 {
+  std::lock_guard<std::mutex> lock(statusMutex); 
   if (m_connStatus == newState)
     return;
 
@@ -540,6 +542,7 @@ void IEC61850Client::_monitoringThread()
 
   if (m_started)
   {
+    std::lock_guard<std::mutex> lock(m_activeConnectionMtx);
     for (auto clientConnection : *m_connections)
     {
       clientConnection->Start();
@@ -553,7 +556,8 @@ void IEC61850Client::_monitoringThread()
 
   while (m_started)
   {
-    m_activeConnectionMtx.lock();
+    std::lock_guard<std::mutex> lock(m_activeConnectionMtx);
+
 
     if (m_active_connection == nullptr)
     {
@@ -607,7 +611,8 @@ void IEC61850Client::_monitoringThread()
 
         if (Hal_getTimeInMs() > backupConnectionStartTime)
         {
-          for (auto clientConnection : *m_connections)
+          std::lock_guard<std::mutex> lock(m_activeConnectionMtx);
+          for (auto &clientConnection : *m_connections)
           {
             if (clientConnection->Disconnected())
             {
@@ -624,15 +629,12 @@ void IEC61850Client::_monitoringThread()
       backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
     }
 
-    m_activeConnectionMtx.unlock();
-
-    // checkOutstandingCommandTimeouts();
-
     Thread_sleep(100);
   }
 
-  for (auto clientConnection : *m_connections)
+  for (auto &clientConnection : *m_connections)
   {
+    std::lock_guard<std::mutex> lock(m_activeConnectionMtx);
     delete clientConnection;
   }
 
@@ -1009,8 +1011,6 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
 
 bool IEC61850Client::handleOperation(Datapoint *operation)
 {
-  if (!m_outstandingCommands)
-    m_outstandingCommands = std::make_shared<std::unordered_map<std::string, Datapoint *>>();
 
   Datapoint *identifierDp = getChild(operation, "Identifier");
 
@@ -1054,21 +1054,21 @@ bool IEC61850Client::handleOperation(Datapoint *operation)
 
   bool res = m_active_connection->operate(objRef, value);
 
-  (*m_outstandingCommands)[label] = operation;
+  m_outstandingCommands[label] = operation;
 
   return res;
 }
 
 void IEC61850Client::sendCommandAck(const std::string &label, ControlModel mode, bool terminated)
 {
-  if (!m_outstandingCommands)
+  if (m_outstandingCommands.empty())
   {
     Iec61850Utility::log_error("No outstanding commands");
     return;
   }
 
-  auto it = m_outstandingCommands->find(label);
-  if (it == m_outstandingCommands->end())
+  auto it = m_outstandingCommands.find(label);
+  if (it == m_outstandingCommands.end())
   {
     Iec61850Utility::log_error("No outstanding command with label %s found", label.c_str());
     return;
@@ -1104,6 +1104,7 @@ void IEC61850Client::sendCommandAck(const std::string &label, ControlModel mode,
 
   if (terminated || (!terminated && (mode == CONTROL_MODEL_SBO_NORMAL || mode == CONTROL_MODEL_DIRECT_NORMAL)))
   {
-    m_outstandingCommands->erase(label);
+    delete m_outstandingCommands[label];
+    m_outstandingCommands.erase(label);
   }
 }

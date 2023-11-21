@@ -252,33 +252,28 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
         Iec61850Utility::log_debug("  report contains timestamp (%u)", (unsigned int)unixTime);
     }
 
-    if (dataSetDirectory)
+    if (!dataSetDirectory) return;
+    
+    for (int i = 0; i < LinkedList_size(dataSetDirectory); i++)
     {
-        for (int i = 0; i < LinkedList_size(dataSetDirectory); i++)
-        {
-            ReasonForInclusion reason = ClientReport_getReasonForInclusion(report, i);
+        ReasonForInclusion reason = ClientReport_getReasonForInclusion(report, i);
 
-            if (reason != IEC61850_REASON_NOT_INCLUDED)
-            {
+        if (reason == IEC61850_REASON_NOT_INCLUDED) continue;
+        
+        LinkedList entry = LinkedList_get(dataSetDirectory, i);
 
-                LinkedList entry = LinkedList_get(dataSetDirectory, i);
+        auto *entryName = (char *)entry->data;
 
-                auto *entryName = (char *)entry->data;
+        if (!dataSetValues) continue;
+        
+        MmsValue *value = MmsValue_getElement(dataSetValues, i);
+        if (!value) continue;
+        
+        Iec61850Utility::log_debug("%s (included for reason %i)", entryName, reason);
 
-                if (dataSetValues)
-                {
-                    MmsValue *value = MmsValue_getElement(dataSetValues, i);
-                    if (value)
-                    {
-                        Iec61850Utility::log_debug("  %s (included for reason %i)s\n", entryName, reason);
-
-                        con->m_client->handleValue(std::string(entryName), value);
-                    }
-                }
-
-            }
-        }
+        con->m_client->handleValue(std::string(entryName), value);
     }
+    
 }
 
 static int
@@ -471,43 +466,90 @@ void IEC61850ClientConnection::Start()
 
         m_started = true;
 
-        m_conThread.reset(new std::thread(&IEC61850ClientConnection::_conThread, this));    }
+        m_conThread = new std::thread(&IEC61850ClientConnection::_conThread, this);  
+    }
 }
 
+
+void IEC61850ClientConnection::cleanUp(){
+    if(!m_config->ExchangeDefinition().empty()){
+        for (const auto& def : m_config->ExchangeDefinition())
+        {
+            if (def.second->spec)
+            {
+                MmsVariableSpecification_destroy(def.second->spec);
+                def.second->spec = nullptr;
+            }
+        }
+    }
+
+    for(auto &rs : m_config->getReportSubscriptions()){
+        IedConnection_uninstallReportHandler(m_connection, rs.second->rcbRef.c_str());
+    }
+
+    if(!m_connDataSetDirectoryPairs.empty()){
+        for (const auto &entry : m_connDataSetDirectoryPairs)
+        {
+            LinkedList dataSetDirectory = entry->second;
+            LinkedList_destroy(dataSetDirectory);
+            delete entry;
+        }
+        m_connDataSetDirectoryPairs.clear();
+    }
+
+    if(!m_controlObjects.empty()){
+        for (auto& co : m_controlObjects)
+        {
+            ControlObjectStruct* cos = co.second;
+            if (cos)
+            {
+                if (cos->client)
+                {   
+                    if(cos->client) ControlObjectClient_destroy(cos->client);
+                    cos->client = nullptr;
+                }
+                if (cos->value)
+                {
+                    MmsValue_delete(cos->value);
+                    cos->value = nullptr;
+                }
+                delete cos;
+            }
+        }
+        m_controlObjects.clear();
+    }
+
+    if(!m_connControlPairs.empty()){
+        for (auto& cc : m_connControlPairs)
+        {
+            delete cc;
+        }   
+        m_connControlPairs.clear();
+    }
+    
+
+    if (m_connection)
+    {
+        IedConnection_destroy(m_connection);
+        m_connection = nullptr;
+    }
+
+}
 void IEC61850ClientConnection::Stop()
 {
     if (!m_started)
         return;
 
-
-    for(const auto &entry :m_connDataSetDirectoryPairs){
-        LinkedList dataSetDirectory = entry->second;
-        LinkedList_destroy(dataSetDirectory);
-        delete entry;
+    {    
+        std::lock_guard<std::mutex> lock(m_conLock);
+        m_started = false;
     }
-    m_connDataSetDirectoryPairs.clear();
-
-    for(auto& co : m_controlObjects)
-    {
-        ControlObjectStruct* cos = co.second;
-        if (cos && cos->client)
-        {
-            ControlObjectClient_destroy(cos->client);
-            MmsValue_delete(cos->value);
-            delete cos;
-            cos = nullptr;
-        }
-    }
-    m_controlObjects.clear(); 
-
-    m_started = false;
-
     if (m_conThread)
     {
         m_conThread->join();
+        delete m_conThread;
         m_conThread = nullptr;
     }
-
     
 }
 
@@ -620,166 +662,134 @@ void IEC61850ClientConnection::executePeriodicTasks()
 
 void IEC61850ClientConnection::_conThread()
 {
-    while (m_started)
-    {
-        switch (m_connectionState)
+    try{
+        while (m_started)
         {
-
-        case CON_STATE_IDLE:
-            if (m_connect)
             {
-
-                IedConnection con = nullptr;
-
-                m_conLock.lock();
-
-                con = m_connection;
-
-                m_connection = nullptr;
-
-                m_conLock.unlock();
-
-                if (con != nullptr)
+                IedConnectionState newState;
+                switch (m_connectionState)
                 {
-                    IedConnection_destroy(con);
+                    case CON_STATE_IDLE:
+                        if (m_connect)
+                        {
+
+                            if (m_connection != nullptr)
+                            {
+                                {
+                                std::lock_guard<std::mutex> lock(m_conLock);
+                                IedConnection_destroy(m_connection);
+                                m_connection = nullptr;
+                                }
+                            }
+                        
+                            if (prepareConnection())
+                            {
+                                IedClientError error;
+                                {
+                                    std::lock_guard<std::mutex> lock(m_conLock);
+                                    m_connectionState = CON_STATE_CONNECTING;
+                                    m_connecting = true;
+                                    m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+                                    if(m_osiParameters) m_setOsiConnectionParameters();
+                                }
+                            
+                                IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
+
+                                if (error == IED_ERROR_OK)
+                                {
+                                    Iec61850Utility::log_info("Connecting to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                                }
+                                else
+                                {
+                                    Iec61850Utility::log_error("Failed to connect to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                                    {
+                                        std::lock_guard<std::mutex> lock(m_conLock);
+                                        m_connectionState = CON_STATE_FATAL_ERROR;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                {
+                                    std::lock_guard<std::mutex> lock(m_conLock);
+                                    m_connectionState = CON_STATE_FATAL_ERROR;
+                                }
+                                Iec61850Utility::log_error("Fatal configuration error");
+                            }
+                        }
+                        break;
+
+                    case CON_STATE_CONNECTING:
+                        newState = IedConnection_getState(m_connection);
+                        if (newState == IED_STATE_CONNECTED)
+                        {
+                            {
+                                std::lock_guard<std::mutex> lock(m_conLock);
+                                m_setVarSpecs();
+                                m_initialiseControlObjects();
+                                m_configDatasets();
+                                m_configRcb();
+                                Iec61850Utility::log_info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
+                                m_connectionState = CON_STATE_CONNECTED;
+                            }
+                        }
+                        else if (getMonotonicTimeInMs() > m_delayExpirationTime)
+                        {
+                            std::lock_guard<std::mutex> lock(m_conLock);
+                            Iec61850Utility::log_warn("Timeout while connecting");
+                            m_connectionState = CON_STATE_IDLE;
+                        }
+                        break;
+
+                    case CON_STATE_CONNECTED:
+                        {
+                            std::lock_guard<std::mutex> lock(m_conLock);
+                            newState = IedConnection_getState(m_connection);
+                            if (newState != IED_STATE_CONNECTED)
+                            {
+                                cleanUp();
+                                m_connectionState = CON_STATE_IDLE;
+                            }
+                            else
+                            {
+                                executePeriodicTasks();
+                            }
+                        }
+                        break;
+
+                    case CON_STATE_CLOSED:
+                        {
+                        std::lock_guard<std::mutex> lock(m_conLock);
+                        m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+                        m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
+                        }
+                        break;
+
+                    case CON_STATE_WAIT_FOR_RECONNECT:
+                        {
+                            std::lock_guard<std::mutex> lock(m_conLock);
+                            if (getMonotonicTimeInMs() >= m_delayExpirationTime)
+                            {
+                                m_connectionState = CON_STATE_IDLE;
+                            }
+                        }
+                        break;
+
+                    case CON_STATE_FATAL_ERROR:
+                        break;
                 }
-
-                m_conLock.lock();
-
-                if (prepareConnection())
-                {
-
-                    IedClientError error;
-
-                    m_connectionState = CON_STATE_CONNECTING;
-                    m_connecting = true;
-
-                    m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
-
-                    m_conLock.unlock();
-                    
-                    if(m_osiParameters) m_setOsiConnectionParameters();
-                    IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
-
-                    if (error == IED_ERROR_OK)
-                    {
-                        Iec61850Utility::log_info("Connecting to %s:%d", m_serverIp.c_str(), m_tcpPort);
-                        m_connectionState = CON_STATE_CONNECTING;
-                    }
-
-                    else
-                    {
-                        Iec61850Utility::log_error("Failed to connect to %s:%d", m_serverIp.c_str(), m_tcpPort);
-                    }
-                }
-                else
-                {
-                    m_connectionState = CON_STATE_FATAL_ERROR;
-                    Iec61850Utility::log_error("Fatal configuration error");
-
-                    m_conLock.unlock();
-                }
             }
 
-            break;
-
-        case CON_STATE_CONNECTING:
+            Thread_sleep(50);
+        }
         {
-            /* wait for connected event or timeout */
-            IedConnectionState newState = IedConnection_getState(m_connection);
-
-            if (newState == IED_STATE_CONNECTED)
-            {
-                m_setVarSpecs();
-                m_initialiseControlObjects();
-                m_configDatasets();
-                m_configRcb();
-                Iec61850Utility::log_info("Connected to %s:%d", m_serverIp.c_str(), m_tcpPort);
-                m_connectionState = CON_STATE_CONNECTED;
-            }
-
-            else if (getMonotonicTimeInMs() > m_delayExpirationTime)
-            {
-                Iec61850Utility::log_warn("Timeout while connecting");
-                m_connectionState = CON_STATE_IDLE;
-            }
-
-            break;
+            std::lock_guard<std::mutex> lock(m_conLock);
+            cleanUp();
         }
-        case CON_STATE_CONNECTED:
-        {
-
-            IedConnectionState newState = IedConnection_getState(m_connection);
-
-            if (newState != IED_STATE_CONNECTED)
-            {
-                m_connectionState = CON_STATE_IDLE;
-                break;
-            }
-            executePeriodicTasks();
-
-            break;
-        }
-        case CON_STATE_CLOSED:
-
-            m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
-            m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
-
-            break;
-
-        case CON_STATE_WAIT_FOR_RECONNECT:
-
-            if (getMonotonicTimeInMs() >= m_delayExpirationTime)
-            {
-                m_connectionState = CON_STATE_IDLE;
-            }
-
-            break;
-
-        case CON_STATE_FATAL_ERROR:
-            /* stay in this state until stop is called */
-            break;
-        }
-
-        if (!m_connect)
-        {
-            IedConnection con = nullptr;
-
-            m_conLock.lock();
-
-            m_connected = false;
-            m_connecting = false;
-            m_disconnect = false;
-
-            con = m_connection;
-
-            m_connection = nullptr;
-
-            m_conLock.unlock();
-
-            if (con)
-            {
-                IedConnection_destroy(con);
-            }
-        }
-
-        Thread_sleep(50);
+    } catch (const std::exception& e) {
+        Iec61850Utility::log_error("Exception caught in _conThread: %s" ,e.what());
     }
 
-    IedConnection con = nullptr;
-
-    m_conLock.lock();
-
-    con = m_connection;
-
-    m_connection = nullptr;
-
-    m_conLock.unlock();
-
-    if (con)
-    {
-        IedConnection_destroy(con);
-    }
 }
 
 
@@ -829,11 +839,12 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     }
     IedClientError error;
 
-    auto connectionControlPair = std::make_shared<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>>(this, co);
+    auto connectionControlPair = new std::pair<IEC61850ClientConnection *, ControlObjectStruct *>(this, co);
+    m_connControlPairs.push_back(connectionControlPair);
 
     if (co->mode == CONTROL_MODEL_DIRECT_ENHANCED || co->mode == CONTROL_MODEL_SBO_ENHANCED)
     {
-        ControlObjectClient_setCommandTerminationHandler(co->client, commandTerminationHandler, connectionControlPair.get());
+        ControlObjectClient_setCommandTerminationHandler(co->client, commandTerminationHandler, connectionControlPair);
     }
 
     switch (co->mode)
@@ -841,15 +852,15 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     case CONTROL_MODEL_DIRECT_ENHANCED:
     case CONTROL_MODEL_DIRECT_NORMAL:
         co->state = CONTROL_WAIT_FOR_ACT_CON;
-        ControlObjectClient_operateAsync(co->client, &error, mmsValue, 0, controlActionHandler, connectionControlPair.get());
+        ControlObjectClient_operateAsync(co->client, &error, mmsValue, 0, controlActionHandler, connectionControlPair);
         break;
     case CONTROL_MODEL_SBO_NORMAL:
         co->state = CONTROL_WAIT_FOR_SELECT;
-        ControlObjectClient_selectAsync(co->client, &error, controlActionHandler, connectionControlPair.get());
+        ControlObjectClient_selectAsync(co->client, &error, controlActionHandler, connectionControlPair);
         break;
     case CONTROL_MODEL_SBO_ENHANCED:
         co->state = CONTROL_WAIT_FOR_SELECT_WITH_VALUE;
-        ControlObjectClient_selectWithValueAsync(co->client, &error, mmsValue, controlActionHandler, connectionControlPair.get());
+        ControlObjectClient_selectWithValueAsync(co->client, &error, mmsValue, controlActionHandler, connectionControlPair);
         break;
     case CONTROL_MODEL_STATUS_ONLY:
         break;

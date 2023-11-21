@@ -41,6 +41,8 @@ private:
     IedConnection m_connection = nullptr; 
     void executePeriodicTasks();
 
+    void cleanUp();
+
     IEC61850Client* m_client;
     IEC61850ClientConfig* m_config;
 
@@ -77,6 +79,7 @@ private:
 
     std::unordered_map<std::string, ControlObjectStruct*> m_controlObjects;
     std::vector<std::pair<IEC61850ClientConnection*,LinkedList>*> m_connDataSetDirectoryPairs;
+    std::vector<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>*> m_connControlPairs;
 
     void m_initialiseControlObjects();
     void m_configDatasets();
@@ -99,7 +102,7 @@ private:
   
     uint64_t m_nextPollingTime = 0;
     
-    std::unique_ptr<std::thread> m_conThread = nullptr;
+    std::thread* m_conThread = nullptr;
     void _conThread();
 
     bool m_connect = false; 
@@ -118,7 +121,7 @@ private:
     static
     void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-};
+    FRIEND_TEST(ControlTest,   SingleCommand);};
 
 #endif
 
