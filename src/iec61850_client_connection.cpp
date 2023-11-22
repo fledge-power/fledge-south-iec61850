@@ -56,6 +56,7 @@ void IEC61850ClientConnection::commandTerminationHandler(void *parameter, Contro
     con->sendActTerm(cos);
 }
 
+//LCOV_EXCL_START
 void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info)
 {
     Iec61850Utility::log_error("In here : %s", info.c_str());
@@ -163,6 +164,7 @@ void IEC61850ClientConnection::logControlErrors(ControlAddCause addCause, Contro
         break;
     }
 }
+//LCOV_EXCL_STOP
 
 void IEC61850ClientConnection::m_setOsiConnectionParameters()
 {

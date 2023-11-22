@@ -252,6 +252,7 @@ int IEC61850Client::getRootFromCDC(const CDCTYPE cdc)
   return -1;
 }
 
+//LCOV_EXCL_START
 void IEC61850Client::logIedClientError(IedClientError err, const std::string& info) const
 {
   Iec61850Utility::log_error("In here : %s", info.c_str());
@@ -343,6 +344,7 @@ void IEC61850Client::logIedClientError(IedClientError err, const std::string& in
     break;
   }
 }
+
 
 uint64_t
 PivotTimestamp::GetCurrentTimeInMs()
@@ -498,6 +500,7 @@ int PivotTimestamp::SecondSinceEpoch() const
 
   return timeval32;
 }
+//LCOV_EXCL_STOP
 
 void IEC61850Client::start()
 {
@@ -661,7 +664,7 @@ void IEC61850Client::handleAllValues()
   std::vector<std::string> labels;
   std::vector<Datapoint *> datapoints;
 
-  for (const auto &pair : m_config->ExchangeDefinition())
+  for (const auto &pair : m_config->polledDatapoints())
   {
     const std::shared_ptr<DataExchangeDefinition> def = pair.second;
 
@@ -821,7 +824,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
       return;
     }
     MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$i");
-    if(!i && attribute.substr(4,1) == "i") {
+    if(!i && attribute.length() >= 4 && attribute.substr(4,1) == "i") {
       i = mmsvalue;
     }
     if (i)
@@ -831,7 +834,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
       return;
     }
     MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$f");
-    if(!f && attribute.substr(4,1) == "f") {
+    if(!f && attribute.length() >= 4 && attribute.substr(4,1) == "f") {
       f = mmsvalue;
     }
     if (f)

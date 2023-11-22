@@ -96,7 +96,16 @@ private:
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ControlTest,   SingleCommand);};
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
+    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
+    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
+    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
+    FRIEND_TEST(ReportingTest,   ReportingGI);
+    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
+    FRIEND_TEST(SpontDataTest,   Polling);
+};
 
 
 class IEC61850Client
@@ -163,6 +172,14 @@ private:
     void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
     std::unordered_map<std::string, Datapoint*> m_outstandingCommands;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ControlTest,   SingleCommand);};
-
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
+    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
+    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
+    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
+    FRIEND_TEST(ReportingTest,   ReportingGI);
+    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
+    FRIEND_TEST(SpontDataTest,   Polling);
+};
 #endif  // INCLUDE_IEC61850_H_

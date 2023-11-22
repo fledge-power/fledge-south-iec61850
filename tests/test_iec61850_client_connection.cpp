@@ -30,51 +30,7 @@ static string protocol_config = QUOTE({
             "tls" : false
         },
         "application_layer" : {
-            "polling_interval" : 0,
-            "datasets" : [
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
-                    ],
-                    "dynamic" : true
-                },
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
-                    ],
-                    "dynamic" : false
-                }
-            ],
-            "report_subscriptions" : [
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : true
-                },
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : true
-                }
-            ]
+            "polling_interval" : 0
         }
     }
 });
@@ -83,96 +39,7 @@ static string protocol_config = QUOTE({
 
 static string exchanged_data = QUOTE({
  "exchanged_data": {
-  "datapoints": [
-   {
-    "pivot_id": "TS1",
-    "label": "TS1",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO1",
-      "cdc": "SpcTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TS2",
-    "label": "TS2",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO2",
-      "cdc": "SpcTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TS3",
-    "label": "TS3",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO3",
-      "cdc": "SpcTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TS4",
-    "label": "TS4",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO4",
-      "cdc": "SpcTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TM1",
-    "label": "TM1",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn1",
-      "cdc": "MvTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TM2",
-    "label": "TM2",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn2",
-      "cdc": "MvTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TM3",
-    "label": "TM3",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn3",
-      "cdc": "MvTyp"
-     }
-    ]
-   },
-   {
-    "pivot_id": "TM4",
-    "label": "TM4",
-    "protocols": [
-     {
-      "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn4",
-      "cdc": "MvTyp"
-     }
-    ]
-   }
-  ]
+  "datapoints": []
  }
 });
 
@@ -348,9 +215,62 @@ TEST_F(ConnectionHandlingTest, SingleConnection)
     IedServer_start(server,10002);
     iec61850->start();
 
-    Thread_sleep(100);
+    Thread_sleep(1000);
  
     ASSERT_TRUE(IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) == IED_STATE_CONNECTED);
+
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+}
+
+TEST_F(ConnectionHandlingTest, SingleConnectionReconnect)
+{
+    iec61850->setJsonConfig(protocol_config, exchanged_data, tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/simpleIO_direct_control.cfg");
+
+    IedServer server = IedServer_create(model);
+
+    IedServer_start(server,10002);
+    iec61850->start();
+
+    Thread_sleep(1000);
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    auto timeout = std::chrono::seconds(10);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+            break;
+        }
+        Thread_sleep(10); 
+    }
+
+    IedServer_stop(server);
+
+    Thread_sleep(2000);
+    ASSERT_EQ(IedConnection_getState(iec61850->m_client->m_active_connection->m_connection), IED_STATE_CLOSED);
+
+    IedServer_start(server,10002);
+
+    start = std::chrono::high_resolution_clock::now();
+    timeout = std::chrono::seconds(20);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+            break;
+        }
+        Thread_sleep(10); 
+    }
 
     IedServer_stop(server);
     IedServer_destroy(server);

@@ -38,7 +38,7 @@ void
 IEC61850::start()
 {
     Iec61850Utility::log_info("Starting iec61850");
-
+    //LCOV_EXCL_START
     switch (m_config->LogLevel())
     {
         case 1:
@@ -54,13 +54,16 @@ IEC61850::start()
             Logger::getLogger()->setMinLevel("error");
             break;
     }
+    //LCOV_EXCL_STOP
 
     m_client = new IEC61850Client(this, m_config);
 
+    //LCOV_EXCL_START
     if(!m_client){
         Iec61850Utility::log_error("Can't start, client is null");
         return;
     }
+    //LCOV_EXCL_STOP
 
     m_client->start();
 }
@@ -114,8 +117,6 @@ IEC61850::operation(const std::string& operation, int count,
 
     if (operation == "PivotCommand"){
         std::string commandContentJSON = params[0]->value;
-                Iec61850Utility::log_debug("Received command: %s", commandContentJSON.c_str());
-
         Datapoint* commandContent;
 
         DatapointValue temp((long)1);

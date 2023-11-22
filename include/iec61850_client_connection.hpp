@@ -121,8 +121,16 @@ private:
     static
     void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ControlTest,   SingleCommand);};
-
+    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
+    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
+    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
+    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
+    FRIEND_TEST(ReportingTest,   ReportingGI);
+    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
+    FRIEND_TEST(SpontDataTest,   Polling);
+};
 #endif
 
 

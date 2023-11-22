@@ -106,6 +106,7 @@ public:
 
     const std::unordered_map<std::string, std::shared_ptr<ReportSubscription>>& getReportSubscriptions() const {return m_reportSubscriptions;};
     const std::unordered_map<std::string, std::shared_ptr<Dataset>>& getDatasets() const {return m_datasets;};
+    const std::unordered_map<std::string, std::shared_ptr<DataExchangeDefinition>>& polledDatapoints() const {return m_polledDatapoints;};
 
     long getPollingInterval() const{return pollingInterval;}
 
@@ -117,6 +118,7 @@ private:
 
     void deleteExchangeDefinitions();
 
+    std::unordered_map<std::string, std::shared_ptr<DataExchangeDefinition>> m_polledDatapoints;
     std::unordered_map<std::string, std::shared_ptr<Dataset>> m_datasets;
     std::unordered_map<std::string,  std::shared_ptr<DataExchangeDefinition>> m_exchangeDefinitions;
     std::unordered_map<std::string,  std::shared_ptr<DataExchangeDefinition>> m_exchangeDefinitionsPivotId;
@@ -134,6 +136,14 @@ private:
 
     long pollingInterval = 0;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ControlTest,   SingleCommand);};
-
+    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
+    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
+    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
+    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
+    FRIEND_TEST(ReportingTest,   ReportingGI);
+    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
+    FRIEND_TEST(SpontDataTest,   Polling);
+};
 #endif /* IEC61850_CLIENT_CONFIG_H */

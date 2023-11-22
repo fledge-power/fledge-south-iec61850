@@ -94,6 +94,7 @@ IEC61850ClientConfig::deleteExchangeDefinitions() {
   m_exchangeDefinitions.clear();
   m_exchangeDefinitionsObjRef.clear();
   m_exchangeDefinitionsPivotId.clear();
+  m_polledDatapoints.clear();
 }
 
 IEC61850ClientConfig::~IEC61850ClientConfig() { deleteExchangeDefinitions(); }
@@ -197,6 +198,21 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
                       std::string objref = entryVal.GetString();
                       Iec61850Utility::log_debug("Add entry %s to dataset %s", objref.c_str(), datasetRef.c_str());
                       dataset->entries.push_back(objref);
+
+                      std::string extractedObjRef = objref;
+                      size_t secondDotPos = extractedObjRef.find('.', extractedObjRef.find('.') + 1);
+                      size_t bracketPos = extractedObjRef.find('[');
+                      
+                      if(secondDotPos != std::string::npos) {
+                        extractedObjRef.erase(secondDotPos);
+                      }
+                      else{
+                        extractedObjRef.erase(bracketPos);
+                      }
+                  
+                      const std::shared_ptr<DataExchangeDefinition> def = getExchangeDefinitionByObjRef(extractedObjRef);
+
+                      if(def) m_polledDatapoints.erase(extractedObjRef);
                   }
               }
           }
@@ -580,6 +596,7 @@ IEC61850ClientConfig::importExchangeConfig(const std::string& exchangeConfig){
       m_exchangeDefinitions.insert({label, def});
       m_exchangeDefinitionsPivotId.insert({pivot_id, def});
       m_exchangeDefinitionsObjRef.insert({objRef, def});
+      m_polledDatapoints.insert({objRef,def});
     }
   }
 }
