@@ -804,6 +804,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     }
     bool value = MmsValue_getBoolean(stVal);
     datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
+    if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
     return;
   }
   case DPS:
@@ -831,6 +832,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     {
       long value = MmsValue_toInt32(i);
       datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+      if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
       return;
     }
     MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$f");
@@ -841,6 +843,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     {
       double value = MmsValue_toFloat(f);
       datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+      if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
       return;
     }
     Iec61850Utility::log_error("No value found %s", objRef.c_str());
@@ -864,6 +867,7 @@ void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vect
     }
     long value = MmsValue_toInt32(stVal);
     datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+    if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
     return;
   }
   default:

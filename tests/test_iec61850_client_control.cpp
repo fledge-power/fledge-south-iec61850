@@ -479,7 +479,10 @@ TEST_F(ControlTest, SingleCommandSetValue) {
     IedServer_setControlHandler(server, IEDMODEL_GenericIO_GGIO1_SPCSO1 , (ControlHandler) controlHandlerForBinaryOutput, pair);
     
     IedClientError err;
-    ASSERT_FALSE(MmsValue_getBoolean(iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST)));
+    
+    MmsValue* mmsValue = iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST);
+    ASSERT_FALSE(MmsValue_getBoolean(mmsValue));
+    MmsValue_delete(mmsValue);
 
     auto params = new PLUGIN_PARAMETER*[1];
     params[0] = new PLUGIN_PARAMETER;
@@ -503,7 +506,11 @@ TEST_F(ControlTest, SingleCommandSetValue) {
         Thread_sleep(10); 
     }
 
-    ASSERT_TRUE(MmsValue_getBoolean(iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST))); 
+    mmsValue = iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST);
+
+    ASSERT_TRUE(mmsValue && MmsValue_getBoolean(mmsValue)); 
+
+    MmsValue_delete(mmsValue);
    
     IedServer_stop(server);
     IedServer_destroy(server);

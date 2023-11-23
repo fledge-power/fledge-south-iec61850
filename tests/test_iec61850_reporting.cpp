@@ -683,14 +683,19 @@ TEST_F(ReportingTest, ReportingSetpointCommand)
     IedServer_setControlHandler(server, IEDMODEL_GenericIO_GGIO1_SPCSO1 , (ControlHandler) controlHandlerForBinaryOutput, pair);
 
     IedClientError err;
-    ASSERT_FALSE(MmsValue_getBoolean(iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST)));
+    MmsValue* mmsValue = iec61850->m_client->m_active_connection->readValue(&err, "simpleIOGenericIO/GGIO1.SPCSO1.stVal", IEC61850_FC_ST);
+    ASSERT_FALSE(MmsValue_getBoolean(mmsValue));
+    MmsValue_delete(mmsValue);
 
     auto params = new PLUGIN_PARAMETER*[1];
     params[0] = new PLUGIN_PARAMETER;
     params[0]->name = std::string("Pivot");
     params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "SpcTyp":{"q":{"test":0}, "t":{"SecondSinceEpoch":1700566837, "FractionOfSecond":15921577}, "ctlVal":1}, "Identifier":"TS1", "Select":{"stVal":0}}})");
     iec61850->operation("PivotCommand", 1, params);
-    
+
+    delete params[0];
+    delete[] params;
+
     timeout = std::chrono::seconds(3);  
     start = std::chrono::high_resolution_clock::now();
     while (ingestCallbackCalled != 2) {
@@ -716,6 +721,7 @@ TEST_F(ReportingTest, ReportingSetpointCommand)
     int expectedStVal = true;
     verifyDatapoint(SPC, "stVal", &expectedStVal);
 
+    delete pair;
     IedServer_stop(server);
     IedServer_destroy(server);
     IedModel_destroy(model);

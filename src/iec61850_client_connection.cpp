@@ -414,13 +414,14 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
         auto def = entry.second;
         if (def->cdcType < SPC)
             continue;
-    IedClientError err;
-        IedConnection_readObject(m_connection, &err, def->objRef.c_str(), IEC61850_FC_ST);
+        IedClientError err;
+        MmsValue* temp = IedConnection_readObject(m_connection, &err, def->objRef.c_str(), IEC61850_FC_ST);
         if (err != IED_ERROR_OK)
         {
             m_client->logIedClientError(err, "Initialise control object");
             continue;
         }
+        MmsValue_delete(temp);
         auto co = new ControlObjectStruct;
         co->client = ControlObjectClient_create(def->objRef.c_str(), m_connection);
         co->mode = ControlObjectClient_getControlModel(co->client);
@@ -526,9 +527,12 @@ void IEC61850ClientConnection::cleanUp(){
         m_connControlPairs.clear();
     }
     
+    IedClientError err;
 
     if (m_connection)
     {
+        IedConnection_close(m_connection);
+        IedConnection_abortAsync(m_connection, &err);
         IedConnection_destroy(m_connection);
         m_connection = nullptr;
     }
@@ -592,6 +596,7 @@ IEC61850ClientConnection::readDatasetValues(IedClientError *error, const char *d
     ClientDataSet dataset = IedConnection_readDataSetValues(m_connection, error, datasetRef, nullptr);
     if (*error == IED_ERROR_OK)
     {
+        ClientDataSet_destroy(dataset);
         return ClientDataSet_getValues(dataset);
     }
     return nullptr;
@@ -692,8 +697,7 @@ void IEC61850ClientConnection::_conThread()
                                     if(m_osiParameters) m_setOsiConnectionParameters();
                                 }
                             
-                                IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort);
-
+                                IedConnection_connectAsync(m_connection, &error, m_serverIp.c_str(), m_tcpPort); 
                                 if (error == IED_ERROR_OK)
                                 {
                                     Iec61850Utility::log_info("Connecting to %s:%d", m_serverIp.c_str(), m_tcpPort);

@@ -117,11 +117,23 @@ IEC61850::operation(const std::string& operation, int count,
 
     if (operation == "PivotCommand"){
         std::string commandContentJSON = params[0]->value;
-        Datapoint* commandContent;
+        Datapoint* commandContent = nullptr;
 
         DatapointValue temp((long)1);
         std::unique_ptr<Datapoint> parserDp (new Datapoint("Parser", temp));
-        commandContent = parserDp->parseJson(commandContentJSON)->at(0);
+        
+        std::vector<Datapoint *>* jsonValues = parserDp->parseJson(commandContentJSON);
+
+        if(jsonValues){
+            commandContent = jsonValues->at(0);
+            jsonValues->clear();
+            delete jsonValues;
+        } 
+
+        if(!commandContent) {
+          Iec61850Utility::log_error("Failed to parse command content"); 
+          return false;
+        }
                 
         Iec61850Utility::log_debug("Received command: %s", commandContent->toJSONProperty().c_str());
         
