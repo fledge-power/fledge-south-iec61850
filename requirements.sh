@@ -15,6 +15,10 @@ if [ ! -d $directory/libiec61850 ]; then
   echo Fetching MZA libiec61850 library
   git clone https://github.com/mz-automation/libiec61850.git
   cd libiec61850
+  cd third-party/mbedtls
+  wget -c https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.3.tar.gz -O - | tar -xz
+  mv mbedtls-2.28.3 mbedtls-2.28
+  cd ../../
   mkdir build
   cd build
   cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
@@ -22,3 +26,4 @@ if [ ! -d $directory/libiec61850 ]; then
   sudo make install
 fi
 
+ 
