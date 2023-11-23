@@ -41,6 +41,7 @@ struct RedGroup{
   int tcpPort;
   OsiParameters osiParameters;
   bool isOsiParametersEnabled;
+  bool tls;
 } ;
 
 struct DataExchangeDefinition{
@@ -136,6 +137,7 @@ private:
 
     long pollingInterval = 0;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
     FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
     FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
     FRIEND_TEST(ControlTest,   SingleCommandSetValue);

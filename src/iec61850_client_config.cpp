@@ -157,9 +157,22 @@ IEC61850ClientConfig::importProtocolConfig(const std::string& protocolConfig) {
       
       group->ipAddr = connection[JSON_IP].GetString();
       group->tcpPort = connection[JSON_PORT].GetInt();
+      group->tls = false;
+
       if (connection.HasMember("osi")) {
         importJsonConnectionOsiConfig(connection["osi"], *group);
       }
+
+      if (connection.HasMember("tls")){
+        if (connection["tls"].IsBool()) {
+          group->tls = (connection["tls"].GetBool());
+        }
+        else {
+            printf("connection.tls has invalid type -> not using TLS\n");
+            Iec61850Utility::log_warn("connection.tls has invalid type -> not using TLS");
+        }
+      }
+
       m_connections.push_back(group);
     }
   }
@@ -614,5 +627,59 @@ IEC61850ClientConfig::getExchangeDefinitionByObjRef(const std::string &objRef) {
 void 
 IEC61850ClientConfig::importTlsConfig(const std::string& tlsConfig)
 {
-  return;
+  Document document;
+
+
+    if (document.Parse(const_cast<char*>(tlsConfig.c_str())).HasParseError()) {
+        Iec61850Utility::log_fatal("Parsing error in TLS configuration");
+
+        return;
+    }
+       
+    if (!document.IsObject())
+        return;
+
+    if (!document.HasMember("tls_conf") || !document["tls_conf"].IsObject()) {
+        return;
+    }
+
+    const Value& tlsConf = document["tls_conf"];
+
+    if (tlsConf.HasMember("private_key") && tlsConf["private_key"].IsString()) {
+        m_privateKey = tlsConf["private_key"].GetString();
+    }
+
+    if (tlsConf.HasMember("own_cert") && tlsConf["own_cert"].IsString()) {
+        m_ownCertificate = tlsConf["own_cert"].GetString();
+    }
+
+    if (tlsConf.HasMember("ca_certs") && tlsConf["ca_certs"].IsArray()) {
+
+        const Value& caCerts = tlsConf["ca_certs"];
+
+        for (const Value& caCert : caCerts.GetArray()) {
+            if (caCert.HasMember("cert_file")) {
+                if (caCert["cert_file"].IsString()) {
+                    std::string certFileName = caCert["cert_file"].GetString();
+
+                    m_caCertificates.push_back(certFileName);
+                }
+            }
+        }
+    }
+
+    if (tlsConf.HasMember("remote_certs") && tlsConf["remote_certs"].IsArray()) {
+
+        const Value& remoteCerts = tlsConf["remote_certs"];
+
+        for (const Value& remoteCert : remoteCerts.GetArray()) {
+            if (remoteCert.HasMember("cert_file")) {
+                if (remoteCert["cert_file"].IsString()) {
+                    std::string certFileName = remoteCert["cert_file"].GetString();
+
+                    m_remoteCertificates.push_back(certFileName);
+                }
+            }
+        }
+    }
 }

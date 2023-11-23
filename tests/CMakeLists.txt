@@ -107,3 +107,4 @@ endif()
 target_link_libraries(${PROJECT_NAME} -L/usr/local/lib -liec61850)
 
 target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
+target_compile_definitions(${PROJECT_NAME} PRIVATE UNIT_TEST)

@@ -12,8 +12,6 @@
 
 using namespace std;
 
-#define TEST_PORT 2404
-
 // PLUGIN DEFAULT PROTOCOL STACK CONF
 static string protocol_config = QUOTE({
     "protocol_stack" : {
@@ -24,7 +22,28 @@ static string protocol_config = QUOTE({
             "connections" : [
                 {
                     "ip_addr" : "127.0.0.1",
-                    "port" : 10002
+                    "port" : 10002,
+                    "tls" : false
+                }
+            ]
+        },
+        "application_layer" : {
+            "polling_interval" : 0
+        }
+    }
+});
+
+static string protocol_config_1 = QUOTE({
+    "protocol_stack" : {
+        "name" : "iec61850client",
+        "version" : "0.0.1",
+        "transport_layer" : {
+            "ied_name" : "IED1",
+            "connections" : [
+                {
+                    "ip_addr" : "127.0.0.1",
+                    "port" : 10002,
+                    "tls" : true
                 }
             ],
             "tls" : false
@@ -58,16 +77,16 @@ static string tls_config = QUOTE({
 
 static string tls_config_2 = QUOTE({
     "tls_conf" : {
-        "private_key" : "iec104_client.key",
-        "own_cert" : "iec104_client.cer",
+        "private_key" : "iec61850_client.key",
+        "own_cert" : "iec61850_client.cer",
         "ca_certs" : [
             {
-                "cert_file" : "iec104_ca.cer"
+                "cert_file" : "iec61850_ca.cer"
             }
         ],
         "remote_certs" : [
             {
-                "cert_file" : "iec104_server.cer"
+                "cert_file" : "iec61850_server.cer"
             }
         ]
     }
@@ -276,3 +295,38 @@ TEST_F(ConnectionHandlingTest, SingleConnectionReconnect)
     IedServer_destroy(server);
     IedModel_destroy(model);
 }
+
+
+TEST_F(ConnectionHandlingTest, SingleConnectionTLS)
+{
+    iec61850->setJsonConfig(protocol_config_1, exchanged_data, tls_config_2);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/simpleIO_direct_control.cfg");
+
+    setenv("FLEDGE_DATA", "../tests/data", 1);
+
+    TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+    TLSConfiguration_addCACertificateFromFile(tlsConfig, "../tests/data/etc/certs/iec61850_ca.cer");
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "../tests/data/etc/certs/iec61850_server.cer");
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "../tests/data/etc/certs/iec61850_server.key", NULL);
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "../tests/data/etc/certs/iec61850_client.cer");
+    TLSConfiguration_setChainValidation(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+    IedServer server = IedServer_createWithTlsSupport(model,tlsConfig);
+
+    IedServer_start(server,10002);
+    iec61850->start();
+
+    Thread_sleep(1000);
+ 
+    ASSERT_TRUE(IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) == IED_STATE_CONNECTED);
+
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+    TLSConfiguration_destroy(tlsConfig);
+}
+
+

@@ -27,8 +27,7 @@ static string protocol_config = QUOTE({
                     "ip_addr" : "127.0.0.1",
                     "port" : 10002
                 }
-            ],
-            "tls" : false
+            ]
         },
         "application_layer" : {
             "polling_interval" : 0

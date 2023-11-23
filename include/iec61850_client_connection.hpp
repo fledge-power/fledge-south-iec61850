@@ -13,7 +13,7 @@ class IEC61850Client;
 class IEC61850ClientConnection
 {
 public:
-    IEC61850ClientConnection(IEC61850Client* client, IEC61850ClientConfig* config, const std::string& ip, int tcpPort, OsiParameters* osiParameters);
+    IEC61850ClientConnection(IEC61850Client* client, IEC61850ClientConfig* config, const std::string& ip, int tcpPort, bool tls, OsiParameters* osiParameters);
     ~IEC61850ClientConnection();
 
     void Start();
@@ -38,6 +38,7 @@ public:
 
 private:
     bool prepareConnection();
+    bool UseTLS() {return m_useTls;};
     IedConnection m_connection = nullptr; 
     void executePeriodicTasks();
 
@@ -94,6 +95,9 @@ private:
     bool m_active = false; 
     bool m_connecting = false;
     bool m_started = false;
+    bool m_useTls = false;
+
+    TLSConfiguration m_tlsConfig = nullptr;
 
     std::mutex m_conLock;
     std::mutex m_reportLock;
@@ -121,6 +125,7 @@ private:
     static
     void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
     FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
     FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
     FRIEND_TEST(ControlTest,   SingleCommandSetValue);

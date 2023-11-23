@@ -28,7 +28,6 @@ IEC61850::setJsonConfig(const std::string& protocol_stack,
   if(m_config) delete m_config;
 
   m_config = new IEC61850ClientConfig();
-
   m_config->importExchangeConfig(exchanged_data);
   m_config->importProtocolConfig(protocol_stack);
   m_config->importTlsConfig(tls_configuration);

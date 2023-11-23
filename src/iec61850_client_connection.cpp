@@ -8,13 +8,15 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <utils.h>
 
 IEC61850ClientConnection::IEC61850ClientConnection(IEC61850Client *client,
                                                    IEC61850ClientConfig *config,
                                                    const std::string &ip,
                                                    const int tcpPort,
+                                                   bool tls,
                                                    OsiParameters* osiParameters)
-: m_client(client), m_config(config), m_osiParameters(osiParameters), m_tcpPort(tcpPort), m_serverIp(ip)
+: m_client(client), m_config(config), m_osiParameters(osiParameters), m_tcpPort(tcpPort), m_serverIp(ip), m_useTls(tls)
 {
 }
 
@@ -537,7 +539,10 @@ void IEC61850ClientConnection::cleanUp(){
         m_connection = nullptr;
     }
 
+    if(m_tlsConfig != nullptr) {TLSConfiguration_destroy(m_tlsConfig);}
+    m_tlsConfig = nullptr;
 }
+
 void IEC61850ClientConnection::Stop()
 {
     if (!m_started)
@@ -559,7 +564,137 @@ void IEC61850ClientConnection::Stop()
 
 bool IEC61850ClientConnection::prepareConnection()
 {
-    m_connection = IedConnection_create();
+    if (UseTLS())
+    {
+        TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+        bool tlsConfigOk = true;
+
+        std::string certificateStore = getDataDir() + std::string("/etc/certs/");
+        std::string certificateStorePem = getDataDir() + std::string("/etc/certs/pem/");
+
+        if (m_config->GetOwnCertificate().length() == 0 || m_config->GetPrivateKey().length() == 0) {
+            Iec61850Utility::log_error("No private key and/or certificate configured for client");
+            tlsConfigOk = false;
+        }
+        else {
+            std::string privateKeyFile = certificateStore + m_config->GetPrivateKey();
+
+            if (access(privateKeyFile.c_str(), R_OK) == 0) {
+                if (TLSConfiguration_setOwnKeyFromFile(tlsConfig, privateKeyFile.c_str(), nullptr) == false) {
+                    Iec61850Utility::log_error("Failed to load private key file: %s", privateKeyFile.c_str());
+                    tlsConfigOk = false;
+                }
+            }
+            else {
+                Iec61850Utility::log_error("Failed to access private key file: %s", privateKeyFile.c_str());
+                tlsConfigOk = false;
+            }
+
+            std::string clientCert =  m_config->GetOwnCertificate();
+            bool isPemClientCertificate = clientCert.rfind(".pem") == clientCert.size() - 4;
+
+            std::string clientCertFile;
+
+            if(isPemClientCertificate)
+                clientCertFile = certificateStorePem + clientCert;
+            else
+                clientCertFile = certificateStore + clientCert;
+
+
+            if (access(clientCertFile.c_str(), R_OK) == 0) {
+                if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
+                    Iec61850Utility::log_error("Failed to load client certificate file: %s", clientCertFile.c_str());
+                    tlsConfigOk = false;
+                }
+            }
+            else {
+                Iec61850Utility::log_error("Failed to access client certificate file: %s", clientCertFile.c_str());
+                tlsConfigOk = false;
+            }
+        }
+
+        if (!m_config->GetRemoteCertificates().empty()) {
+            TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+            for (const std::string& remoteCert : m_config->GetRemoteCertificates())
+            {
+                bool isPemRemoteCertificate = remoteCert.rfind(".pem") == remoteCert.size() - 4;
+
+                std::string remoteCertFile;
+
+                if(isPemRemoteCertificate)
+                    remoteCertFile = certificateStorePem + remoteCert;
+                else
+                    remoteCertFile = certificateStore + remoteCert;
+
+                if (access(remoteCertFile.c_str(), R_OK) == 0) {
+                    if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, remoteCertFile.c_str()) == false) {
+                        Iec61850Utility::log_warn("Failed to load remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                    }
+                }
+                else {
+                    Iec61850Utility::log_warn("Failed to access remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                }
+
+            }
+        }
+        else {
+            TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, false);
+        }
+
+        if (m_config->GetCaCertificates().size() > 0) {
+            TLSConfiguration_setChainValidation(tlsConfig, true);
+
+            for (const std::string& caCert : m_config->GetCaCertificates())
+            {
+                bool isPemCaCertificate = caCert.rfind(".pem") == caCert.size() - 4;
+
+                std::string caCertFile;
+
+                if(isPemCaCertificate)
+                    caCertFile = certificateStorePem + caCert;
+                else
+                    caCertFile = certificateStore + caCert;
+
+                if (access(caCertFile.c_str(), R_OK) == 0) {
+                    if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
+                        Iec61850Utility::log_warn("Failed to load CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                    }
+                }
+                else {
+                    Iec61850Utility::log_warn("Failed to access CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                }
+
+            }
+        }
+        else {
+            TLSConfiguration_setChainValidation(tlsConfig, false);
+        }
+
+        if (tlsConfigOk) {
+
+            TLSConfiguration_setRenegotiationTime(tlsConfig, 60000);
+
+            m_connection = IedConnection_createWithTlsSupport(tlsConfig);
+
+            if (m_connection) {
+                m_tlsConfig = tlsConfig;
+            }
+            else {
+                printf("TLS configuration failed\n");
+                TLSConfiguration_destroy(tlsConfig);
+            }
+        }
+        else {
+            printf("TLS configuration failed\n");
+            Iec61850Utility::log_error("TLS configuration failed");
+        }
+    }
+    else {
+        m_connection = IedConnection_create();
+    }
+
     return m_connection != nullptr;
 }
 

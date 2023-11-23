@@ -47,10 +47,10 @@ static const char *default_config = QUOTE({
                     "connections":[
                         {
                             "ip_addr":"127.0.0.1",
-                            "port": 102
+                            "port": 102,
+                            "tls" : false
                         }
-                    ],
-                    "tls" : false
+                    ]
                 },
                 "application_layer": {
                     "polling_interval": 0,
@@ -225,7 +225,7 @@ extern "C"
             config.itemExists("tls"))
             iec61850->setJsonConfig(config.getValue("protocol_stack"),
                                   config.getValue("exchanged_data"),
-                                  config.getValue("tls"));
+                                  config.getValue("tls_conf"));
 
         if (config.itemExists("asset"))
         {

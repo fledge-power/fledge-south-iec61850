@@ -96,6 +96,7 @@ private:
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
     FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
     FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
@@ -173,6 +174,7 @@ private:
     std::unordered_map<std::string, Datapoint*> m_outstandingCommands;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
     FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
     FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
     FRIEND_TEST(ControlTest,   SingleCommandSetValue);
