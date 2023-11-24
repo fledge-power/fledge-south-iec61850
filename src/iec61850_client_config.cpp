@@ -49,7 +49,8 @@ const std::unordered_map<std::string,CDCTYPE> cdcMap = {
     {"SpsTyp",SPS}, {"DpsTyp",DPS},
     {"BscTyp",BSC}, {"MvTyp",MV},
     {"SpcTyp",SPC}, {"DpcTyp",DPC},
-    {"ApcTyp",APC}, {"IncTyp",INC}};
+    {"ApcTyp",APC}, {"IncTyp",INC},
+    {"InsTyp",INS}, {"EnsTyp",ENS}};
 
 int
 IEC61850ClientConfig::getCdcTypeFromString( const std::string& cdc) {

@@ -13,7 +13,7 @@
 #include "rapidjson/error/en.h"
 
 typedef enum { GTIS, GTIM, GTIC } PIVOTROOT;
-typedef enum { SPS, DPS, BSC, MV, INS, ENS, SPC, DPC, APC, INC } CDCTYPE;
+typedef enum { SPS, DPS, MV, INS, ENS, SPC, DPC, APC, INC , BSC} CDCTYPE;
 
 class ConfigurationException: public std::logic_error
 {
@@ -147,5 +147,9 @@ private:
     FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
     FRIEND_TEST(SpontDataTest,   Polling);
+    FRIEND_TEST(SpontDataTest,   PollingAllCDC);
+    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   StepCommandDirectNormal);
 };
 #endif /* IEC61850_CLIENT_CONFIG_H */

@@ -135,6 +135,10 @@ private:
     FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
     FRIEND_TEST(SpontDataTest,   Polling);
+    FRIEND_TEST(SpontDataTest,   PollingAllCDC);
+    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal);
+    FRIEND_TEST(ControlTest,   StepCommandDirectNormal);
 };
 #endif
 

@@ -206,10 +206,11 @@ const std::map<CDCTYPE, std::string> cdcToStrMap = {
     {SPC, "SpcTyp"},
     {DPC, "DpcTyp"},
     {APC, "ApcTyp"},
-    {INC, "IncTyp"}};
-
+    {INC, "IncTyp"},
+    {INS,"InsTyp"}, 
+    {ENS, "EnsTyp"}};
 const std::map<CDCTYPE, PIVOTROOT> rootMap = {
-    {SPS, GTIS}, {DPS, GTIS}, {BSC, GTIS}, {MV, GTIM}, {SPC, GTIC}, {DPS, GTIC}, {APC, GTIC}, {INC, GTIC}};
+    {SPS, GTIS}, {DPS, GTIS}, {BSC, GTIC}, {INS,GTIS}, {ENS,GTIS}, {MV, GTIM}, {SPC, GTIC}, {DPC, GTIC}, {APC, GTIC}, {INC, GTIC}};
 
 const std::map<PIVOTROOT, std::string> rootToStrMap = {
     {GTIM, "GTIM"}, {GTIS, "GTIS"}, {GTIC, "GTIC"}};
@@ -724,7 +725,7 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue, uint64_
 
   labels.push_back(def->label);
 
-  m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, mmsValue,extracted, fcValue, timestamp);
+  m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, mmsValue, extracted, fcValue, timestamp);
   Iec61850Utility::log_debug("Send %s", datapoints[0]->toJSONProperty().c_str());
   sendData(datapoints, labels);
 }
@@ -778,9 +779,11 @@ bool IEC61850Client::processDatapoint(CDCTYPE type, std::vector<Datapoint *> &da
         case SPC: case SPS:
             return processBooleanType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "stVal");
         case BSC:
-            return processBSCType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "valWtr");
-        case APC: case MV:
+            return processBSCType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "valWTr");
+        case MV:
             return processAnalogType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "mag");
+        case APC: 
+            return processAnalogType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "mxVal");
         case ENS: case INS: case DPS: case DPC: case INC:
             return processIntegerType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "stVal");
         default:

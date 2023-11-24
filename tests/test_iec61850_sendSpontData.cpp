@@ -29,134 +29,6 @@ static string protocol_config = QUOTE({
             ]
         },
         "application_layer" : {
-            "polling_interval" : 0,
-            "datasets" : [
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4[MX]"
-                    ],
-                    "dynamic" : true
-                },
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
-                    ],
-                    "dynamic" : false
-                }
-            ],
-            "report_subscriptions" : [
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : false
-                },
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : false
-                }
-            ]
-        }
-    }
-});
-
-static string protocol_config_2 = QUOTE({
-    "protocol_stack" : {
-        "name" : "iec61850client",
-        "version" : "0.0.1",
-        "transport_layer" : {
-            "ied_name" : "IED1",
-            "connections" : [
-                {
-                    "ip_addr" : "127.0.0.1",
-                    "port" : 10002
-                }
-            ]
-        },
-        "application_layer" : {
-            "polling_interval" : 0,
-            "datasets" : [
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4[MX]"
-                    ],
-                    "dynamic" : true
-                },
-                {
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
-                    ],
-                    "dynamic" : false
-                }
-            ],
-            "report_subscriptions" : [
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : true
-                },
-                {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
-                    "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "trgops" : [
-                        "data_changed",
-                        "quality_changed",
-                        "gi"
-                    ],
-                    "gi" : true
-                }
-            ]
-        }
-    }
-});
-
-
-static string protocol_config_3 = QUOTE({
-    "protocol_stack" : {
-        "name" : "iec61850client",
-        "version" : "0.0.1",
-        "transport_layer" : {
-            "ied_name" : "IED1",
-            "connections" : [
-                {
-                    "ip_addr" : "127.0.0.1",
-                    "port" : 10002
-                }
-            ],
-            "tls" : false
-        },
-        "application_layer" : {
             "polling_interval" : 1000
         }
     }
@@ -174,7 +46,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO1",
+      "objref": "TEMPLATELD1/GGIO1.SPCSO1",
       "cdc": "SpcTyp"
      }
     ]
@@ -185,7 +57,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO2",
+      "objref": "TEMPLATELD1/GGIO1.SPCSO2",
       "cdc": "SpcTyp"
      }
     ]
@@ -196,7 +68,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO3",
+      "objref": "TEMPLATELD1/GGIO1.SPCSO3",
       "cdc": "SpcTyp"
      }
     ]
@@ -207,7 +79,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.SPCSO4",
+      "objref": "TEMPLATELD1/GGIO1.SPCSO4",
       "cdc": "SpcTyp"
      }
     ]
@@ -218,7 +90,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn1",
+      "objref": "TEMPLATELD1/GGIO1.AnIn1",
       "cdc": "MvTyp"
      }
     ]
@@ -229,7 +101,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn2",
+      "objref": "TEMPLATELD1/GGIO1.AnIn2",
       "cdc": "MvTyp"
      }
     ]
@@ -240,7 +112,7 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn3",
+      "objref": "TEMPLATELD1/GGIO1.AnIn3",
       "cdc": "MvTyp"
      }
     ]
@@ -251,8 +123,228 @@ static string exchanged_data = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn4",
+      "objref": "TEMPLATELD1/GGIO1.AnIn4",
       "cdc": "MvTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "ST1",
+    "label": "ST1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.BSCSO1",
+      "cdc": "BscTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "ST2",
+    "label": "ST2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.BSCSO2",
+      "cdc": "BscTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "ST3",
+    "label": "ST3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.BSCSO3",
+      "cdc": "BscTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "ST4",
+    "label": "ST4",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.BSCSO4",
+      "cdc": "BscTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "IN1",
+    "label": "IN1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.IntIn1",
+      "cdc": "InsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "IN2",
+    "label": "IN2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.IntIn2",
+      "cdc": "InsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "IN3",
+    "label": "IN3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.IntIn3",
+      "cdc": "InsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "IN4",
+    "label": "IN4",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.IntIn4",
+      "cdc": "InsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AL1",
+    "label": "AL1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.Alm1",
+      "cdc": "SpsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AL2",
+    "label": "AL2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.Alm2",
+      "cdc": "SpsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AL3",
+    "label": "AL3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.Alm3",
+      "cdc": "SpsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AL4",
+    "label": "AL4",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.Alm4",
+      "cdc": "SpsTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AN1",
+    "label": "AN1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.AnOut1",
+      "cdc": "ApcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AN2",
+    "label": "AN2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.AnOut2",
+      "cdc": "ApcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AN3",
+    "label": "AN3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.AnOut3",
+      "cdc": "ApcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "AN4",
+    "label": "AN4",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.AnOut4",
+      "cdc": "ApcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "DP1",
+    "label": "DP1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.DPCSO1",
+      "cdc": "DpcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "DP2",
+    "label": "DP2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.DPCSO2",
+      "cdc": "DpcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "DP3",
+    "label": "DP3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.DPCSO3",
+      "cdc": "DpcTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "DP4",
+    "label": "DP4",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "TEMPLATELD1/GGIO1.DPCSO4",
+      "cdc": "DpcTyp"
      }
     ]
    }
@@ -270,7 +362,7 @@ static string exchanged_data_2 = QUOTE({
     "protocols": [
      {
       "name": "iec61850",
-      "objref": "simpleIOGenericIO/GGIO1.AnIn1",
+      "objref": "TEMPLATELD1/GGIO1.AnIn1",
       "cdc": "MvTyp"
      }
     ]
@@ -506,9 +598,9 @@ controlHandlerForBinaryOutput(ControlAction action, void* parameter, MmsValue* v
 
 TEST_F(SpontDataTest, Polling)
 {
-    iec61850->setJsonConfig(protocol_config_3, exchanged_data_2, tls_config);
+    iec61850->setJsonConfig(protocol_config, exchanged_data_2, tls_config);
 
-    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/simpleIO_direct_control.cfg");
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/iec61850fledgetest.cfg");
 
     IedServer server = IedServer_create(model);
 
@@ -581,3 +673,51 @@ TEST_F(SpontDataTest, Polling)
     IedServer_destroy(server);
     IedModel_destroy(model);
 }
+
+TEST_F(SpontDataTest, PollingAllCDC)
+{
+    iec61850->setJsonConfig(protocol_config, exchanged_data, tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/iec61850fledgetest.cfg");
+
+    IedServer server = IedServer_create(model);
+
+    IedServer_start(server,10002);
+    iec61850->start();
+
+    Thread_sleep(1000);
+ 
+    auto start = std::chrono::high_resolution_clock::now();
+    auto timeout = std::chrono::seconds(5);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+        }
+        Thread_sleep(10); 
+    }
+    
+    timeout = std::chrono::seconds(3);  
+    start = std::chrono::high_resolution_clock::now();
+    while (ingestCallbackCalled != 28) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Callback not called within timeout";
+        }
+        Thread_sleep(10); 
+    }
+
+    ASSERT_FALSE(storedReadings.empty());
+    ASSERT_EQ(storedReadings.size(), 28);
+    
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+}
+
