@@ -1,0 +1,5 @@
+BasedOnStyle: GNU
+IndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Left
+AlwaysBreakAfterReturnType: AllDefinitions
