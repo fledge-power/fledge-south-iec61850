@@ -686,7 +686,6 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue, uint64_
 
   Iec61850Utility::log_debug("Handle value %s", objRef.c_str());
 
-
   size_t secondDotPos = objRef.find('.', objRef.find('.') + 1);
   size_t bracketPos = objRef.find('[');
 
@@ -719,7 +718,6 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue, uint64_
     Iec61850Utility::log_debug("No exchange definition found for %s", objRef.c_str());
     return;
   }
-  IedClientError error;
 
   CDCTYPE typeId = def->cdcType;
 
