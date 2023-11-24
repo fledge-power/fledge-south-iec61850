@@ -95,21 +95,7 @@ private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
     void* m_data;        // Ingest function data
     IEC61850Client* m_client = nullptr;
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
-    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
-    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
-    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
-    FRIEND_TEST(ReportingTest,   ReportingGI);
-    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
-    FRIEND_TEST(SpontDataTest,   Polling);
-    FRIEND_TEST(SpontDataTest,   PollingAllCDC);
-    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   StepCommandDirectNormal);
+    FRIEND_TESTS
 };
 
 
@@ -184,20 +170,6 @@ private:
     bool processAnalogType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
     bool processIntegerType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
     std::unordered_map<std::string, Datapoint *> m_outstandingCommands;
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
-    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
-    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
-    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
-    FRIEND_TEST(ReportingTest,   ReportingGI);
-    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
-    FRIEND_TEST(SpontDataTest,   Polling);
-    FRIEND_TEST(SpontDataTest,   PollingAllCDC);
-    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   StepCommandDirectNormal);
+    FRIEND_TESTS
 };
 #endif  // INCLUDE_IEC61850_H_

@@ -987,7 +987,7 @@ TEST_F(ControlTest, StepCommandDirectNormal) {
     auto params = new PLUGIN_PARAMETER*[1];
     params[0] = new PLUGIN_PARAMETER;
     params[0]->name = std::string("Pivot");
-    params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "BscTyp":{"q":{"test":0}, "t":{"SecondSinceEpoch":1700566837, "FractionOfSecond":15921577}, "ctlVal":1}, "Identifier":"TS1", "Select":{"stVal":0}}})");
+    params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "BscTyp":{"q":{"test":0}, "t":{"SecondSinceEpoch":1700566837, "FractionOfSecond":15921577}, "ctlVal":"lower"}, "Identifier":"TS1", "Select":{"stVal":0}}})");
     iec61850->operation("PivotCommand", 1, params);
 
     delete params[0];

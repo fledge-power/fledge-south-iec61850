@@ -12,6 +12,25 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 
+#define FRIEND_TESTS FRIEND_TEST(ConnectionHandlingTest,   SingleConnection); \
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS); \
+    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect); \
+    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal); \
+    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal); \
+    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced); \
+    FRIEND_TEST(ControlTest,   SingleCommandSetValue); \
+    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset); \
+    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset); \
+    FRIEND_TEST(ReportingTest,   ReportingUpdateQuality); \
+    FRIEND_TEST(ReportingTest,   ReportingGI); \
+    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand); \
+    FRIEND_TEST(ReportingTest,   ReportingChangeValueMultipleTimes); \
+    FRIEND_TEST(SpontDataTest,   Polling); \
+    FRIEND_TEST(SpontDataTest,   PollingAllCDC); \
+    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal); \
+    FRIEND_TEST(ControlTest,   StepCommandDirectNormal); 
+
+
 typedef enum { GTIS, GTIM, GTIC } PIVOTROOT;
 typedef enum { SPS, DPS, MV, INS, ENS, SPC, DPC, APC, INC , BSC} CDCTYPE;
 
@@ -136,20 +155,6 @@ private:
     std::vector<std::string> m_caCertificates;
 
     long pollingInterval = 0;
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   SingleCommandDirectEnhanced);
-    FRIEND_TEST(ControlTest,   SingleCommandSetValue);
-    FRIEND_TEST(ReportingTest,   ReportingWithStaticDataset);
-    FRIEND_TEST(ReportingTest,   ReportingWithDynamicDataset);
-    FRIEND_TEST(ReportingTest,   ReportingGI);
-    FRIEND_TEST(ReportingTest,   ReportingSetpointCommand);
-    FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
-    FRIEND_TEST(SpontDataTest,   Polling);
-    FRIEND_TEST(SpontDataTest,   PollingAllCDC);
-    FRIEND_TEST(ControlTest,   DoubleCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   AnalogueCommandDirectNormal);
-    FRIEND_TEST(ControlTest,   StepCommandDirectNormal);
+    FRIEND_TESTS
 };
 #endif /* IEC61850_CLIENT_CONFIG_H */

@@ -432,12 +432,12 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
         switch (def->cdcType)
         {
         case SPC:
+        case DPC:
         {
             co->value = MmsValue_newBoolean(false);
             break;
         }
         case BSC:
-        case DPC:
         {
             co->value = MmsValue_newBitString(2);
             break;
@@ -965,9 +965,16 @@ bool IEC61850ClientConnection::operate(const std::string &objRef, DatapointValue
     case MMS_INTEGER:
         MmsValue_setInt32(mmsValue, (int)value.toInt());
         break;
-    case MMS_BIT_STRING:
-        MmsValue_setBitStringFromInteger(mmsValue, (uint32_t)value.toInt());
+    case MMS_BIT_STRING:{
+        uint32_t bitStringValue = 0;
+        std::string strVal = value.toStringValue();
+        if(strVal == "stop") bitStringValue = 0;
+        else if(strVal == "lower")  bitStringValue = 1;
+        else if(strVal ==  "higher") bitStringValue = 2;
+        else if(strVal == "reserved") bitStringValue = 3;
+        MmsValue_setBitStringFromInteger(mmsValue, bitStringValue);
         break;
+    }
     case MMS_FLOAT:
         MmsValue_setFloat(mmsValue, (float)value.toDouble());
         break;

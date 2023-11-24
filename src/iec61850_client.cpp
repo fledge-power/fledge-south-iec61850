@@ -39,9 +39,7 @@ getMonotonicTimeInMs()
 {
   uint64_t timeVal = 0;
 
-  struct timespec ts
-  {
-  };
+  struct timespec ts;
 
   if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
   {
@@ -997,7 +995,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
   case APC:
   case MV:
   {
-    Datapoint *magDp = addElement(cdcDp, "mag");
+    Datapoint *magDp = addElement(cdcDp, type == MV ? "mag" : "mxVal");
     if (std::is_same<T, double>::value)
     {
       addElementWithValue(magDp, "f", (double)value);

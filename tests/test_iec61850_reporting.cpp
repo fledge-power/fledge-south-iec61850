@@ -725,3 +725,184 @@ TEST_F(ReportingTest, ReportingSetpointCommand)
     IedServer_destroy(server);
     IedModel_destroy(model);
 }
+
+
+TEST_F(ReportingTest, ReportingUpdateQuality)
+{
+    iec61850->setJsonConfig(protocol_config, exchanged_data, tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/simpleIO_direct_control.cfg");
+
+    IedServer server = IedServer_create(model);
+
+    IedServer_start(server,10002);
+    iec61850->start();
+
+    Thread_sleep(1000);
+ 
+    auto start = std::chrono::high_resolution_clock::now();
+    auto timeout = std::chrono::seconds(5);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+        }
+        Thread_sleep(10); 
+    }
+
+    Quality q = 0;
+    Quality_setValidity(&q,QUALITY_VALIDITY_INVALID);
+    q |= QUALITY_DETAIL_OLD_DATA | QUALITY_OPERATOR_BLOCKED | QUALITY_SOURCE_SUBSTITUTED | QUALITY_DETAIL_OVERFLOW;
+
+    IedServer_updateQuality(server, (DataAttribute*) IedModel_getModelNodeByObjectReference( model,"simpleIOGenericIO/GGIO1.AnIn1.q"), q);
+    
+    timeout = std::chrono::seconds(3);  
+    start = std::chrono::high_resolution_clock::now();
+    while (ingestCallbackCalled != 1) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Callback not called within timeout";
+        }
+        Thread_sleep(10); 
+    }
+
+    ASSERT_FALSE(storedReadings.empty());
+    ASSERT_EQ(storedReadings.size(), 1);
+    Datapoint* commandResponse = storedReadings[0]->getReadingData()[0];
+    verifyDatapoint(commandResponse, "GTIM");
+    Datapoint* gtim = getChild(*commandResponse,"GTIM");
+
+    verifyDatapoint(gtim, "MvTyp");
+    Datapoint* MV = getChild(*gtim,"MvTyp");
+
+    verifyDatapoint(MV, "q");
+    Datapoint* qDp = getChild(*MV,"q");
+
+    std::string expectedValidity = "invalid";
+
+    verifyDatapoint(qDp,"Validity", &expectedValidity);
+
+    verifyDatapoint(qDp, "DetailQuality");
+    Datapoint* detailDp = getChild(*qDp,"DetailQuality");
+
+    verifyDatapoint(detailDp, "oldData");
+    verifyDatapoint(detailDp, "overflow");
+
+    verifyDatapoint(qDp, "Source");
+    verifyDatapoint(qDp, "operatorBlocked");
+
+
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+}
+
+TEST_F(ReportingTest, ReportingChangeValueMultipleTimes)
+{
+    iec61850->setJsonConfig(protocol_config, exchanged_data, tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/simpleIO_direct_control.cfg");
+
+    IedServer server = IedServer_create(model);
+
+    IedServer_start(server,10002);
+    iec61850->start();
+
+    Thread_sleep(1000);
+ 
+    auto start = std::chrono::high_resolution_clock::now();
+    auto timeout = std::chrono::seconds(5);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+        }
+        Thread_sleep(10); 
+    }
+
+    IedServer_updateFloatAttributeValue(server, (DataAttribute*) IedModel_getModelNodeByObjectReference( model,"simpleIOGenericIO/GGIO1.AnIn1.mag.f"), 1.2);
+    IedServer_updateFloatAttributeValue(server, (DataAttribute*) IedModel_getModelNodeByObjectReference( model,"simpleIOGenericIO/GGIO1.AnIn1.mag.f"), 1.3);
+    IedServer_updateFloatAttributeValue(server, (DataAttribute*) IedModel_getModelNodeByObjectReference( model,"simpleIOGenericIO/GGIO1.AnIn1.mag.f"), 1.4);
+    IedServer_updateFloatAttributeValue(server, (DataAttribute*) IedModel_getModelNodeByObjectReference( model,"simpleIOGenericIO/GGIO1.AnIn1.mag.f"), 1.5);
+    
+    timeout = std::chrono::seconds(3);  
+    start = std::chrono::high_resolution_clock::now();
+    while (ingestCallbackCalled != 4) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Callback not called within timeout";
+        }
+        Thread_sleep(10); 
+    }
+
+    ASSERT_FALSE(storedReadings.empty());
+    ASSERT_EQ(storedReadings.size(), 4);
+    Datapoint* commandResponse = storedReadings[0]->getReadingData()[0];
+
+    verifyDatapoint(commandResponse, "GTIM");
+    Datapoint* gtim = getChild(*commandResponse,"GTIM");
+
+    verifyDatapoint(gtim, "MvTyp");
+    Datapoint* MV = getChild(*gtim,"MvTyp");
+
+    verifyDatapoint(MV, "mag");
+    Datapoint* mag = getChild(*MV,"mag");
+
+    double expectedMagVal = 1.2;
+    verifyDatapoint(mag, "f", &expectedMagVal);
+
+    commandResponse = storedReadings[1]->getReadingData()[0];
+    verifyDatapoint(commandResponse, "GTIM");
+    gtim = getChild(*commandResponse,"GTIM");
+
+    verifyDatapoint(gtim, "MvTyp");
+    MV = getChild(*gtim,"MvTyp");
+
+    verifyDatapoint(MV, "mag");
+    mag = getChild(*MV,"mag");
+
+    expectedMagVal = 1.3;
+    verifyDatapoint(mag, "f", &expectedMagVal);
+
+    commandResponse = storedReadings[2]->getReadingData()[0];
+    verifyDatapoint(commandResponse, "GTIM");
+    gtim = getChild(*commandResponse,"GTIM");
+
+    verifyDatapoint(gtim, "MvTyp");
+    MV = getChild(*gtim,"MvTyp");
+
+    verifyDatapoint(MV, "mag");
+    mag = getChild(*MV,"mag");
+
+    expectedMagVal = 1.4;
+    verifyDatapoint(mag, "f", &expectedMagVal);
+
+    commandResponse = storedReadings[3]->getReadingData()[0];
+    verifyDatapoint(commandResponse, "GTIM");
+    gtim = getChild(*commandResponse,"GTIM");
+
+    verifyDatapoint(gtim, "MvTyp");
+    MV = getChild(*gtim,"MvTyp");
+
+    verifyDatapoint(MV, "mag");
+    mag = getChild(*MV,"mag");
+
+     expectedMagVal = 1.5;
+    verifyDatapoint(mag, "f", &expectedMagVal);
+
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+}
