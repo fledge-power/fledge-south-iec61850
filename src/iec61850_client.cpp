@@ -673,12 +673,12 @@ void IEC61850Client::handleAllValues()
     labels.push_back(def->label);
     FunctionalConstraint fc = def->cdcType == MV || def->cdcType == APC ? IEC61850_FC_MX : IEC61850_FC_ST;
 
-    m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, nullptr, "", fc);
+    m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, nullptr, "", fc, 0);
   }
   sendData(datapoints, labels);
 }
 
-void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
+void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue, uint64_t timestamp)
 {
   std::vector<std::string> labels;
   std::vector<Datapoint *> datapoints;
@@ -724,158 +724,163 @@ void IEC61850Client::handleValue(std::string objRef, MmsValue *mmsValue)
 
   labels.push_back(def->label);
 
-  m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, mmsValue,extracted, fcValue);
+  m_handleMonitoringData(def->objRef, datapoints, def->label, typeId, mmsValue,extracted, fcValue, timestamp);
   Iec61850Utility::log_debug("Send %s", datapoints[0]->toJSONProperty().c_str());
   sendData(datapoints, labels);
 }
 
-void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint *> &datapoints, const std::string &label, CDCTYPE type, MmsValue *mmsVal, const std::string& attribute, FunctionalConstraint fc)
-{
-  IedClientError error;
-  if (!m_active_connection)
-  {
-    Iec61850Utility::log_error("No active connection");
-    return;
-  }
-
-  MmsValue *mmsvalue;
-  if (!mmsVal)
-  {
-    mmsvalue = m_active_connection->readValue(&error, objRef.c_str(), fc);
-    if (error != IED_ERROR_OK)
-    {
-      logIedClientError(error, "Get MmsValue " + objRef);
-      return;
-    }
-  }
-  else
-  {
-    mmsvalue = mmsVal;
-  }
-
-  const std::shared_ptr<DataExchangeDefinition> def = m_config->getExchangeDefinitionByObjRef(objRef);
-
-  if(!def){
-    Iec61850Utility::log_error("No exchange definition %s", objRef.c_str());
-    return;
-  }
-
-  MmsVariableSpecification *varSpec = def->spec;
-
-  if (!varSpec)
-  {
-    Iec61850Utility::log_error("No var spec %s", def->objRef.c_str());
-    return;
-  }
-
-  Quality quality;
-
-  MmsValue const *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"q");
-  if (!qualityMms && attribute!="q")
-  {
-    quality = QUALITY_VALIDITY_GOOD;
-  }
-  else quality = Quality_fromMmsValue(qualityMms);
-
-  MmsValue const *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"t");
-  
-  uint64_t timestamp;
-  if (!timestampMms && attribute!="t")
-  {
-    timestamp = PivotTimestamp::GetCurrentTimeInMs();
-  }
-  else timestamp = MmsValue_getUtcTimeInMs(timestampMms);
-
-  switch (type)
-  {
-  case SPC:
-  case SPS:
-  {
-    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"stVal");
-    if (!stVal)
-    {
-      if(attribute == "stVal"){
-        stVal = mmsvalue;
-      }
-      else{
-        Iec61850Utility::log_error("No value found %s", objRef.c_str());
+void IEC61850Client::m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint *> &datapoints, const std::string &label, CDCTYPE type, MmsValue *mmsVal, const std::string& attribute, FunctionalConstraint fc, uint64_t timestamp) {
+    if (!m_active_connection) {
+        Iec61850Utility::log_error("No active connection");
         return;
-      } 
     }
-    bool value = MmsValue_getBoolean(stVal);
-    datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
-    if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
-    return;
-  }
-  case DPS:
-  {
-    return;
-  }
-  case BSC:
-  {
-    return;
-  }
-  case APC:
-  case MV:
-  {
-    MmsValue const *mag = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag");
-    if (!mag && attribute.substr(0,3) != "mag")
-    {
-      Iec61850Utility::log_error("No mag found %s", objRef.c_str());
-      return;
-    }
-    MmsValue const *i = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$i");
-    if(!i && attribute.length() >= 4 && attribute.substr(4,1) == "i") {
-      i = mmsvalue;
-    }
-    if (i)
-    {
-      long value = MmsValue_toInt32(i);
-      datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
-      if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
-      return;
-    }
-    MmsValue const *f = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"mag$f");
-    if(!f && attribute.length() >= 4 && attribute.substr(4,1) == "f") {
-      f = mmsvalue;
-    }
-    if (f)
-    {
-      double value = MmsValue_toFloat(f);
-      datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
-      if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
-      return;
-    }
-    Iec61850Utility::log_error("No value found %s", objRef.c_str());
-    return;
-  }
-  case ENS:
-  case INS:
-  case DPC:
-  case INC:
-  {
-    MmsValue const *stVal = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"stVal");
-    if (!stVal)
-    {
-      if(attribute == "stVal"){
-        stVal = mmsvalue;
-      }
-      else{
-        Iec61850Utility::log_error("No stVal found %s", objRef.c_str());
+
+    IedClientError error;
+    MmsValue *mmsvalue = mmsVal ? mmsVal : m_active_connection->readValue(&error, objRef.c_str(), fc);
+
+    if (!mmsvalue) {
+        logIedClientError(error, "Get MmsValue " + objRef);
         return;
-      }
     }
-    long value = MmsValue_toInt32(stVal);
-    datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
-    if(mmsvalue && !mmsVal) MmsValue_delete(mmsvalue);
-    return;
-  }
-  default:
-  {
-    Iec61850Utility::log_error("Invalid cdc type %s", objRef.c_str());
-  }
-  }
+
+    auto def = m_config->getExchangeDefinitionByObjRef(objRef);
+    if (!def || !def->spec) {
+        Iec61850Utility::log_error("Invalid definition/spec for %s", objRef.c_str());
+        cleanUpMmsValue(mmsVal, mmsvalue);
+        return;
+    }
+
+    Quality quality = extractQuality(mmsvalue, def->spec, attribute);
+    uint64_t ts;
+
+    if(!mmsVal) ts = extractTimestamp(mmsvalue, def->spec, attribute);
+    else ts = timestamp;
+
+    if (!processDatapoint(type, datapoints, label, objRef, mmsvalue, def->spec, quality, ts, attribute)) {
+        Iec61850Utility::log_error("Error processing datapoint %s", objRef.c_str());
+    }
+
+    cleanUpMmsValue(mmsVal, mmsvalue);
 }
+
+Quality IEC61850Client::extractQuality(MmsValue *mmsvalue, MmsVariableSpecification *varSpec, const std::string &attribute) {
+    MmsValue const *qualityMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"q");
+    return (!qualityMms && attribute != "q") ? QUALITY_VALIDITY_GOOD : Quality_fromMmsValue(qualityMms);
+}
+
+uint64_t IEC61850Client::extractTimestamp(MmsValue *mmsvalue, MmsVariableSpecification *varSpec, const std::string &attribute) {
+    MmsValue const *timestampMms = MmsValue_getSubElement(mmsvalue, varSpec, (char*)"t");
+    return (!timestampMms && attribute != "t") ? PivotTimestamp::GetCurrentTimeInMs() : MmsValue_getUtcTimeInMs(timestampMms);
+}
+
+bool IEC61850Client::processDatapoint(CDCTYPE type, std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute) {
+    switch (type) {
+        case SPC: case SPS:
+            return processBooleanType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "stVal");
+        case BSC:
+            return processBSCType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "valWtr");
+        case APC: case MV:
+            return processAnalogType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "mag");
+        case ENS: case INS: case DPS: case DPC: case INC:
+            return processIntegerType(datapoints, label, objRef, mmsvalue, varSpec, quality, timestamp, attribute, "stVal");
+        default:
+            return false;
+    }
+}
+
+void IEC61850Client::cleanUpMmsValue(MmsValue *originalMmsVal, MmsValue *usedMmsVal) {
+    if (usedMmsVal && !originalMmsVal) MmsValue_delete(usedMmsVal);
+}
+
+
+bool IEC61850Client::processBooleanType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName) {
+    MmsValue const *element = MmsValue_getSubElement(mmsvalue, varSpec, (char*) elementName);
+    if (!element) {
+        if (attribute == elementName) {
+            element = mmsvalue;
+        } else {
+            Iec61850Utility::log_error("No %s found %s", elementName, objRef.c_str());
+            return false;
+        }
+    }
+    bool value = MmsValue_getBoolean(element);
+    datapoints.push_back(m_createDatapoint(label, objRef, (long)value, quality, timestamp));
+    return true;
+}
+
+bool IEC61850Client::processBSCType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName) {
+    MmsValue *element = MmsValue_getSubElement(mmsvalue, varSpec, (char*) elementName);
+    if (!element) {
+        if (attribute == elementName) {
+            element = mmsvalue;
+        } else {
+            Iec61850Utility::log_error("No %s found %s", elementName, objRef.c_str());
+            return false;
+        }
+    }
+
+    varSpec = MmsVariableSpecification_getChildSpecificationByName(varSpec, elementName, nullptr);
+    MmsValue const *posVal = MmsValue_getSubElement(element, varSpec, (char*)"posVal");
+    MmsValue const *transInd = MmsValue_getSubElement(element, varSpec, (char*)"transInd");
+
+    if (!posVal || !transInd) {
+        Iec61850Utility::log_error("Missing components in %s %s", elementName, objRef.c_str());
+        return false;
+    }
+
+    long value = MmsValue_toInt32(posVal);
+    bool transIndVal = MmsValue_getBoolean(transInd);
+    long combinedValue = (value << 1) | (long)transIndVal;
+    datapoints.push_back(m_createDatapoint(label, objRef, combinedValue, quality, timestamp));
+    return true;
+}
+
+bool IEC61850Client::processAnalogType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName) {
+    MmsValue *element = MmsValue_getSubElement(mmsvalue, varSpec, (char*) elementName);
+    if (!element) {
+        if (attribute == elementName) {
+            element = mmsvalue;
+        } else {
+            Iec61850Utility::log_error("No %s found %s", elementName, objRef.c_str());
+            return false;
+        }
+    }
+
+    varSpec = MmsVariableSpecification_getChildSpecificationByName(varSpec, elementName, nullptr);
+    MmsValue *f = MmsValue_getSubElement(element, varSpec, (char*)"f");
+
+    if (f) {
+        double value = MmsValue_toFloat(f);
+        datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+        return true;
+    }
+
+    MmsValue *i = MmsValue_getSubElement(element, varSpec, (char*)"i");
+    if (i) {
+        long value = MmsValue_toInt32(i);
+        datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+        return true;
+    }
+
+    Iec61850Utility::log_error("No analog value found %s", objRef.c_str());
+    return false;
+}
+
+bool IEC61850Client::processIntegerType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName) {
+    MmsValue const *element = MmsValue_getSubElement(mmsvalue, varSpec, (char*) elementName);
+    if (!element) {
+        if (attribute == elementName) {
+            element = mmsvalue;
+        } else {
+            Iec61850Utility::log_error("No %s found %s", elementName, objRef.c_str());
+            return false;
+        }
+    }
+    long value = MmsValue_toInt32(element);
+    datapoints.push_back(m_createDatapoint(label, objRef, value, quality, timestamp));
+    return true;
+}
+
 
 template <class T>
 Datapoint *
@@ -962,7 +967,6 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
   switch (type)
   {
   case SPC:
-  case DPC:
   case INC:
   case ENS:
   case INS:
@@ -971,6 +975,7 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
     addElementWithValue(cdcDp, "stVal", (long)value);
     break;
   }
+  case DPC:
   case DPS:
   {
     auto valueInt = (long)value;
@@ -1006,6 +1011,9 @@ void IEC61850Client::addValueDp(Datapoint *cdcDp, CDCTYPE type, T value) const
   }
   case BSC:
   {
+    Datapoint *valWtrDp = addElement(cdcDp, "valWtr");
+    addElementWithValue(valWtrDp, "posVal", (long) value >> 1);
+    addElementWithValue(valWtrDp, "transInd", (long)value & 1);
     break;
   }
   default:

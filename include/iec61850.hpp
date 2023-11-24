@@ -126,7 +126,7 @@ public:
     
     void prepareConnections();
     
-    void handleValue(std::string objRef, MmsValue* mmsValue);
+    void handleValue(std::string objRef, MmsValue* mmsValue, uint64_t timestamp);
     void handleAllValues();
 
     bool handleOperation(Datapoint* operation);
@@ -170,8 +170,16 @@ private:
     void addTimestampDp(Datapoint* cdcDp, uint64_t timestampMs) const;
     template <class T> void addValueDp(Datapoint* cdcDp, CDCTYPE type, T value) const;
 
-    void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc);
-    std::unordered_map<std::string, Datapoint*> m_outstandingCommands;
+    void m_handleMonitoringData(const std::string& objRef, std::vector<Datapoint*>& datapoints, const std::string& label, CDCTYPE type, MmsValue* mmsValue, const std::string& variable, FunctionalConstraint fc, uint64_t timestamp);
+    Quality extractQuality(MmsValue *mmsvalue, MmsVariableSpecification *varSpec, const std::string &attribute);
+    uint64_t extractTimestamp(MmsValue *mmsvalue, MmsVariableSpecification *varSpec, const std::string &attribute);
+    bool processDatapoint(CDCTYPE type, std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute);
+    void cleanUpMmsValue(MmsValue *originalMmsVal, MmsValue *usedMmsVal);
+    bool processBooleanType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
+    bool processBSCType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
+    bool processAnalogType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
+    bool processIntegerType(std::vector<Datapoint *> &datapoints, const std::string &label, const std::string &objRef, MmsValue *mmsvalue, MmsVariableSpecification *varSpec, Quality quality, uint64_t timestamp, const std::string &attribute, const char *elementName);
+    std::unordered_map<std::string, Datapoint *> m_outstandingCommands;
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnection);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionReconnect);
     FRIEND_TEST(ConnectionHandlingTest,   SingleConnectionTLS);

@@ -249,9 +249,11 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
 
     Iec61850Utility::log_debug("received report for %s with rptId %s\n", ClientReport_getRcbReference(report), ClientReport_getRptId(report));
 
+    time_t unixTime = 0;
+
     if (ClientReport_hasTimestamp(report))
     {
-        time_t unixTime = ClientReport_getTimestamp(report) / 1000;
+        unixTime = ClientReport_getTimestamp(report) / 1000;
 
         Iec61850Utility::log_debug("  report contains timestamp (%u)", (unsigned int)unixTime);
     }
@@ -267,15 +269,13 @@ void IEC61850ClientConnection::reportCallbackFunction(void *parameter, ClientRep
         LinkedList entry = LinkedList_get(dataSetDirectory, i);
 
         auto *entryName = (char *)entry->data;
-
         if (!dataSetValues) continue;
-        
         MmsValue *value = MmsValue_getElement(dataSetValues, i);
         if (!value) continue;
         
         Iec61850Utility::log_debug("%s (included for reason %i)", entryName, reason);
 
-        con->m_client->handleValue(std::string(entryName), value);
+        con->m_client->handleValue(std::string(entryName), value, unixTime);
     }
     
 }
@@ -436,6 +436,7 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
             co->value = MmsValue_newBoolean(false);
             break;
         }
+        case BSC:
         case DPC:
         {
             co->value = MmsValue_newBitString(2);
@@ -446,7 +447,6 @@ void IEC61850ClientConnection::m_initialiseControlObjects()
             co->value = MmsValue_newFloat(0.0);
             break;
         }
-        case BSC:
         case INC:
         {
             co->value = MmsValue_newIntegerFromInt32(0);
