@@ -1,5 +1,5 @@
-#include <config_category.h>
 #include "iec61850.hpp"
+#include <config_category.h>
 #include <logger.h>
 #include <plugin_api.h>
 #include <version.h>
@@ -10,14 +10,14 @@
 
 using namespace std;
 
-typedef void (*INGEST_CB)(void *, Reading);
+typedef void (*INGEST_CB) (void*, Reading);
 
 #define PLUGIN_NAME "iec61850"
 
 /**
  * Default configuration
  */
-static const char *default_config = QUOTE({
+static const char* default_config = QUOTE ({
     "plugin" : {
         "description" : "iec61850 south plugin",
         "type" : "string",
@@ -32,100 +32,76 @@ static const char *default_config = QUOTE({
         "order" : "1",
         "mandatory" : "true"
     },
-     "protocol_stack" : {
+    "protocol_stack" : {
         "description" : "protocol stack parameters",
         "type" : "JSON",
         "displayName" : "Protocol stack parameters",
         "order" : "2",
-        "default" : QUOTE({
-            "protocol_stack":
-            {
-                "name": "iec61850client",
-                "version": "0.0.1",
-                "transport_layer": {
+        "default" : QUOTE ({
+            "protocol_stack" : {
+                "name" : "iec61850client",
+                "version" : "0.0.1",
+                "transport_layer" : {
                     "ied_name" : "IED1",
-                    "connections":[
-                        {
-                            "ip_addr":"127.0.0.1",
-                            "port": 102,
-                            "tls" : false
-                        }
-                    ]
+                    "connections" : [ {
+                        "ip_addr" : "127.0.0.1",
+                        "port" : 102,
+                        "tls" : false
+                    } ]
                 },
-                "application_layer": {
-                    "polling_interval": 0,
-                    "datasets": [
-                        {
-                            "dataset_ref": "",
-                            "entries": [
-                                {
-                                    "objref" : ""
-                                }
-                            ]
-                        }
-                    ],
-                    "report_subscriptions": [
-                        {
-                            "rcb_ref" : "",
-                            "dataset_ref" : "",
-                            "trgops" : "",
-                            "gi" : true
-                        }
-                    ]
+                "application_layer" : {
+                    "polling_interval" : 0,
+                    "datasets" : [ {
+                        "dataset_ref" : "",
+                        "entries" : [ { "objref" : "" } ]
+                    } ],
+                    "report_subscriptions" : [ {
+                        "rcb_ref" : "",
+                        "dataset_ref" : "",
+                        "trgops" : "",
+                        "gi" : true
+                    } ]
                 }
             }
-        }
-    )
+        })
     },
     "exchanged_data" : {
-    "description" : "Exchanged datapoints configuration",
-    "type" : "JSON",
-    "displayName" : "Exchanged datapoints",
-    "order" : "3",
-    "default" : QUOTE({
-    "exchanged_data":{
-      "datapoints":[
-        {
-          "label":"TS1",
-          "protocols":[
-              {
-                "name":"iec61850",
-                "objref": "DER_Scheduler_Control/ActPow_GGIO1.AnOut1",
-                "cdc": "ApcTyp"
-              }
-            ]
-          }
-        ]
-      } 
-    })
+        "description" : "Exchanged datapoints configuration",
+        "type" : "JSON",
+        "displayName" : "Exchanged datapoints",
+        "order" : "3",
+        "default" : QUOTE ({
+            "exchanged_data" : {
+                "datapoints" : [ {
+                    "label" : "TS1",
+                    "protocols" : [ {
+                        "name" : "iec61850",
+                        "objref" : "DER_Scheduler_Control/ActPow_GGIO1.AnOut1",
+                        "cdc" : "ApcTyp"
+                    } ]
+                } ]
+            }
+        })
     },
-    "tls_conf": {
-    "description" : "TLS configuration",
-    "type" : "JSON",
-    "displayName" : "TLS Configuration",
-    "order": "4",
-    "default" : QUOTE({      
+    "tls_conf" : {
+        "description" : "TLS configuration",
+        "type" : "JSON",
+        "displayName" : "TLS Configuration",
+        "order" : "4",
+        "default" : QUOTE ({
             "tls_conf" : {
                 "private_key" : "iec104_server.key",
                 "own_cert" : "iec104_server.cer",
                 "ca_certs" : [
-                    {
-                        "cert_file": "iec104_ca.cer"
-                    },
-                    {
-                        "cert_file": "iec104_ca2.cer"
-                    }
+                    { "cert_file" : "iec104_ca.cer" },
+                    { "cert_file" : "iec104_ca2.cer" }
                 ],
-                "remote_certs" : [
-                    {
-                        "cert_file": "iec104_client.cer"
-                    }
-                ]
-            }       
+                "remote_certs" :
+                    [ { "cert_file" : "iec104_client.cer" } ]
+            }
         })
-  }
+    }
 });
-
 
 /**
  * The 61850 plugin interface
@@ -133,45 +109,48 @@ static const char *default_config = QUOTE({
 extern "C"
 {
     static PLUGIN_INFORMATION info = {
-        PLUGIN_NAME,            // Name
-        VERSION,                // Version (automaticly generated by mkversion)
-        SP_ASYNC | SP_CONTROL,  // Flags - added control
-        PLUGIN_TYPE_SOUTH,      // Type
-        "1.0.0",                // Interface version
-        default_config          // Default configuration
+        PLUGIN_NAME,           // Name
+        VERSION,               // Version (automaticly generated by mkversion)
+        SP_ASYNC | SP_CONTROL, // Flags - added control
+        PLUGIN_TYPE_SOUTH,     // Type
+        "1.0.0",               // Interface version
+        default_config         // Default configuration
     };
 
     /**
      * Return the information about this plugin
      */
-    PLUGIN_INFORMATION *plugin_info()
+    PLUGIN_INFORMATION*
+    plugin_info ()
     {
-        Iec61850Utility::log_info("61850 Config is %s", info.config);
+        Iec61850Utility::log_info ("61850 Config is %s", info.config);
         return &info;
     }
 
     /**
      * Initialise the plugin, called to get the plugin handle
      */
-    PLUGIN_HANDLE plugin_init(ConfigCategory *config)
+    PLUGIN_HANDLE
+    plugin_init (ConfigCategory* config)
     {
         IEC61850* iec61850 = nullptr;
-        Iec61850Utility::log_info("Initializing the plugin");
+        Iec61850Utility::log_info ("Initializing the plugin");
 
-        iec61850 = new IEC61850();
+        iec61850 = new IEC61850 ();
 
-        if (iec61850) {
-            if (config->itemExists("asset"))
-                iec61850->setAssetName(config->getValue("asset"));
+        if (iec61850)
+        {
+            if (config->itemExists ("asset"))
+                iec61850->setAssetName (config->getValue ("asset"));
             else
-                iec61850->setAssetName("iec 61850");
+                iec61850->setAssetName ("iec 61850");
 
-            if (config->itemExists("protocol_stack") &&
-                config->itemExists("exchanged_data") &&
-                config->itemExists("tls_conf"))
-                iec61850->setJsonConfig(config->getValue("protocol_stack"),
-                                      config->getValue("exchanged_data"),
-                                      config->getValue("tls_conf"));
+            if (config->itemExists ("protocol_stack")
+                && config->itemExists ("exchanged_data")
+                && config->itemExists ("tls_conf"))
+                iec61850->setJsonConfig (config->getValue ("protocol_stack"),
+                                         config->getValue ("exchanged_data"),
+                                         config->getValue ("tls_conf"));
         }
 
         return (PLUGIN_HANDLE)iec61850;
@@ -180,74 +159,81 @@ extern "C"
     /**
      * Start the Async handling for the plugin
      */
-    void plugin_start(PLUGIN_HANDLE *handle)
+    void
+    plugin_start (PLUGIN_HANDLE* handle)
     {
-        if (!handle) return;
+        if (!handle)
+            return;
 
-        Iec61850Utility::log_info("Starting the plugin");
+        Iec61850Utility::log_info ("Starting the plugin");
 
-        auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
-        iec61850->start();
+        auto* iec61850 = reinterpret_cast<IEC61850*> (handle);
+        iec61850->start ();
     }
 
     /**
      * Register ingest callback
      */
-    void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data)
+    void
+    plugin_register_ingest (PLUGIN_HANDLE* handle, INGEST_CB cb, void* data)
     {
-        if (!handle) throw exception();
+        if (!handle)
+            throw exception ();
 
-        auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
-        iec61850->registerIngest(data, cb);
+        auto* iec61850 = reinterpret_cast<IEC61850*> (handle);
+        iec61850->registerIngest (data, cb);
     }
 
     /**
      * Poll for a plugin reading
      */
-    Reading plugin_poll(PLUGIN_HANDLE *handle)
+    Reading
+    plugin_poll (PLUGIN_HANDLE* handle)
     {
-        throw runtime_error(
+        throw runtime_error (
             "IEC_61850 is an async plugin, poll should not be called");
     }
 
     /**
      * Reconfigure the plugin
      */
-    void plugin_reconfigure(PLUGIN_HANDLE *handle, std::string &newConfig)
+    void
+    plugin_reconfigure (PLUGIN_HANDLE* handle, std::string& newConfig)
     {
-        ConfigCategory config("newConfig", newConfig);
-        auto *iec61850 = reinterpret_cast<IEC61850 *>(*handle);
+        ConfigCategory config ("newConfig", newConfig);
+        auto* iec61850 = reinterpret_cast<IEC61850*> (*handle);
 
-        iec61850->stop();
+        iec61850->stop ();
 
-        if (config.itemExists("protocol_stack") &&
-            config.itemExists("exchanged_data") &&
-            config.itemExists("tls"))
-            iec61850->setJsonConfig(config.getValue("protocol_stack"),
-                                  config.getValue("exchanged_data"),
-                                  config.getValue("tls_conf"));
+        if (config.itemExists ("protocol_stack")
+            && config.itemExists ("exchanged_data")
+            && config.itemExists ("tls"))
+            iec61850->setJsonConfig (config.getValue ("protocol_stack"),
+                                     config.getValue ("exchanged_data"),
+                                     config.getValue ("tls_conf"));
 
-        if (config.itemExists("asset"))
+        if (config.itemExists ("asset"))
         {
-            iec61850->setAssetName(config.getValue("asset"));
-            Iec61850Utility::log_info(
+            iec61850->setAssetName (config.getValue ("asset"));
+            Iec61850Utility::log_info (
                 "61850 plugin restart after reconfigure asset");
-            iec61850->start();
+            iec61850->start ();
         }
-        else {
-            Iec61850Utility::log_error(
-                "61850 plugin restart failed");
+        else
+        {
+            Iec61850Utility::log_error ("61850 plugin restart failed");
         }
     }
 
     /**
      * Shutdown the plugin
      */
-    void plugin_shutdown(PLUGIN_HANDLE *handle)
+    void
+    plugin_shutdown (PLUGIN_HANDLE* handle)
     {
-        auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
+        auto* iec61850 = reinterpret_cast<IEC61850*> (handle);
 
-        iec61850->stop();
+        iec61850->stop ();
         delete iec61850;
     }
 
@@ -255,7 +241,8 @@ extern "C"
      * plugin plugin_write entry point
      * NOT USED
      */
-    bool plugin_write(PLUGIN_HANDLE *handle, std::string &name, std::string &value)
+    bool
+    plugin_write (PLUGIN_HANDLE* handle, std::string& name, std::string& value)
     {
         return false;
     }
@@ -263,14 +250,16 @@ extern "C"
     /**
      * plugin plugin_operation entry point
      */
-    bool plugin_operation(PLUGIN_HANDLE *handle, std::string &operation, int count,
-                          PLUGIN_PARAMETER **params)
+    bool
+    plugin_operation (PLUGIN_HANDLE* handle, std::string& operation, int count,
+                      PLUGIN_PARAMETER** params)
     {
-        if (!handle) throw exception();
+        if (!handle)
+            throw exception ();
 
-        auto *iec61850 = reinterpret_cast<IEC61850 *>(handle);
+        auto* iec61850 = reinterpret_cast<IEC61850*> (handle);
 
-        return iec61850->operation(operation, count, params);
+        return iec61850->operation (operation, count, params);
     }
 
-}  // extern "C"
+} // extern "C"

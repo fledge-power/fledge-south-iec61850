@@ -1,10 +1,10 @@
 #ifndef IEC61850_CLIENT_CONNECTION_H
 #define IEC61850_CLIENT_CONNECTION_H
 
+#include "datapoint.h"
 #include "iec61850_client_config.hpp"
 #include <gtest/gtest.h>
 #include <libiec61850/iec61850_client.h>
-#include "datapoint.h"
 #include <mutex>
 #include <thread>
 
@@ -12,42 +12,73 @@ class IEC61850Client;
 
 class IEC61850ClientConnection
 {
-public:
-    IEC61850ClientConnection(IEC61850Client* client, IEC61850ClientConfig* config, const std::string& ip, int tcpPort, bool tls, OsiParameters* osiParameters);
-    ~IEC61850ClientConnection();
+  public:
+    IEC61850ClientConnection (IEC61850Client* client,
+                              IEC61850ClientConfig* config,
+                              const std::string& ip, int tcpPort, bool tls,
+                              OsiParameters* osiParameters);
 
-    void Start();
-    void Stop();
-    void Activate();
+    ~IEC61850ClientConnection ();
 
-    void Disconnect();
-    void Connect();
+    void Start ();
+    void Stop ();
+    void Activate ();
 
-    bool Disconnected() const {return ((m_connecting == false) && (m_connected == false));};
-    bool Connecting() const {return m_connecting;};
-    bool Connected() const {return m_connected;};
-    bool Active() const {return m_active;};
+    void Disconnect ();
+    void Connect ();
 
-    MmsValue* readValue(IedClientError* err, const char* objRef, FunctionalConstraint fc);
+    bool
+    Disconnected () const
+    {
+        return ((m_connecting == false) && (m_connected == false));
+    };
 
-    MmsValue* readDatasetValues(IedClientError* error, const char* datasetRef);
+    bool
+    Connecting () const
+    {
+        return m_connecting;
+    };
 
-    MmsVariableSpecification* getVariableSpec(IedClientError* error, const char* objRef, FunctionalConstraint fc);
+    bool
+    Connected () const
+    {
+        return m_connected;
+    };
 
-    bool operate(const std::string& objRef, DatapointValue value);
+    bool
+    Active () const
+    {
+        return m_active;
+    };
 
-private:
-    bool prepareConnection();
-    bool UseTLS() {return m_useTls;};
-    IedConnection m_connection = nullptr; 
-    void executePeriodicTasks();
+    MmsValue* readValue (IedClientError* err, const char* objRef,
+                         FunctionalConstraint fc);
 
-    void cleanUp();
+    MmsValue* readDatasetValues (IedClientError* error,
+                                 const char* datasetRef);
+
+    MmsVariableSpecification* getVariableSpec (IedClientError* error,
+                                               const char* objRef,
+                                               FunctionalConstraint fc);
+
+    bool operate (const std::string& objRef, DatapointValue value);
+
+  private:
+    bool prepareConnection ();
+    bool
+    UseTLS ()
+    {
+        return m_useTls;
+    };
+    IedConnection m_connection = nullptr;
+    void executePeriodicTasks ();
+
+    void cleanUp ();
 
     IEC61850Client* m_client;
     IEC61850ClientConfig* m_config;
 
-    static void reportCallbackFunction(void* parameter, ClientReport report);
+    static void reportCallbackFunction (void* parameter, ClientReport report);
 
     using ConState = enum {
         CON_STATE_IDLE,
@@ -57,42 +88,44 @@ private:
         CON_STATE_WAIT_FOR_RECONNECT,
         CON_STATE_FATAL_ERROR
     };
-    
+
     ConState m_connectionState = CON_STATE_IDLE;
 
     using OperationState = enum {
-      CONTROL_IDLE,
-      CONTROL_WAIT_FOR_SELECT,
-      CONTROL_WAIT_FOR_SELECT_WITH_VALUE,
-      CONTROL_SELECTED,
-      CONTROL_WAIT_FOR_ACT_CON,
-      CONTROL_WAIT_FOR_ACT_TERM
+        CONTROL_IDLE,
+        CONTROL_WAIT_FOR_SELECT,
+        CONTROL_WAIT_FOR_SELECT_WITH_VALUE,
+        CONTROL_SELECTED,
+        CONTROL_WAIT_FOR_ACT_CON,
+        CONTROL_WAIT_FOR_ACT_TERM
     };
 
-    using ControlObjectStruct = struct{
-      ControlObjectClient client;
-      OperationState state;
-      ControlModel mode;
-      MmsValue* value;
-      std::string label;
+    using ControlObjectStruct = struct
+    {
+        ControlObjectClient client;
+        OperationState state;
+        ControlModel mode;
+        MmsValue* value;
+        std::string label;
     };
-
 
     std::unordered_map<std::string, ControlObjectStruct*> m_controlObjects;
-    std::vector<std::pair<IEC61850ClientConnection*,LinkedList>*> m_connDataSetDirectoryPairs;
-    std::vector<std::pair<IEC61850ClientConnection *, ControlObjectStruct *>*> m_connControlPairs;
+    std::vector<std::pair<IEC61850ClientConnection*, LinkedList>*>
+        m_connDataSetDirectoryPairs;
+    std::vector<std::pair<IEC61850ClientConnection*, ControlObjectStruct*>*>
+        m_connControlPairs;
 
-    void m_initialiseControlObjects();
-    void m_configDatasets();
-    void m_configRcb();
-    void m_setVarSpecs();
-    void m_setOsiConnectionParameters();
+    void m_initialiseControlObjects ();
+    void m_configDatasets ();
+    void m_configRcb ();
+    void m_setVarSpecs ();
+    void m_setOsiConnectionParameters ();
 
     OsiParameters* m_osiParameters;
-    int  m_tcpPort;
-    std::string m_serverIp;  
+    int m_tcpPort;
+    std::string m_serverIp;
     bool m_connected = false;
-    bool m_active = false; 
+    bool m_active = false;
     bool m_connecting = false;
     bool m_started = false;
     bool m_useTls = false;
@@ -101,32 +134,32 @@ private:
 
     std::mutex m_conLock;
     std::mutex m_reportLock;
-    
-    uint64_t m_delayExpirationTime;
-  
-    uint64_t m_nextPollingTime = 0;
-    
-    std::thread* m_conThread = nullptr;
-    void _conThread();
 
-    bool m_connect = false; 
+    uint64_t m_delayExpirationTime;
+
+    uint64_t m_nextPollingTime = 0;
+
+    std::thread* m_conThread = nullptr;
+    void _conThread ();
+
+    bool m_connect = false;
     bool m_disconnect = false;
 
-    static void
-    controlActionHandler(uint32_t invokeId, void *parameter, IedClientError err, ControlActionType type, bool success);
+    static void controlActionHandler (uint32_t invokeId, void* parameter,
+                                      IedClientError err,
+                                      ControlActionType type, bool success);
 
-    void sendActCon(const ControlObjectStruct *cos);
+    void sendActCon (const ControlObjectStruct* cos);
 
-    void sendActTerm(const ControlObjectStruct *cos);
+    void sendActTerm (const ControlObjectStruct* cos);
 
-    static
-    void commandTerminationHandler(void *parameter, ControlObjectClient connection);
+    static void commandTerminationHandler (void* parameter,
+                                           ControlObjectClient connection);
 
-    static
-    void logControlErrors(ControlAddCause addCause, ControlLastApplError lastApplError, const std::string &info);
-    
+    static void logControlErrors (ControlAddCause addCause,
+                                  ControlLastApplError lastApplError,
+                                  const std::string& info);
+
     FRIEND_TESTS
 };
 #endif
-
-
