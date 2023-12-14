@@ -29,8 +29,25 @@
     FRIEND_TEST (SpontDataTest, Polling);                                     \
     FRIEND_TEST (SpontDataTest, PollingAllCDC);                               \
     FRIEND_TEST (ControlTest, AnalogueCommandDirectNormal);                   \
-    FRIEND_TEST (ControlTest, StepCommandDirectNormal);
-
+    FRIEND_TEST (ControlTest, StepCommandDirectNormal);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigParseError);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoJsonProtocolStack);              \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoTransportLayer);                 \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoConnections);                    \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoConnectionIP);                   \
+    FRIEND_TEST (ConfigTest, ProtocolConfigInvalidConnectionPort);            \
+    FRIEND_TEST (ConfigTest, ProtocolConfigWithOsi);                          \
+    FRIEND_TEST (ConfigTest, ProtocolConfigTlsNotBoolean);                    \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoAppLayer);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigPollingIntervalNotInt);            \
+    FRIEND_TEST (ConfigTest, ProtocolConfigWrongPollingInterval);             \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoDatasets);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoDynamicValue);                   \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportSubscriptionsNotString);     \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportSubscriptionsNotObject);     \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportNoDataref);                  \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoTrgroups);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigBuftmIntgpd);
 typedef enum
 {
     GTIS,
