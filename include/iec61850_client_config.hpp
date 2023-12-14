@@ -47,7 +47,9 @@
     FRIEND_TEST (ConfigTest, ProtocolConfigReportSubscriptionsNotObject);     \
     FRIEND_TEST (ConfigTest, ProtocolConfigReportNoDataref);                  \
     FRIEND_TEST (ConfigTest, ProtocolConfigNoTrgroups);                       \
-    FRIEND_TEST (ConfigTest, ProtocolConfigBuftmIntgpd);
+    FRIEND_TEST (ConfigTest, ProtocolConfigBuftmIntgpd);                      \
+    FRIEND_TEST (ConnectionHandlingTest, TwoConnectionsBackup);
+
 typedef enum
 {
     GTIS,
@@ -229,6 +231,12 @@ class IEC61850ClientConfig
         return pollingInterval;
     }
 
+    uint64_t
+    backupConnectionTimeout ()
+    {
+        return m_backupConnectionTimeout;
+    };
+
   private:
     static bool isMessageTypeMatching (int expectedType, int rcvdType);
 
@@ -256,6 +264,8 @@ class IEC61850ClientConfig
     std::string m_ownCertificate = "";
     std::vector<std::string> m_remoteCertificates;
     std::vector<std::string> m_caCertificates;
+
+    uint64_t m_backupConnectionTimeout = 5000;
 
     long pollingInterval = 0;
     FRIEND_TESTS

@@ -203,6 +203,12 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
         }
     }
 
+    if (transportLayer.HasMember ("backupTimeout")
+        && transportLayer["backupTimeout"].IsInt ())
+    {
+        m_backupConnectionTimeout = transportLayer["backupTimeout"].GetInt ();
+    }
+
     if (!protocolStack.HasMember (JSON_APPLICATION_LAYER)
         || !protocolStack[JSON_APPLICATION_LAYER].IsObject ())
     {

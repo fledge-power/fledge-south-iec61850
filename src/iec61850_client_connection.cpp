@@ -505,8 +505,6 @@ IEC61850ClientConnection::Start ()
 {
     if (!m_started)
     {
-        m_connect = true;
-
         m_started = true;
 
         m_conThread
@@ -805,7 +803,11 @@ IEC61850ClientConnection::prepareConnection ()
 void
 IEC61850ClientConnection::Disconnect ()
 {
+    m_connecting = false;
+    m_connected = false;
     m_connect = false;
+    m_connectionState = CON_STATE_IDLE;
+    cleanUp ();
 }
 
 void
@@ -929,11 +931,13 @@ IEC61850ClientConnection::_conThread ()
         while (m_started)
         {
             {
-                IedConnectionState newState;
-                switch (m_connectionState)
+                if (m_connect)
                 {
-                case CON_STATE_IDLE:
-                    if (m_connect)
+                    IedConnectionState newState;
+                    switch (m_connectionState)
+                    {
+                    case CON_STATE_IDLE:
+
                     {
 
                         if (m_connection != nullptr)
@@ -991,63 +995,69 @@ IEC61850ClientConnection::_conThread ()
                     }
                     break;
 
-                case CON_STATE_CONNECTING:
-                    newState = IedConnection_getState (m_connection);
-                    if (newState == IED_STATE_CONNECTED)
-                    {
+                    case CON_STATE_CONNECTING:
+                        newState = IedConnection_getState (m_connection);
+                        if (newState == IED_STATE_CONNECTED)
+                        {
+                            {
+                                std::lock_guard<std::mutex> lock (m_conLock);
+                                m_setVarSpecs ();
+                                m_initialiseControlObjects ();
+                                m_configDatasets ();
+                                m_configRcb ();
+                                Iec61850Utility::log_info (
+                                    "Connected to %s:%d", m_serverIp.c_str (),
+                                    m_tcpPort);
+                                m_connectionState = CON_STATE_CONNECTED;
+                                m_connecting = false;
+                                m_connected = true;
+                            }
+                        }
+                        else if (getMonotonicTimeInMs ()
+                                 > m_delayExpirationTime)
                         {
                             std::lock_guard<std::mutex> lock (m_conLock);
-                            m_setVarSpecs ();
-                            m_initialiseControlObjects ();
-                            m_configDatasets ();
-                            m_configRcb ();
-                            Iec61850Utility::log_info ("Connected to %s:%d",
-                                                       m_serverIp.c_str (),
-                                                       m_tcpPort);
-                            m_connectionState = CON_STATE_CONNECTED;
+                            Iec61850Utility::log_warn (
+                                "Timeout while connecting %d", m_tcpPort);
+                            Disconnect ();
+                        }
+                        break;
+
+                    case CON_STATE_CONNECTED: {
+                        std::lock_guard<std::mutex> lock (m_conLock);
+                        newState = IedConnection_getState (m_connection);
+                        if (newState != IED_STATE_CONNECTED)
+                        {
+                            cleanUp ();
+                            m_connectionState = CON_STATE_IDLE;
+                        }
+                        else
+                        {
+                            executePeriodicTasks ();
                         }
                     }
-                    else if (getMonotonicTimeInMs () > m_delayExpirationTime)
-                    {
+                    break;
+
+                    case CON_STATE_CLOSED: {
                         std::lock_guard<std::mutex> lock (m_conLock);
-                        Iec61850Utility::log_warn ("Timeout while connecting");
-                        m_connectionState = CON_STATE_IDLE;
+                        m_delayExpirationTime
+                            = getMonotonicTimeInMs () + 10000;
+                        m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
                     }
                     break;
 
-                case CON_STATE_CONNECTED: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    newState = IedConnection_getState (m_connection);
-                    if (newState != IED_STATE_CONNECTED)
-                    {
-                        cleanUp ();
-                        m_connectionState = CON_STATE_IDLE;
+                    case CON_STATE_WAIT_FOR_RECONNECT: {
+                        std::lock_guard<std::mutex> lock (m_conLock);
+                        if (getMonotonicTimeInMs () >= m_delayExpirationTime)
+                        {
+                            m_connectionState = CON_STATE_IDLE;
+                        }
                     }
-                    else
-                    {
-                        executePeriodicTasks ();
-                    }
-                }
-                break;
-
-                case CON_STATE_CLOSED: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    m_delayExpirationTime = getMonotonicTimeInMs () + 10000;
-                    m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
-                }
-                break;
-
-                case CON_STATE_WAIT_FOR_RECONNECT: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    if (getMonotonicTimeInMs () >= m_delayExpirationTime)
-                    {
-                        m_connectionState = CON_STATE_IDLE;
-                    }
-                }
-                break;
-
-                case CON_STATE_FATAL_ERROR:
                     break;
+
+                    case CON_STATE_FATAL_ERROR:
+                        break;
+                    }
                 }
             }
 
