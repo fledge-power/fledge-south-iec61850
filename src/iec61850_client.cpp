@@ -454,7 +454,7 @@ PivotTimestamp::PivotTimestamp (Datapoint* timestampData)
 
 PivotTimestamp::PivotTimestamp (uint64_t ms)
 {
-    auto timeval32 = (uint32_t) (ms / 1000LL);
+    auto timeval32 = (uint32_t)(ms / 1000LL);
 
     m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
     m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -472,7 +472,7 @@ PivotTimestamp::PivotTimestamp (uint64_t ms)
 void
 PivotTimestamp::setTimeInMs (uint64_t ms)
 {
-    auto timeval32 = (uint32_t) (ms / 1000LL);
+    auto timeval32 = (uint32_t)(ms / 1000LL);
 
     m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
     m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -593,7 +593,6 @@ IEC61850Client::_monitoringThread ()
         for (auto clientConnection : *m_connections)
         {
             clientConnection->Start ();
-            m_active_connection = clientConnection;
         }
     }
 
@@ -606,10 +605,10 @@ IEC61850Client::_monitoringThread ()
     {
         std::lock_guard<std::mutex> lock (m_activeConnectionMtx);
 
-        if (m_active_connection == nullptr)
+        if (m_active_connection == nullptr
+            || m_active_connection->Disconnected ())
         {
             bool foundOpenConnections = false;
-
             for (auto clientConnection : *m_connections)
             {
                 backupConnectionStartTime
@@ -621,56 +620,29 @@ IEC61850Client::_monitoringThread ()
 
                 m_active_connection = clientConnection;
 
-                updateConnectionStatus (ConnectionStatus::STARTED);
+                Iec61850Utility::log_debug ("Trying connection %s:%d",
+                                            clientConnection->IP ().c_str (),
+                                            clientConnection->Port ());
 
-                break;
-            }
+                auto start = std::chrono::high_resolution_clock::now ();
+                auto timeout = std::chrono::milliseconds (
+                    m_config->backupConnectionTimeout ());
 
-            if (foundOpenConnections)
-            {
-                firstConnected = true;
-                qualityUpdateTimer = 0;
-                qualityUpdated = false;
-            }
-
-            if (foundOpenConnections == false)
-            {
-
-                if (firstConnected)
+                while (!clientConnection->Connected ())
                 {
-
-                    if (qualityUpdated == false)
+                    auto now = std::chrono::high_resolution_clock::now ();
+                    if (now - start > timeout)
                     {
-                        if (qualityUpdateTimer != 0)
-                        {
-                            if (getMonotonicTimeInMs () > qualityUpdateTimer)
-                            {
-                                qualityUpdated = true;
-                            }
-                        }
-                        else
-                        {
-                            qualityUpdateTimer = getMonotonicTimeInMs ()
-                                                 + qualityUpdateTimeout;
-                        }
+                        clientConnection->Disconnect ();
+                        m_active_connection = nullptr;
+                        break;
                     }
+                    Thread_sleep (10);
                 }
 
-                updateConnectionStatus (ConnectionStatus::NOT_CONNECTED);
-
-                if (Hal_getTimeInMs () > backupConnectionStartTime)
+                if (m_active_connection)
                 {
-                    std::lock_guard<std::mutex> lock (m_activeConnectionMtx);
-                    for (auto& clientConnection : *m_connections)
-                    {
-                        if (clientConnection->Disconnected ())
-                        {
-                            clientConnection->Connect ();
-                        }
-                    }
-
-                    backupConnectionStartTime
-                        = Hal_getTimeInMs () + BACKUP_CONNECTION_TIMEOUT;
+                    break;
                 }
             }
         }

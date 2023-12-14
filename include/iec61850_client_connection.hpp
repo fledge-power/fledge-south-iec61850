@@ -63,6 +63,17 @@ class IEC61850ClientConnection
 
     bool operate (const std::string& objRef, DatapointValue value);
 
+    const std::string&
+    IP ()
+    {
+        return m_serverIp;
+    };
+    int
+    Port ()
+    {
+        return m_tcpPort;
+    };
+
   private:
     bool prepareConnection ();
     bool

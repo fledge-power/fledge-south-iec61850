@@ -29,7 +29,8 @@
     FRIEND_TEST (SpontDataTest, Polling);                                     \
     FRIEND_TEST (SpontDataTest, PollingAllCDC);                               \
     FRIEND_TEST (ControlTest, AnalogueCommandDirectNormal);                   \
-    FRIEND_TEST (ControlTest, StepCommandDirectNormal);
+    FRIEND_TEST (ControlTest, StepCommandDirectNormal);                       \
+    FRIEND_TEST (ConnectionHandlingTest, TwoConnectionsBackup);
 
 typedef enum
 {
@@ -212,6 +213,12 @@ class IEC61850ClientConfig
         return pollingInterval;
     }
 
+    uint64_t
+    backupConnectionTimeout ()
+    {
+        return m_backupConnectionTimeout;
+    };
+
   private:
     static bool isMessageTypeMatching (int expectedType, int rcvdType);
 
@@ -239,6 +246,8 @@ class IEC61850ClientConfig
     std::string m_ownCertificate = "";
     std::vector<std::string> m_remoteCertificates;
     std::vector<std::string> m_caCertificates;
+
+    uint64_t m_backupConnectionTimeout = 5000;
 
     long pollingInterval = 0;
     FRIEND_TESTS
