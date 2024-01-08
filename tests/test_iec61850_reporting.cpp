@@ -54,7 +54,7 @@ static string protocol_config = QUOTE({
             ],
             "report_subscriptions" : [
                 {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
+                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
                     "trgops" : [
                         "data_changed",
@@ -64,7 +64,7 @@ static string protocol_config = QUOTE({
                     "gi" : false
                 },
                 {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
+                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "trgops" : [
                         "data_changed",
@@ -122,7 +122,7 @@ static string protocol_config_2 = QUOTE({
             ],
             "report_subscriptions" : [
                 {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
+                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
                     "trgops" : [
                         "data_changed",
@@ -132,7 +132,7 @@ static string protocol_config_2 = QUOTE({
                     "gi" : true
                 },
                 {
-                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
+                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "trgops" : [
                         "data_changed",

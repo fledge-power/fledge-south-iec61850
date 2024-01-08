@@ -20,6 +20,7 @@
     FRIEND_TEST (ControlTest, DoubleCommandDirectNormal);                     \
     FRIEND_TEST (ControlTest, SingleCommandDirectEnhanced);                   \
     FRIEND_TEST (ControlTest, SingleCommandSetValue);                         \
+    FRIEND_TEST (ControlTest, WriteOperations);                               \
     FRIEND_TEST (ReportingTest, ReportingWithStaticDataset);                  \
     FRIEND_TEST (ReportingTest, ReportingWithDynamicDataset);                 \
     FRIEND_TEST (ReportingTest, ReportingUpdateQuality);                      \
@@ -68,7 +69,10 @@ typedef enum
     DPC,
     APC,
     INC,
-    BSC
+    BSC,
+    SPG,
+    ASG,
+    ING
 } CDCTYPE;
 
 class ConfigurationException : public std::logic_error

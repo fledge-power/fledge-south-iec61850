@@ -403,6 +403,48 @@ static string exchanged_data_2 = QUOTE({
  }
 });
 
+static string exchanged_data_3 = QUOTE({
+ "exchanged_data": {
+  "datapoints": [
+   {
+    "pivot_id": "SG1",
+    "label": "SG1",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "DER_Scheduler_Control/ActPow_FSCH01.SchdReuse",
+      "cdc": "SpgTyp"
+     }
+    ]
+   },
+   {
+    "pivot_id": "SG2",
+    "label": "SG2",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "DER_Scheduler_Control/ActPow_FSCH01.ValASG001",
+      "cdc": "AsgTyp"
+     }
+    ]
+   },
+    {
+    "pivot_id": "SG3",
+    "label": "SG3",
+    "protocols": [
+     {
+      "name": "iec61850",
+      "objref": "DER_Scheduler_Control/ActPow_FSCH01.SchdPrio",
+      "cdc": "IngTyp"
+     }
+    ]
+   }
+
+  ]
+ }
+});
+
+
 // PLUGIN DEFAULT TLS CONF
 static string tls_config = QUOTE({
     "tls_conf" : {
@@ -1018,6 +1060,44 @@ TEST_F(ControlTest, StepCommandDirectNormal) {
 
     int expectedStVal = 7;
     verifyDatapoint(cause, "stVal", &expectedStVal);
+
+    IedServer_stop(server);
+    IedServer_destroy(server);
+    IedModel_destroy(model);
+}
+
+TEST_F(ControlTest, WriteOperations) {
+    iec61850->setJsonConfig(protocol_config, exchanged_data_3 , tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/schedulermodel.cfg");
+    IedServer server = IedServer_create(model);
+    IedServer_start(server,10002);
+
+    iec61850->start();
+    Thread_sleep(1000); 
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto timeout = std::chrono::seconds(10);  
+    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (now - start > timeout) {
+            IedServer_stop(server);
+            IedServer_destroy(server);
+            IedModel_destroy(model);
+            FAIL() << "Connection not established within timeout";
+            break;
+        }
+        Thread_sleep(10); 
+    }
+
+    auto params = new PLUGIN_PARAMETER*[1];
+    params[0] = new PLUGIN_PARAMETER;
+    params[0]->name = std::string("Pivot");
+    params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "IngTyp":{"setVal":1}, "Identifier":"SG3"}})");
+    iec61850->operation("PivotCommand", 1, params);
+
+    delete params[0];
+    delete[] params;
 
     IedServer_stop(server);
     IedServer_destroy(server);

@@ -37,10 +37,17 @@ stringToFunctionalConstraint (const std::string& str)
     }
 }
 
-bool
+static const std::unordered_map<std::string, CDCTYPE> cdcMap
+    = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
+        { "MvTyp", MV },   { "SpcTyp", SPC }, { "DpcTyp", DPC },
+        { "ApcTyp", APC }, { "IncTyp", INC }, { "InsTyp", INS },
+        { "SpgTyp", SPG }, { "EnsTyp", ENS }, { "AsgTyp", ASG },
+        { "IngTyp", ING } };
+
+static bool
 isCommandCdcType (CDCTYPE type)
 {
-    return type >= SPC;
+    return type >= SPC && type < SPG;
 }
 
 static uint64_t
@@ -214,7 +221,8 @@ const std::map<CDCTYPE, std::string> cdcToStrMap
     = { { SPS, "SpsTyp" }, { DPS, "DpsTyp" }, { BSC, "BscTyp" },
         { MV, "MvTyp" },   { SPC, "SpcTyp" }, { DPC, "DpcTyp" },
         { APC, "ApcTyp" }, { INC, "IncTyp" }, { INS, "InsTyp" },
-        { ENS, "EnsTyp" } };
+        { ENS, "EnsTyp" }, { SPG, "SpgTyp" }, { ASG, "AsgType" },
+        { ING, "IngTyp" } };
 const std::map<CDCTYPE, PIVOTROOT> rootMap
     = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIC }, { INS, GTIS },
         { ENS, GTIS }, { MV, GTIM },  { SPC, GTIC }, { DPC, GTIC },
@@ -1219,7 +1227,26 @@ IEC61850Client::handleOperation (Datapoint* operation)
         return false;
     }
 
-    Datapoint* valueDp = getChild (cdcDp, "ctlVal");
+    Datapoint* valueDp;
+
+    if (cdcDp->getName () == "AsgTyp")
+    {
+        Datapoint* magDp = getChild (cdcDp, "setMag");
+        if (!magDp)
+        {
+            Iec61850Utility::log_error ("ASG operation has no setMag");
+            return false;
+        }
+        valueDp = getChild (magDp, "f");
+    }
+    else if (cdcDp->getName () == "IngTyp" || cdcDp->getName () == "SpgTyp")
+    {
+        valueDp = getChild (cdcDp, "setVal");
+    }
+    else
+    {
+        valueDp = getChild (cdcDp, "ctlVal");
+    }
 
     if (!valueDp)
     {
@@ -1227,11 +1254,21 @@ IEC61850Client::handleOperation (Datapoint* operation)
         return false;
     }
 
+    bool res;
+
     DatapointValue value = valueDp->getData ();
 
-    bool res = m_active_connection->operate (objRef, value);
-
-    m_outstandingCommands[label] = operation;
+    if (cdcDp->getName () == "IngTyp" || cdcDp->getName () == "SpgTyp"
+        || cdcDp->getName () == "AsgTyp")
+    {
+        res = m_active_connection->writeValue (objRef, value,
+                                               cdcMap.at (cdcDp->getName ()));
+    }
+    else
+    {
+        res = m_active_connection->operate (objRef, value);
+        m_outstandingCommands[label] = operation;
+    }
 
     return res;
 }

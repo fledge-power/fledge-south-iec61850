@@ -254,6 +254,14 @@ IEC61850ClientConnection::m_configDatasets ()
 }
 
 void
+IEC61850ClientConnection::writeVariableHandler (uint32_t invokeId,
+                                                void* parameter, MmsError err,
+                                                MmsDataAccessError accessError)
+{
+    IedConnection self = (IedConnection)parameter;
+}
+
+void
 IEC61850ClientConnection::reportCallbackFunction (void* parameter,
                                                   ClientReport report)
 {
@@ -391,7 +399,7 @@ IEC61850ClientConnection::m_configRcb ()
         }
 
         rcb = IedConnection_getRCBValues (
-            m_connection, &error, (rs->rcbRef + "01").c_str (), nullptr);
+            m_connection, &error, rs->rcbRef.c_str (), nullptr);
 
         if (error != IED_ERROR_OK)
         {
@@ -407,7 +415,7 @@ IEC61850ClientConnection::m_configRcb ()
         m_connDataSetDirectoryPairs.push_back (connDataSetPair);
 
         IedConnection_installReportHandler (
-            m_connection, rs->rcbRef.c_str (),
+            m_connection, (rs->rcbRef.substr(0,rs->rcbRef.size()-2)).c_str (),
             ClientReportControlBlock_getRptId (rcb), reportCallbackFunction,
             static_cast<void*> (connDataSetPair));
 
@@ -453,7 +461,7 @@ IEC61850ClientConnection::m_initialiseControlObjects ()
     for (const auto& entry : m_config->ExchangeDefinition ())
     {
         auto def = entry.second;
-        if (def->cdcType < SPC)
+        if (def->cdcType < SPC || def->cdcType >= SPG)
             continue;
         IedClientError err;
         MmsValue* temp = IedConnection_readObject (
@@ -1176,4 +1184,55 @@ IEC61850ClientConnection::operate (const std::string& objRef,
     }
 
     return true;
+}
+
+void
+IEC61850ClientConnection::writeHandler (uint32_t invokeId, void* parameter,
+                                        IedClientError err)
+{
+    MmsValue* value = (MmsValue*)parameter;
+    char valueBuffer[30];
+    MmsValue_printToBuffer(value,valueBuffer,30);
+    Iec61850Utility::log_debug("Write data %s", valueBuffer);
+    if (err != IED_ERROR_OK)
+    {
+        Iec61850Utility::log_error ("Failed to write data - Error code: %d", err);
+    }
+    if(value){
+        MmsValue_delete(value); 
+    };
+}
+
+bool
+IEC61850ClientConnection::writeValue (const std::string& objRef,
+                                      DatapointValue value, CDCTYPE type)
+{
+    IedClientError err;
+    MmsValue* mmsValue;
+        Iec61850Utility::log_debug("Write value %s", objRef.c_str());
+    switch (type)
+    {
+    case SPG: {
+        mmsValue = MmsValue_newBoolean (value.toInt ());
+        break;
+    }
+    case ING: {
+        mmsValue = MmsValue_newInteger ((int)value.toInt ());
+        break;
+    }
+    case ASG: {
+        mmsValue = MmsValue_newFloat ((float)value.toDouble ());
+        break;
+    }
+    default: {
+        Iec61850Utility::log_error ("Invalid data type for writing data - %d",
+                                    type);
+        return false;
+    }
+    }
+
+    IedConnection_writeObjectAsync (m_connection, &err, objRef.c_str (),
+                                    IEC61850_FC_SP, mmsValue, writeHandler,
+                                    mmsValue);
+    return err == IED_ERROR_OK;
 }

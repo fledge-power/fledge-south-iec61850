@@ -45,7 +45,8 @@ static const std::unordered_map<std::string, CDCTYPE> cdcMap
     = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
         { "MvTyp", MV },   { "SpcTyp", SPC }, { "DpcTyp", DPC },
         { "ApcTyp", APC }, { "IncTyp", INC }, { "InsTyp", INS },
-        { "EnsTyp", ENS } };
+        { "SpgTyp", SPG }, { "EnsTyp", ENS }, { "AsgTyp", ASG },
+        { "IngTyp", ING } };
 
 int
 IEC61850ClientConfig::getCdcTypeFromString (const std::string& cdc)
@@ -55,7 +56,7 @@ IEC61850ClientConfig::getCdcTypeFromString (const std::string& cdc)
     {
         return it->second;
     }
-    return -1; //LCOV_EXCL_LINE
+    return -1; // LCOV_EXCL_LINE
 }
 
 std::shared_ptr<DataExchangeDefinition>
@@ -87,7 +88,8 @@ IEC61850ClientConfig::isValidIPAddress (const std::string& addrStr)
     // see
     // https://stackoverflow.com/questions/318236/how-do-you-validate-that-a-string-is-a-valid-ipv4-address-in-c
     struct sockaddr_in sa;
-    int result = inet_pton (AF_INET, addrStr.c_str (), &(sa.sin_addr)); //LCOV_EXCL_LINE
+    int result = inet_pton (AF_INET, addrStr.c_str (),
+                            &(sa.sin_addr)); // LCOV_EXCL_LINE
 
     return (result == 1);
 }
@@ -121,7 +123,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
 
     if (!document.IsObject ())
     {
-        return; //LCOV_EXCL_LINE
+        return; // LCOV_EXCL_LINE
     }
 
     if (!document.HasMember (JSON_PROTOCOL_STACK)
@@ -341,7 +343,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
                     {
                         auto it = trgOptions.find (trgopVal.GetString ());
                         if (it == trgOptions.end ())
-                            continue; //LCOV_EXCL_LINE
+                            continue; // LCOV_EXCL_LINE
                         report->trgops |= it->second;
                     }
                 }
@@ -381,7 +383,8 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
                 report->gi = false;
             }
 
-            m_reportSubscriptions.insert ({ report->rcbRef, std::move (report) });
+            m_reportSubscriptions.insert (
+                { report->rcbRef, std::move (report) });
         }
     }
 
