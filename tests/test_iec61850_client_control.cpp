@@ -1093,8 +1093,24 @@ TEST_F(ControlTest, WriteOperations) {
     auto params = new PLUGIN_PARAMETER*[1];
     params[0] = new PLUGIN_PARAMETER;
     params[0]->name = std::string("Pivot");
+    params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "SpgTyp":{"setVal": 1}, "Identifier":"SG1"}})");
+    ASSERT_TRUE(iec61850->operation("PivotCommand", 1, params));
+
+    Thread_sleep(100); 
+    delete params[0];
+    
+    params[0] = new PLUGIN_PARAMETER;
+    params[0]->name = std::string("Pivot");
+    params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "AsgTyp":{"setMag":{"f":1.2}}, "Identifier":"SG2"}})");
+    ASSERT_TRUE(iec61850->operation("PivotCommand", 1, params));
+
+    Thread_sleep(100); 
+    delete params[0];
+
+    params[0] = new PLUGIN_PARAMETER;
+    params[0]->name = std::string("Pivot");
     params[0]->value = std::string(R"({"GTIC":{"ComingFrom":"iec61850", "IngTyp":{"setVal":1}, "Identifier":"SG3"}})");
-    iec61850->operation("PivotCommand", 1, params);
+    ASSERT_TRUE(iec61850->operation("PivotCommand", 1, params));
 
     delete params[0];
     delete[] params;

@@ -66,7 +66,7 @@ class IEC61850ClientConnection
     static void writeHandler (uint32_t invokeId, void* parameter,
                               IedClientError err);
 
-    bool writeValue (const std::string& objRef, DatapointValue value,
+    bool writeValue (Datapoint* operation, const std::string& objRef, DatapointValue value,
                      CDCTYPE type);
 
     const std::string&

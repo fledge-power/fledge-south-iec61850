@@ -1261,7 +1261,7 @@ IEC61850Client::handleOperation (Datapoint* operation)
     if (cdcDp->getName () == "IngTyp" || cdcDp->getName () == "SpgTyp"
         || cdcDp->getName () == "AsgTyp")
     {
-        res = m_active_connection->writeValue (objRef, value,
+        res = m_active_connection->writeValue (operation, objRef, value,
                                                cdcMap.at (cdcDp->getName ()));
     }
     else

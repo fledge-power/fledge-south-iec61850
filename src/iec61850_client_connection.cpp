@@ -1190,38 +1190,51 @@ void
 IEC61850ClientConnection::writeHandler (uint32_t invokeId, void* parameter,
                                         IedClientError err)
 {
-    MmsValue* value = (MmsValue*)parameter;
+    auto pair = (std::pair<IEC61850ClientConnection*, MmsValue*>*) parameter;
+
+    MmsValue* value = (MmsValue*)(pair->second);
     char valueBuffer[30];
     MmsValue_printToBuffer(value,valueBuffer,30);
-    Iec61850Utility::log_debug("Write data %s", valueBuffer);
+
+    Iec61850Utility::log_debug("Write data handler called - Value: %s", valueBuffer);
+
     if (err != IED_ERROR_OK)
     {
-        Iec61850Utility::log_error ("Failed to write data - Error code: %d", err);
+        pair->first->m_client->logIedClientError(err, "Write data (Value = " + std::string(valueBuffer) + ")");
     }
+
     if(value){
         MmsValue_delete(value); 
     };
+
+    delete pair;
 }
 
 bool
-IEC61850ClientConnection::writeValue (const std::string& objRef,
+IEC61850ClientConnection::writeValue (Datapoint* operation, const std::string& objRef,
                                       DatapointValue value, CDCTYPE type)
 {
     IedClientError err;
     MmsValue* mmsValue;
-        Iec61850Utility::log_debug("Write value %s", objRef.c_str());
+    std::string attribute;
     switch (type)
     {
     case SPG: {
+        attribute = ".setVal";
         mmsValue = MmsValue_newBoolean (value.toInt ());
+        Iec61850Utility::log_debug("Write value %s %d", objRef.c_str(), value.toInt());
         break;
     }
     case ING: {
-        mmsValue = MmsValue_newInteger ((int)value.toInt ());
+        attribute = ".setVal";
+        mmsValue = MmsValue_newIntegerFromInt32 ((int)value.toInt ());
+        Iec61850Utility::log_debug("Write value %s %d", objRef.c_str(), value.toInt());
         break;
     }
     case ASG: {
+        attribute = ".setMag.f";    
         mmsValue = MmsValue_newFloat ((float)value.toDouble ());
+        Iec61850Utility::log_debug("Write value %s %f", objRef.c_str(), (float)value.toDouble());
         break;
     }
     default: {
@@ -1231,8 +1244,14 @@ IEC61850ClientConnection::writeValue (const std::string& objRef,
     }
     }
 
-    IedConnection_writeObjectAsync (m_connection, &err, objRef.c_str (),
+
+    auto parameter = new std::pair<IEC61850ClientConnection*, MmsValue*>(this,mmsValue);
+
+    IedConnection_writeObjectAsync (m_connection, &err, (objRef + attribute).c_str (),
                                     IEC61850_FC_SP, mmsValue, writeHandler,
-                                    mmsValue);
+                                    parameter);
+
+    delete operation;
+
     return err == IED_ERROR_OK;
 }
