@@ -230,12 +230,26 @@ TEST_F (ConnectionHandlingTest, SingleConnection)
 
     IedServer_start (server, 10002);
     iec61850->start ();
+    Thread_sleep(1000);
 
-    Thread_sleep (1000);
+    auto start = std::chrono::high_resolution_clock::now ();
+    auto timeout = std::chrono::seconds (10);
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState (
+               iec61850->m_client->m_active_connection->m_connection)
+           != IED_STATE_CONNECTED)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Connection not established within timeout";
+            break;
+        }
+        Thread_sleep (10);
+    }
 
-    ASSERT_TRUE (IedConnection_getState (
-                     iec61850->m_client->m_active_connection->m_connection)
-                 == IED_STATE_CONNECTED);
 
     IedServer_stop (server);
     IedServer_destroy (server);
@@ -258,7 +272,7 @@ TEST_F (ConnectionHandlingTest, SingleConnectionReconnect)
 
     auto start = std::chrono::high_resolution_clock::now ();
     auto timeout = std::chrono::seconds (10);
-    while (IedConnection_getState (
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState (
                iec61850->m_client->m_active_connection->m_connection)
            != IED_STATE_CONNECTED)
     {
@@ -332,11 +346,25 @@ TEST_F (ConnectionHandlingTest, SingleConnectionTLS)
     IedServer_start (server, 10002);
     iec61850->start ();
 
-    Thread_sleep (1000);
-
-    ASSERT_TRUE (IedConnection_getState (
-                     iec61850->m_client->m_active_connection->m_connection)
-                 == IED_STATE_CONNECTED);
+    Thread_sleep(1000);
+    
+    auto start = std::chrono::high_resolution_clock::now ();
+    auto timeout = std::chrono::seconds (10);
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState (
+               iec61850->m_client->m_active_connection->m_connection)
+           != IED_STATE_CONNECTED)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Connection not established within timeout";
+            break;
+        }
+        Thread_sleep (10);
+    }
 
     IedServer_stop (server);
     IedServer_destroy (server);
@@ -367,7 +395,7 @@ TEST_F (ConnectionHandlingTest, TwoConnectionsBackup)
 
     auto start = std::chrono::high_resolution_clock::now ();
     auto timeout = std::chrono::seconds (10);
-    while (IedConnection_getState (
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState (
                iec61850->m_client->m_active_connection->m_connection)
            != IED_STATE_CONNECTED)
     {
@@ -435,7 +463,7 @@ TEST_F (ConnectionHandlingTest, TwoConnectionsBackup)
         Thread_sleep (10);
     }
 
-    while (IedConnection_getState (
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState (
                iec61850->m_client->m_active_connection->m_connection)
            != IED_STATE_CONNECTED)
     {

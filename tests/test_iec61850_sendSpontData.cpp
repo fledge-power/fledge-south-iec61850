@@ -566,9 +566,11 @@ TEST_F (SpontDataTest, Polling)
 
     auto start = std::chrono::high_resolution_clock::now ();
     auto timeout = std::chrono::seconds (5);
-    while (IedConnection_getState (
-               iec61850->m_client->m_active_connection->m_connection)
-           != IED_STATE_CONNECTED)
+    while (!iec61850->m_client->m_active_connection
+           || !iec61850->m_client->m_active_connection->m_connection
+           || IedConnection_getState (
+                  iec61850->m_client->m_active_connection->m_connection)
+                  != IED_STATE_CONNECTED)
     {
         auto now = std::chrono::high_resolution_clock::now ();
         if (now - start > timeout)
@@ -651,9 +653,11 @@ TEST_F (SpontDataTest, PollingAllCDC)
 
     auto start = std::chrono::high_resolution_clock::now ();
     auto timeout = std::chrono::seconds (5);
-    while (IedConnection_getState (
-               iec61850->m_client->m_active_connection->m_connection)
-           != IED_STATE_CONNECTED)
+    while (!iec61850->m_client->m_active_connection
+           || !iec61850->m_client->m_active_connection->m_connection
+           || IedConnection_getState (
+                  iec61850->m_client->m_active_connection->m_connection)
+                  != IED_STATE_CONNECTED)
     {
         auto now = std::chrono::high_resolution_clock::now ();
         if (now - start > timeout)

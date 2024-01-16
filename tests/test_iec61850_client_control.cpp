@@ -681,7 +681,7 @@ TEST_F(ControlTest, SingleCommandDirectNormal) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -744,7 +744,7 @@ TEST_F(ControlTest, SingleCommandDirectEnhanced) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -817,7 +817,7 @@ TEST_F(ControlTest, SingleCommandSetValue) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -886,7 +886,7 @@ TEST_F(ControlTest, DoubleCommandDirectNormal) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -950,7 +950,7 @@ TEST_F(ControlTest, AnalogueCommandDirectNormal) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -1014,7 +1014,7 @@ TEST_F(ControlTest, StepCommandDirectNormal) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
@@ -1078,7 +1078,7 @@ TEST_F(ControlTest, WriteOperations) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto timeout = std::chrono::seconds(10);  
-    while (IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
+    while (!iec61850->m_client->m_active_connection || !iec61850->m_client->m_active_connection->m_connection || IedConnection_getState(iec61850->m_client->m_active_connection->m_connection) != IED_STATE_CONNECTED) {
         auto now = std::chrono::high_resolution_clock::now();
         if (now - start > timeout) {
             IedServer_stop(server);
