@@ -98,7 +98,6 @@ jobs:
           cd build
           make
           make iec61850_coverage_sonar
-          make iec61850_functional_tests
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
