@@ -303,14 +303,14 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
                                 ClientReport_getRcbReference (report),
                                 ClientReport_getRptId (report));
 
-    time_t unixTime = 0;
+    uint64_t unixTime = 0;
 
     if (ClientReport_hasTimestamp (report))
     {
-        unixTime = ClientReport_getTimestamp (report) / 1000;
+        unixTime = ClientReport_getTimestamp (report);
 
         Iec61850Utility::log_debug ("  report contains timestamp (%u)",
-                                    (unsigned int)unixTime);
+                                    (unsigned int)(unixTime / 1000));
     }
 
     if (!dataSetDirectory)
