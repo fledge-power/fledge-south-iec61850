@@ -218,37 +218,65 @@ IEC61850ClientConnection::m_configDatasets ()
 
         if (dataset->dynamic)
         {
+            bool createDataset = true;
+
             Iec61850Utility::log_debug ("Create new dataset %s",
                                         dataset->datasetRef.c_str ());
-            LinkedList newDataSetEntries = LinkedList_create ();
 
-            if (newDataSetEntries == nullptr)
-            {
-                continue;
-            }
+            bool isDeletable = false;
 
-            for (const auto& entry : dataset->entries)
+            LinkedList dsDir = IedConnection_getDataSetDirectory(m_connection, &error, dataset->datasetRef.c_str(), &isDeletable);
+
+            if (error == IED_ERROR_OK)
             {
-                char* strCopy
-                    = static_cast<char*> (malloc (entry.length () + 1));
-                if (strCopy != nullptr)
-                {
-                    std::strcpy (strCopy, entry.c_str ());
-                    LinkedList_add (newDataSetEntries,
-                                    static_cast<void*> (strCopy));
+                if (isDeletable == false) {
+                    Iec61850Utility::log_error("Dataset %s already exists and cannot be deleted -> is static?", dataset->datasetRef.c_str());
+                    createDataset = false;
                 }
+                else {
+                    Iec61850Utility::log_info("Delete existing dataset %s", dataset->datasetRef.c_str());
+
+                    if (IedConnection_deleteDataSet(m_connection, &error, dataset->datasetRef.c_str()) == false) {
+                        m_client->logIedClientError (error, "Delete Dataset");
+                        createDataset = false;
+                    }
+                }
+
+                LinkedList_destroy(dsDir);
             }
 
-            IedConnection_createDataSet (m_connection, &error,
-                                         dataset->datasetRef.c_str (),
-                                         newDataSetEntries);
-
-            if (error != IED_ERROR_OK)
+            if (createDataset)
             {
-                m_client->logIedClientError (error, "Create Dataset");
-            }
+                LinkedList newDataSetEntries = LinkedList_create ();
 
-            LinkedList_destroyDeep (newDataSetEntries, free);
+                if (newDataSetEntries == nullptr)
+                {
+                    continue;
+                }
+
+                for (const auto& entry : dataset->entries)
+                {
+                    char* strCopy
+                        = static_cast<char*> (malloc (entry.length () + 1));
+                    if (strCopy != nullptr)
+                    {
+                        std::strcpy (strCopy, entry.c_str ());
+                        LinkedList_add (newDataSetEntries,
+                                        static_cast<void*> (strCopy));
+                    }
+                }
+
+                IedConnection_createDataSet (m_connection, &error,
+                                            dataset->datasetRef.c_str (),
+                                            newDataSetEntries);
+
+                if (error != IED_ERROR_OK)
+                {
+                    m_client->logIedClientError (error, "Create Dataset");
+                }
+
+                LinkedList_destroyDeep (newDataSetEntries, free);
+            }
         }
     }
 }
