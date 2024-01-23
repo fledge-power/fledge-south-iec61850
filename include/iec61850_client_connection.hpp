@@ -63,6 +63,23 @@ class IEC61850ClientConnection
 
     bool operate (const std::string& objRef, DatapointValue value);
 
+    static void writeHandler (uint32_t invokeId, void* parameter,
+                              IedClientError err);
+
+    bool writeValue (Datapoint* operation, const std::string& objRef, DatapointValue value,
+                     CDCTYPE type);
+
+    const std::string&
+    IP ()
+    {
+        return m_serverIp;
+    };
+    int
+    Port ()
+    {
+        return m_tcpPort;
+    };
+
   private:
     bool prepareConnection ();
     bool
@@ -79,6 +96,10 @@ class IEC61850ClientConnection
     IEC61850ClientConfig* m_config;
 
     static void reportCallbackFunction (void* parameter, ClientReport report);
+
+    static void writeVariableHandler (uint32_t invokeId, void* parameter,
+                                      MmsError err,
+                                      MmsDataAccessError accessError);
 
     using ConState = enum {
         CON_STATE_IDLE,

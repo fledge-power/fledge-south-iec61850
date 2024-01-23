@@ -20,6 +20,7 @@
     FRIEND_TEST (ControlTest, DoubleCommandDirectNormal);                     \
     FRIEND_TEST (ControlTest, SingleCommandDirectEnhanced);                   \
     FRIEND_TEST (ControlTest, SingleCommandSetValue);                         \
+    FRIEND_TEST (ControlTest, WriteOperations);                               \
     FRIEND_TEST (ReportingTest, ReportingWithStaticDataset);                  \
     FRIEND_TEST (ReportingTest, ReportingWithDynamicDataset);                 \
     FRIEND_TEST (ReportingTest, ReportingUpdateQuality);                      \
@@ -29,7 +30,26 @@
     FRIEND_TEST (SpontDataTest, Polling);                                     \
     FRIEND_TEST (SpontDataTest, PollingAllCDC);                               \
     FRIEND_TEST (ControlTest, AnalogueCommandDirectNormal);                   \
-    FRIEND_TEST (ControlTest, StepCommandDirectNormal);
+    FRIEND_TEST (ControlTest, StepCommandDirectNormal);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigParseError);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoJsonProtocolStack);              \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoTransportLayer);                 \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoConnections);                    \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoConnectionIP);                   \
+    FRIEND_TEST (ConfigTest, ProtocolConfigInvalidConnectionPort);            \
+    FRIEND_TEST (ConfigTest, ProtocolConfigWithOsi);                          \
+    FRIEND_TEST (ConfigTest, ProtocolConfigTlsNotBoolean);                    \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoAppLayer);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigPollingIntervalNotInt);            \
+    FRIEND_TEST (ConfigTest, ProtocolConfigWrongPollingInterval);             \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoDatasets);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoDynamicValue);                   \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportSubscriptionsNotString);     \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportSubscriptionsNotObject);     \
+    FRIEND_TEST (ConfigTest, ProtocolConfigReportNoDataref);                  \
+    FRIEND_TEST (ConfigTest, ProtocolConfigNoTrgroups);                       \
+    FRIEND_TEST (ConfigTest, ProtocolConfigBuftmIntgpd);                      \
+    FRIEND_TEST (ConnectionHandlingTest, TwoConnectionsBackup);
 
 typedef enum
 {
@@ -49,7 +69,10 @@ typedef enum
     DPC,
     APC,
     INC,
-    BSC
+    BSC,
+    SPG,
+    ASG,
+    ING
 } CDCTYPE;
 
 class ConfigurationException : public std::logic_error
@@ -212,6 +235,12 @@ class IEC61850ClientConfig
         return pollingInterval;
     }
 
+    uint64_t
+    backupConnectionTimeout ()
+    {
+        return m_backupConnectionTimeout;
+    };
+
   private:
     static bool isMessageTypeMatching (int expectedType, int rcvdType);
 
@@ -239,6 +268,8 @@ class IEC61850ClientConfig
     std::string m_ownCertificate = "";
     std::vector<std::string> m_remoteCertificates;
     std::vector<std::string> m_caCertificates;
+
+    uint64_t m_backupConnectionTimeout = 5000;
 
     long pollingInterval = 0;
     FRIEND_TESTS

@@ -218,39 +218,75 @@ IEC61850ClientConnection::m_configDatasets ()
 
         if (dataset->dynamic)
         {
+            bool createDataset = true;
+
             Iec61850Utility::log_debug ("Create new dataset %s",
                                         dataset->datasetRef.c_str ());
-            LinkedList newDataSetEntries = LinkedList_create ();
 
-            if (newDataSetEntries == nullptr)
-            {
-                continue;
-            }
+            bool isDeletable = false;
 
-            for (const auto& entry : dataset->entries)
+            LinkedList dsDir = IedConnection_getDataSetDirectory(m_connection, &error, dataset->datasetRef.c_str(), &isDeletable);
+
+            if (error == IED_ERROR_OK)
             {
-                char* strCopy
-                    = static_cast<char*> (malloc (entry.length () + 1));
-                if (strCopy != nullptr)
-                {
-                    std::strcpy (strCopy, entry.c_str ());
-                    LinkedList_add (newDataSetEntries,
-                                    static_cast<void*> (strCopy));
+                if (isDeletable == false) {
+                    Iec61850Utility::log_error("Dataset %s already exists and cannot be deleted -> is static?", dataset->datasetRef.c_str());
+                    createDataset = false;
                 }
+                else {
+                    Iec61850Utility::log_info("Delete existing dataset %s", dataset->datasetRef.c_str());
+
+                    if (IedConnection_deleteDataSet(m_connection, &error, dataset->datasetRef.c_str()) == false) {
+                        m_client->logIedClientError (error, "Delete Dataset");
+                        createDataset = false;
+                    }
+                }
+
+                LinkedList_destroy(dsDir);
             }
 
-            IedConnection_createDataSet (m_connection, &error,
-                                         dataset->datasetRef.c_str (),
-                                         newDataSetEntries);
-
-            if (error != IED_ERROR_OK)
+            if (createDataset)
             {
-                m_client->logIedClientError (error, "Create Dataset");
-            }
+                LinkedList newDataSetEntries = LinkedList_create ();
 
-            LinkedList_destroyDeep (newDataSetEntries, free);
+                if (newDataSetEntries == nullptr)
+                {
+                    continue;
+                }
+
+                for (const auto& entry : dataset->entries)
+                {
+                    char* strCopy
+                        = static_cast<char*> (malloc (entry.length () + 1));
+                    if (strCopy != nullptr)
+                    {
+                        std::strcpy (strCopy, entry.c_str ());
+                        LinkedList_add (newDataSetEntries,
+                                        static_cast<void*> (strCopy));
+                    }
+                }
+
+                IedConnection_createDataSet (m_connection, &error,
+                                            dataset->datasetRef.c_str (),
+                                            newDataSetEntries);
+
+                if (error != IED_ERROR_OK)
+                {
+                    m_client->logIedClientError (error, "Create Dataset");
+                }
+
+                LinkedList_destroyDeep (newDataSetEntries, free);
+            }
         }
     }
+}
+
+void
+IEC61850ClientConnection::writeVariableHandler (uint32_t invokeId,
+                                                void* parameter, MmsError err,
+                                                MmsDataAccessError accessError)
+{
+    IedConnection self = (IedConnection)parameter;
 }
 
 void
@@ -267,14 +303,14 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
                                 ClientReport_getRcbReference (report),
                                 ClientReport_getRptId (report));
 
-    time_t unixTime = 0;
+    uint64_t unixTime = 0;
 
     if (ClientReport_hasTimestamp (report))
     {
-        unixTime = ClientReport_getTimestamp (report) / 1000;
+        unixTime = ClientReport_getTimestamp (report);
 
         Iec61850Utility::log_debug ("  report contains timestamp (%u)",
-                                    (unsigned int)unixTime);
+                                    (unsigned int)(unixTime / 1000));
     }
 
     if (!dataSetDirectory)
@@ -390,8 +426,8 @@ IEC61850ClientConnection::m_configRcb ()
             continue;
         }
 
-        rcb = IedConnection_getRCBValues (
-            m_connection, &error, (rs->rcbRef + "01").c_str (), nullptr);
+        rcb = IedConnection_getRCBValues (m_connection, &error,
+                                          rs->rcbRef.c_str (), nullptr);
 
         if (error != IED_ERROR_OK)
         {
@@ -407,7 +443,8 @@ IEC61850ClientConnection::m_configRcb ()
         m_connDataSetDirectoryPairs.push_back (connDataSetPair);
 
         IedConnection_installReportHandler (
-            m_connection, rs->rcbRef.c_str (),
+            m_connection,
+            (rs->rcbRef.substr (0, rs->rcbRef.size () - 2)).c_str (),
             ClientReportControlBlock_getRptId (rcb), reportCallbackFunction,
             static_cast<void*> (connDataSetPair));
 
@@ -453,7 +490,7 @@ IEC61850ClientConnection::m_initialiseControlObjects ()
     for (const auto& entry : m_config->ExchangeDefinition ())
     {
         auto def = entry.second;
-        if (def->cdcType < SPC)
+        if (def->cdcType < SPC || def->cdcType >= SPG)
             continue;
         IedClientError err;
         MmsValue* temp = IedConnection_readObject (
@@ -505,8 +542,6 @@ IEC61850ClientConnection::Start ()
 {
     if (!m_started)
     {
-        m_connect = true;
-
         m_started = true;
 
         m_conThread
@@ -805,7 +840,11 @@ IEC61850ClientConnection::prepareConnection ()
 void
 IEC61850ClientConnection::Disconnect ()
 {
+    m_connecting = false;
+    m_connected = false;
     m_connect = false;
+    m_connectionState = CON_STATE_IDLE;
+    cleanUp ();
 }
 
 void
@@ -929,11 +968,13 @@ IEC61850ClientConnection::_conThread ()
         while (m_started)
         {
             {
-                IedConnectionState newState;
-                switch (m_connectionState)
+                if (m_connect)
                 {
-                case CON_STATE_IDLE:
-                    if (m_connect)
+                    IedConnectionState newState;
+                    switch (m_connectionState)
+                    {
+                    case CON_STATE_IDLE:
+
                     {
 
                         if (m_connection != nullptr)
@@ -991,63 +1032,69 @@ IEC61850ClientConnection::_conThread ()
                     }
                     break;
 
-                case CON_STATE_CONNECTING:
-                    newState = IedConnection_getState (m_connection);
-                    if (newState == IED_STATE_CONNECTED)
-                    {
+                    case CON_STATE_CONNECTING:
+                        newState = IedConnection_getState (m_connection);
+                        if (newState == IED_STATE_CONNECTED)
+                        {
+                            {
+                                std::lock_guard<std::mutex> lock (m_conLock);
+                                m_setVarSpecs ();
+                                m_initialiseControlObjects ();
+                                m_configDatasets ();
+                                m_configRcb ();
+                                Iec61850Utility::log_info (
+                                    "Connected to %s:%d", m_serverIp.c_str (),
+                                    m_tcpPort);
+                                m_connectionState = CON_STATE_CONNECTED;
+                                m_connecting = false;
+                                m_connected = true;
+                            }
+                        }
+                        else if (getMonotonicTimeInMs ()
+                                 > m_delayExpirationTime)
                         {
                             std::lock_guard<std::mutex> lock (m_conLock);
-                            m_setVarSpecs ();
-                            m_initialiseControlObjects ();
-                            m_configDatasets ();
-                            m_configRcb ();
-                            Iec61850Utility::log_info ("Connected to %s:%d",
-                                                       m_serverIp.c_str (),
-                                                       m_tcpPort);
-                            m_connectionState = CON_STATE_CONNECTED;
+                            Iec61850Utility::log_warn (
+                                "Timeout while connecting %d", m_tcpPort);
+                            Disconnect ();
+                        }
+                        break;
+
+                    case CON_STATE_CONNECTED: {
+                        std::lock_guard<std::mutex> lock (m_conLock);
+                        newState = IedConnection_getState (m_connection);
+                        if (newState != IED_STATE_CONNECTED)
+                        {
+                            cleanUp ();
+                            m_connectionState = CON_STATE_IDLE;
+                        }
+                        else
+                        {
+                            executePeriodicTasks ();
                         }
                     }
-                    else if (getMonotonicTimeInMs () > m_delayExpirationTime)
-                    {
+                    break;
+
+                    case CON_STATE_CLOSED: {
                         std::lock_guard<std::mutex> lock (m_conLock);
-                        Iec61850Utility::log_warn ("Timeout while connecting");
-                        m_connectionState = CON_STATE_IDLE;
+                        m_delayExpirationTime
+                            = getMonotonicTimeInMs () + 10000;
+                        m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
                     }
                     break;
 
-                case CON_STATE_CONNECTED: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    newState = IedConnection_getState (m_connection);
-                    if (newState != IED_STATE_CONNECTED)
-                    {
-                        cleanUp ();
-                        m_connectionState = CON_STATE_IDLE;
+                    case CON_STATE_WAIT_FOR_RECONNECT: {
+                        std::lock_guard<std::mutex> lock (m_conLock);
+                        if (getMonotonicTimeInMs () >= m_delayExpirationTime)
+                        {
+                            m_connectionState = CON_STATE_IDLE;
+                        }
                     }
-                    else
-                    {
-                        executePeriodicTasks ();
-                    }
-                }
-                break;
-
-                case CON_STATE_CLOSED: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    m_delayExpirationTime = getMonotonicTimeInMs () + 10000;
-                    m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
-                }
-                break;
-
-                case CON_STATE_WAIT_FOR_RECONNECT: {
-                    std::lock_guard<std::mutex> lock (m_conLock);
-                    if (getMonotonicTimeInMs () >= m_delayExpirationTime)
-                    {
-                        m_connectionState = CON_STATE_IDLE;
-                    }
-                }
-                break;
-
-                case CON_STATE_FATAL_ERROR:
                     break;
+
+                    case CON_STATE_FATAL_ERROR:
+                        break;
+                    }
                 }
             }
 
@@ -1166,4 +1213,81 @@ IEC61850ClientConnection::operate (const std::string& objRef,
     }
 
     return true;
+}
+
+void
+IEC61850ClientConnection::writeHandler (uint32_t invokeId, void* parameter,
+                                        IedClientError err)
+{
+    auto pair = (std::pair<IEC61850ClientConnection*, MmsValue*>*)parameter;
+
+    MmsValue* value = (MmsValue*)(pair->second);
+    char valueBuffer[30];
+    MmsValue_printToBuffer (value, valueBuffer, 30);
+
+    Iec61850Utility::log_debug ("Write data handler called - Value: %s",
+                                valueBuffer);
+
+    if (err != IED_ERROR_OK)
+    {
+        pair->first->m_client->logIedClientError (
+            err, "Write data (Value = " + std::string (valueBuffer) + ")");
+    }
+
+    if (value)
+    {
+        MmsValue_delete (value);
+    };
+
+    delete pair;
+}
+
+bool
+IEC61850ClientConnection::writeValue (Datapoint* operation,
+                                      const std::string& objRef,
+                                      DatapointValue value, CDCTYPE type)
+{
+    IedClientError err;
+    MmsValue* mmsValue;
+    std::string attribute;
+    switch (type)
+    {
+    case SPG: {
+        attribute = ".setVal";
+        mmsValue = MmsValue_newBoolean (value.toInt ());
+        Iec61850Utility::log_debug ("Write value %s %d", objRef.c_str (),
+                                    value.toInt ());
+        break;
+    }
+    case ING: {
+        attribute = ".setVal";
+        mmsValue = MmsValue_newIntegerFromInt32 ((int)value.toInt ());
+        Iec61850Utility::log_debug ("Write value %s %d", objRef.c_str (),
+                                    value.toInt ());
+        break;
+    }
+    case ASG: {
+        attribute = ".setMag.f";
+        mmsValue = MmsValue_newFloat ((float)value.toDouble ());
+        Iec61850Utility::log_debug ("Write value %s %f", objRef.c_str (),
+                                    (float)value.toDouble ());
+        break;
+    }
+    default: {
+        Iec61850Utility::log_error ("Invalid data type for writing data - %d",
+                                    type);
+        return false;
+    }
+    }
+
+    auto parameter
+        = new std::pair<IEC61850ClientConnection*, MmsValue*> (this, mmsValue);
+
+    IedConnection_writeObjectAsync (
+        m_connection, &err, (objRef + attribute).c_str (), IEC61850_FC_SP,
+        mmsValue, writeHandler, parameter);
+
+    delete operation;
+
+    return err == IED_ERROR_OK;
 }

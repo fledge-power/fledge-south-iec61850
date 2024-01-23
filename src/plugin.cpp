@@ -50,17 +50,7 @@ static const char* default_config = QUOTE ({
                     } ]
                 },
                 "application_layer" : {
-                    "polling_interval" : 0,
-                    "datasets" : [ {
-                        "dataset_ref" : "",
-                        "entries" : [ { "objref" : "" } ]
-                    } ],
-                    "report_subscriptions" : [ {
-                        "rcb_ref" : "",
-                        "dataset_ref" : "",
-                        "trgops" : "",
-                        "gi" : true
-                    } ]
+                    "polling_interval" : 10000
                 }
             }
         })
@@ -74,6 +64,7 @@ static const char* default_config = QUOTE ({
             "exchanged_data" : {
                 "datapoints" : [ {
                     "label" : "TS1",
+                    "pivot_id" : "TS1",
                     "protocols" : [ {
                         "name" : "iec61850",
                         "objref" : "DER_Scheduler_Control/ActPow_GGIO1.AnOut1",

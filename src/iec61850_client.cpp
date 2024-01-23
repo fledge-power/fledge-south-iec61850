@@ -37,10 +37,17 @@ stringToFunctionalConstraint (const std::string& str)
     }
 }
 
-bool
+static const std::unordered_map<std::string, CDCTYPE> cdcMap
+    = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
+        { "MvTyp", MV },   { "SpcTyp", SPC }, { "DpcTyp", DPC },
+        { "ApcTyp", APC }, { "IncTyp", INC }, { "InsTyp", INS },
+        { "SpgTyp", SPG }, { "EnsTyp", ENS }, { "AsgTyp", ASG },
+        { "IngTyp", ING } };
+
+static bool
 isCommandCdcType (CDCTYPE type)
 {
-    return type >= SPC;
+    return type >= SPC && type < SPG;
 }
 
 static uint64_t
@@ -214,7 +221,8 @@ const std::map<CDCTYPE, std::string> cdcToStrMap
     = { { SPS, "SpsTyp" }, { DPS, "DpsTyp" }, { BSC, "BscTyp" },
         { MV, "MvTyp" },   { SPC, "SpcTyp" }, { DPC, "DpcTyp" },
         { APC, "ApcTyp" }, { INC, "IncTyp" }, { INS, "InsTyp" },
-        { ENS, "EnsTyp" } };
+        { ENS, "EnsTyp" }, { SPG, "SpgTyp" }, { ASG, "AsgType" },
+        { ING, "IngTyp" } };
 const std::map<CDCTYPE, PIVOTROOT> rootMap
     = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIC }, { INS, GTIS },
         { ENS, GTIS }, { MV, GTIM },  { SPC, GTIC }, { DPC, GTIC },
@@ -454,7 +462,7 @@ PivotTimestamp::PivotTimestamp (Datapoint* timestampData)
 
 PivotTimestamp::PivotTimestamp (uint64_t ms)
 {
-    auto timeval32 = (uint32_t) (ms / 1000LL);
+    auto timeval32 = (uint32_t)(ms / 1000LL);
 
     m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
     m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -472,7 +480,7 @@ PivotTimestamp::PivotTimestamp (uint64_t ms)
 void
 PivotTimestamp::setTimeInMs (uint64_t ms)
 {
-    auto timeval32 = (uint32_t) (ms / 1000LL);
+    auto timeval32 = (uint32_t)(ms / 1000LL);
 
     m_valueArray[0] = (timeval32 / 0x1000000 & 0xff);
     m_valueArray[1] = (timeval32 / 0x10000 & 0xff);
@@ -593,7 +601,6 @@ IEC61850Client::_monitoringThread ()
         for (auto clientConnection : *m_connections)
         {
             clientConnection->Start ();
-            m_active_connection = clientConnection;
         }
     }
 
@@ -606,10 +613,10 @@ IEC61850Client::_monitoringThread ()
     {
         std::lock_guard<std::mutex> lock (m_activeConnectionMtx);
 
-        if (m_active_connection == nullptr)
+        if (m_active_connection == nullptr
+            || m_active_connection->Disconnected ())
         {
             bool foundOpenConnections = false;
-
             for (auto clientConnection : *m_connections)
             {
                 backupConnectionStartTime
@@ -621,56 +628,29 @@ IEC61850Client::_monitoringThread ()
 
                 m_active_connection = clientConnection;
 
-                updateConnectionStatus (ConnectionStatus::STARTED);
+                Iec61850Utility::log_debug ("Trying connection %s:%d",
+                                            clientConnection->IP ().c_str (),
+                                            clientConnection->Port ());
 
-                break;
-            }
+                auto start = std::chrono::high_resolution_clock::now ();
+                auto timeout = std::chrono::milliseconds (
+                    m_config->backupConnectionTimeout ());
 
-            if (foundOpenConnections)
-            {
-                firstConnected = true;
-                qualityUpdateTimer = 0;
-                qualityUpdated = false;
-            }
-
-            if (foundOpenConnections == false)
-            {
-
-                if (firstConnected)
+                while (!clientConnection->Connected ())
                 {
-
-                    if (qualityUpdated == false)
+                    auto now = std::chrono::high_resolution_clock::now ();
+                    if (now - start > timeout)
                     {
-                        if (qualityUpdateTimer != 0)
-                        {
-                            if (getMonotonicTimeInMs () > qualityUpdateTimer)
-                            {
-                                qualityUpdated = true;
-                            }
-                        }
-                        else
-                        {
-                            qualityUpdateTimer = getMonotonicTimeInMs ()
-                                                 + qualityUpdateTimeout;
-                        }
+                        clientConnection->Disconnect ();
+                        m_active_connection = nullptr;
+                        break;
                     }
+                    Thread_sleep (10);
                 }
 
-                updateConnectionStatus (ConnectionStatus::NOT_CONNECTED);
-
-                if (Hal_getTimeInMs () > backupConnectionStartTime)
+                if (m_active_connection)
                 {
-                    std::lock_guard<std::mutex> lock (m_activeConnectionMtx);
-                    for (auto& clientConnection : *m_connections)
-                    {
-                        if (clientConnection->Disconnected ())
-                        {
-                            clientConnection->Connect ();
-                        }
-                    }
-
-                    backupConnectionStartTime
-                        = Hal_getTimeInMs () + BACKUP_CONNECTION_TIMEOUT;
+                    break;
                 }
             }
         }
@@ -1247,7 +1227,26 @@ IEC61850Client::handleOperation (Datapoint* operation)
         return false;
     }
 
-    Datapoint* valueDp = getChild (cdcDp, "ctlVal");
+    Datapoint* valueDp;
+
+    if (cdcDp->getName () == "AsgTyp")
+    {
+        Datapoint* magDp = getChild (cdcDp, "setMag");
+        if (!magDp)
+        {
+            Iec61850Utility::log_error ("ASG operation has no setMag");
+            return false;
+        }
+        valueDp = getChild (magDp, "f");
+    }
+    else if (cdcDp->getName () == "IngTyp" || cdcDp->getName () == "SpgTyp")
+    {
+        valueDp = getChild (cdcDp, "setVal");
+    }
+    else
+    {
+        valueDp = getChild (cdcDp, "ctlVal");
+    }
 
     if (!valueDp)
     {
@@ -1255,11 +1254,21 @@ IEC61850Client::handleOperation (Datapoint* operation)
         return false;
     }
 
+    bool res;
+
     DatapointValue value = valueDp->getData ();
 
-    bool res = m_active_connection->operate (objRef, value);
-
-    m_outstandingCommands[label] = operation;
+    if (cdcDp->getName () == "IngTyp" || cdcDp->getName () == "SpgTyp"
+        || cdcDp->getName () == "AsgTyp")
+    {
+        res = m_active_connection->writeValue (operation, objRef, value,
+                                               cdcMap.at (cdcDp->getName ()));
+    }
+    else
+    {
+        res = m_active_connection->operate (objRef, value);
+        m_outstandingCommands[label] = operation;
+    }
 
     return res;
 }

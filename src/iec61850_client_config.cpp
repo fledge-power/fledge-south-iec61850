@@ -45,7 +45,8 @@ static const std::unordered_map<std::string, CDCTYPE> cdcMap
     = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
         { "MvTyp", MV },   { "SpcTyp", SPC }, { "DpcTyp", DPC },
         { "ApcTyp", APC }, { "IncTyp", INC }, { "InsTyp", INS },
-        { "EnsTyp", ENS } };
+        { "SpgTyp", SPG }, { "EnsTyp", ENS }, { "AsgTyp", ASG },
+        { "IngTyp", ING } };
 
 int
 IEC61850ClientConfig::getCdcTypeFromString (const std::string& cdc)
@@ -55,7 +56,7 @@ IEC61850ClientConfig::getCdcTypeFromString (const std::string& cdc)
     {
         return it->second;
     }
-    return -1;
+    return -1; // LCOV_EXCL_LINE
 }
 
 std::shared_ptr<DataExchangeDefinition>
@@ -87,7 +88,8 @@ IEC61850ClientConfig::isValidIPAddress (const std::string& addrStr)
     // see
     // https://stackoverflow.com/questions/318236/how-do-you-validate-that-a-string-is-a-valid-ipv4-address-in-c
     struct sockaddr_in sa;
-    int result = inet_pton (AF_INET, addrStr.c_str (), &(sa.sin_addr));
+    int result = inet_pton (AF_INET, addrStr.c_str (),
+                            &(sa.sin_addr)); // LCOV_EXCL_LINE
 
     return (result == 1);
 }
@@ -121,7 +123,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
 
     if (!document.IsObject ())
     {
-        return;
+        return; // LCOV_EXCL_LINE
     }
 
     if (!document.HasMember (JSON_PROTOCOL_STACK)
@@ -201,6 +203,12 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
 
             m_connections.push_back (group);
         }
+    }
+
+    if (transportLayer.HasMember ("backupTimeout")
+        && transportLayer["backupTimeout"].IsInt ())
+    {
+        m_backupConnectionTimeout = transportLayer["backupTimeout"].GetInt ();
     }
 
     if (!protocolStack.HasMember (JSON_APPLICATION_LAYER)
@@ -296,91 +304,91 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
         }
     }
 
-    if (!applicationLayer.HasMember (JSON_REPORT_SUBSCRIPTIONS)
-        || !applicationLayer[JSON_REPORT_SUBSCRIPTIONS].IsArray ())
+    if (applicationLayer.HasMember (JSON_REPORT_SUBSCRIPTIONS)
+        && applicationLayer[JSON_REPORT_SUBSCRIPTIONS].IsArray ())
     {
-        Iec61850Utility::log_error ("No report subscriptions are configured");
-        return;
-    }
+        for (const auto& reportVal :
+             applicationLayer[JSON_REPORT_SUBSCRIPTIONS].GetArray ())
+        {
+            if (!reportVal.IsObject ())
+                continue;
+            auto report = std::make_shared<ReportSubscription> ();
 
-    for (const auto& reportVal :
-         applicationLayer[JSON_REPORT_SUBSCRIPTIONS].GetArray ())
-    {
-        if (!reportVal.IsObject ())
-            continue;
-        auto report = std::make_shared<ReportSubscription> ();
-
-        if (reportVal.HasMember (JSON_RCB_REF)
-            && reportVal[JSON_RCB_REF].IsString ())
-        {
-            report->rcbRef = reportVal[JSON_RCB_REF].GetString ();
-        }
-        else
-        {
-            continue;
-        }
-
-        if (reportVal.HasMember (JSON_DATASET_REF)
-            && reportVal[JSON_DATASET_REF].IsString ())
-        {
-            report->datasetRef = reportVal[JSON_DATASET_REF].GetString ();
-        }
-        else
-        {
-            report->datasetRef = "";
-        }
-
-        if (reportVal.HasMember (JSON_TRGOPS)
-            && reportVal[JSON_TRGOPS].IsArray ())
-        {
-            for (const auto& trgopVal : reportVal[JSON_TRGOPS].GetArray ())
+            if (reportVal.HasMember (JSON_RCB_REF)
+                && reportVal[JSON_RCB_REF].IsString ())
             {
-                if (trgopVal.IsString ())
+                report->rcbRef = reportVal[JSON_RCB_REF].GetString ();
+            }
+            else
+            {
+                continue;
+            }
+
+            if (reportVal.HasMember (JSON_DATASET_REF)
+                && reportVal[JSON_DATASET_REF].IsString ())
+            {
+                report->datasetRef = reportVal[JSON_DATASET_REF].GetString ();
+            }
+            else
+            {
+                report->datasetRef = "";
+            }
+
+            if (reportVal.HasMember (JSON_TRGOPS)
+                && reportVal[JSON_TRGOPS].IsArray ())
+            {
+                for (const auto& trgopVal : reportVal[JSON_TRGOPS].GetArray ())
                 {
-                    auto it = trgOptions.find (trgopVal.GetString ());
-                    if (it == trgOptions.end ())
-                        continue;
-                    report->trgops |= it->second;
+                    if (trgopVal.IsString ())
+                    {
+                        auto it = trgOptions.find (trgopVal.GetString ());
+                        if (it == trgOptions.end ())
+                            continue; // LCOV_EXCL_LINE
+                        report->trgops |= it->second;
+                    }
                 }
             }
-        }
-        else
-        {
-            report->trgops = -1;
-        }
+            else
+            {
+                report->trgops = -1;
+            }
 
-        if (reportVal.HasMember ("buftm") && reportVal["buftm"].IsInt ())
-        {
-            report->buftm = reportVal["buftm"].GetInt ();
-        }
-        else
-        {
-            report->buftm = -1;
-        }
+            if (reportVal.HasMember ("buftm") && reportVal["buftm"].IsInt ())
+            {
+                report->buftm = reportVal["buftm"].GetInt ();
+            }
+            else
+            {
+                report->buftm = -1;
+            }
 
-        if (reportVal.HasMember ("intgpd") && reportVal["intgpd"].IsInt ())
-        {
-            report->intgpd = reportVal["intgpd"].GetInt ();
-        }
-        else
-        {
-            report->intgpd = -1;
-        }
+            if (reportVal.HasMember ("intgpd") && reportVal["intgpd"].IsInt ())
+            {
+                report->intgpd = reportVal["intgpd"].GetInt ();
+            }
+            else
+            {
+                report->intgpd = -1;
+            }
 
-        if (reportVal.HasMember ("gi") && reportVal["gi"].IsBool ())
-        {
-            report->gi = reportVal["gi"].GetBool ();
-        }
-        else
-        {
-            Iec61850Utility::log_error (
-                "Report %s has no gi value, defaulting to disabled",
-                report->rcbRef.c_str ());
-            report->gi = false;
-        }
+            if (reportVal.HasMember ("gi") && reportVal["gi"].IsBool ())
+            {
+                report->gi = reportVal["gi"].GetBool ();
+            }
+            else
+            {
+                Iec61850Utility::log_error (
+                    "Report %s has no gi value, defaulting to disabled",
+                    report->rcbRef.c_str ());
+                report->gi = false;
+            }
 
-        m_reportSubscriptions.insert ({ report->rcbRef, std::move (report) });
+            m_reportSubscriptions.insert (
+                { report->rcbRef, std::move (report) });
+        }
     }
+
+    m_protocolConfigComplete = true;
 }
 
 void
