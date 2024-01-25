@@ -348,10 +348,14 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
 
     bool isBuffered = ClientReportControlBlock_isBuffered (rcb);
 
-    if (isBuffered)
+    if (isBuffered) {
         parametersMask |= RCB_ELEMENT_RESV_TMS;
-    else
+        ClientReportControlBlock_setResvTms(rcb, 10);
+    }
+    else {
         parametersMask |= RCB_ELEMENT_RESV;
+        ClientReportControlBlock_setResv(rcb, true);
+    }
 
     if (rs->trgops != -1)
     {
