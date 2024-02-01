@@ -247,14 +247,6 @@ class ReportingTest : public testing::Test
     void
     TearDown () override
     {
-        iec61850->stop ();
-        delete iec61850;
-
-        for (auto reading : storedReadings)
-        {
-            delete reading;
-        }
-        storedReadings.clear ();
     }
 
     static bool
@@ -518,9 +510,18 @@ TEST_F (ReportingTest, ReportingWithStaticDataset)
     double expectedMagVal = 1.2;
     verifyDatapoint (mag, "f", &expectedMagVal);
 
-    IedServer_stop (server);
-    IedServer_destroy (server);
-    IedModel_destroy (model);
+     iec61850->stop ();
+     delete iec61850;
+
+     for (auto reading : storedReadings)
+     {
+         delete reading;
+     }
+     storedReadings.clear ();
+
+     IedServer_stop (server);
+     IedServer_destroy (server);
+     IedModel_destroy (model);
 }
 
 TEST_F (ReportingTest, ReportingWithDynamicDataset)
@@ -596,6 +597,15 @@ TEST_F (ReportingTest, ReportingWithDynamicDataset)
 
     verifyDatapoint (qDp, "Validity", &expectedValidity);
 
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
     IedServer_stop (server);
     IedServer_destroy (server);
     IedModel_destroy (model);
@@ -660,6 +670,15 @@ TEST_F (ReportingTest, ReportingGI)
 
     int expectedStVal = false;
     verifyDatapoint (SPC, "stVal", &expectedStVal);
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
 
     IedServer_stop (server);
     IedServer_destroy (server);
@@ -753,6 +772,16 @@ TEST_F (ReportingTest, ReportingSetpointCommand)
     verifyDatapoint (SPC, "stVal", &expectedStVal);
 
     delete pair;
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
     IedServer_stop (server);
     IedServer_destroy (server);
     IedModel_destroy (model);
@@ -839,6 +868,15 @@ TEST_F (ReportingTest, ReportingUpdateQuality)
 
     verifyDatapoint (qDp, "Source");
     verifyDatapoint (qDp, "operatorBlocked");
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
 
     IedServer_stop (server);
     IedServer_destroy (server);
@@ -966,6 +1004,15 @@ TEST_F (ReportingTest, ReportingChangeValueMultipleTimes)
 
     expectedMagVal = 1.5;
     verifyDatapoint (mag, "f", &expectedMagVal);
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
 
     IedServer_stop (server);
     IedServer_destroy (server);

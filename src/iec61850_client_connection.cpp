@@ -540,17 +540,19 @@ IEC61850ClientConnection::cleanUp ()
         if(dataset.second->dynamic){
             for(const auto &rcb : m_config->getReportSubscriptions()){
                 if(rcb.second->datasetRef == dataset.second->datasetRef){
-                    IedClientError error;
-                    if(m_connection){
+                    IedClientError error = IED_ERROR_OK;
+                    if(m_connection && IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
                         ClientReportControlBlock block = IedConnection_getRCBValues (m_connection, &error,
                                             rcb.second->rcbRef.c_str (), nullptr);
                         
                         if(!block){
                             Iec61850Utility::log_debug("RCB %s not found, continue", rcb.second->rcbRef.c_str());
+                            m_client->logIedClientError(error, "Get RCB in clean up");
                             continue;
                         }
+
                         ClientReportControlBlock_setDataSetReference(block, "");
-                        uint32_t parametersMask;
+                        uint32_t parametersMask = 0;
                         if(ClientReportControlBlock_hasResvTms(block)){
                             parametersMask |= ClientReportControlBlock_getResvTms(block);
                         }
@@ -562,9 +564,11 @@ IEC61850ClientConnection::cleanUp ()
                         parametersMask |= ClientReportControlBlock_getIntgPd(block);
                         parametersMask |= ClientReportControlBlock_getGI(block);
                         parametersMask |= ClientReportControlBlock_getRptEna(block);
-                
+
                         IedConnection_setRCBValues(m_connection,&error,block, parametersMask, true);
                         Iec61850Utility::log_debug("Update RCB %s", rcb.second->rcbRef.c_str());
+
+                        ClientReportControlBlock_destroy(block);
                     }   
                 }
             }
