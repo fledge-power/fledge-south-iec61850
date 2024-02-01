@@ -50,20 +50,6 @@ isCommandCdcType (CDCTYPE type)
     return type >= SPC && type < SPG;
 }
 
-static uint64_t
-getMonotonicTimeInMs ()
-{
-    uint64_t timeVal = 0;
-
-    struct timespec ts;
-
-    if (clock_gettime (CLOCK_MONOTONIC, &ts) == 0)
-    {
-        timeVal = ((uint64_t)ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
-    }
-
-    return timeVal;
-}
 
 static long
 getValueInt (Datapoint* dp)
