@@ -145,12 +145,15 @@ class IEC61850Client
     void sendCommandAck (const std::string& label, ControlModel mode,
                          bool terminated);
 
+    bool firstTimeConnect = true;                     
+    
   private:
     std::shared_ptr<std::vector<IEC61850ClientConnection*> > m_connections
         = nullptr;
 
     IEC61850ClientConnection* m_active_connection = nullptr;
     std::mutex m_activeConnectionMtx;
+
 
     enum class ConnectionStatus
     {

@@ -314,16 +314,28 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
 
 static int
 configureRcb (const std::shared_ptr<ReportSubscription>& rs,
-              ClientReportControlBlock rcb)
+              ClientReportControlBlock rcb, bool firstTimeConnect)
 {
     uint32_t parametersMask = 0;
 
     bool isBuffered = ClientReportControlBlock_isBuffered (rcb);
 
     if (isBuffered)
+    {
         parametersMask |= RCB_ELEMENT_RESV_TMS;
+        ClientReportControlBlock_setResvTms (rcb, 1000);
+
+        if (firstTimeConnect)
+        {
+            parametersMask |= RCB_ELEMENT_PURGE_BUF;
+            ClientReportControlBlock_setPurgeBuf (rcb, true);
+        }
+    }
     else
+    {
+        ClientReportControlBlock_setResv (rcb, true);
         parametersMask |= RCB_ELEMENT_RESV;
+    }
 
     if (rs->trgops != -1)
     {
@@ -340,11 +352,6 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
         parametersMask |= RCB_ELEMENT_INTG_PD;
         ClientReportControlBlock_setIntgPd (rcb, rs->intgpd);
     }
-    if (rs->gi)
-    {
-        parametersMask |= RCB_ELEMENT_GI;
-        ClientReportControlBlock_setGI (rcb, rs->gi);
-    }
 
     if (!rs->datasetRef.empty ())
     {
@@ -354,6 +361,12 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
                       '.', '$');
         ClientReportControlBlock_setDataSetReference (
             rcb, modifiedDataSetRef.c_str ());
+    }
+
+    if (rs->gi)
+    {
+        parametersMask |= RCB_ELEMENT_GI;
+        ClientReportControlBlock_setGI (rcb, rs->gi);
     }
 
     ClientReportControlBlock_setRptEna (rcb, true);
@@ -407,7 +420,8 @@ IEC61850ClientConnection::m_configRcb ()
             continue;
         }
 
-        uint32_t parametersMask = configureRcb (rs, rcb);
+        uint32_t parametersMask
+            = configureRcb (rs, rcb, m_client->firstTimeConnect);
 
         auto connDataSetPair
             = new std::pair<IEC61850ClientConnection*, LinkedList> (
@@ -1020,6 +1034,7 @@ IEC61850ClientConnection::_conThread ()
                                 m_connectionState = CON_STATE_CONNECTED;
                                 m_connecting = false;
                                 m_connected = true;
+                                m_client->firstTimeConnect = false;
                             }
                         }
                         else if (getMonotonicTimeInMs ()
