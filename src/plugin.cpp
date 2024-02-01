@@ -198,7 +198,7 @@ extern "C"
 
         if (config.itemExists ("protocol_stack")
             && config.itemExists ("exchanged_data")
-            && config.itemExists ("tls"))
+            && config.itemExists ("tls_conf"))
             iec61850->setJsonConfig (config.getValue ("protocol_stack"),
                                      config.getValue ("exchanged_data"),
                                      config.getValue ("tls_conf"));
