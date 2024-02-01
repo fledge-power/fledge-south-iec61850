@@ -277,6 +277,8 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
 
     time_t unixTime = 0;
 
+    con->lastEntryId = ClientReport_getEntryId(report);
+
     if (ClientReport_hasTimestamp (report))
     {
         unixTime = ClientReport_getTimestamp (report) / 1000;
@@ -314,7 +316,7 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
 
 static int
 configureRcb (const std::shared_ptr<ReportSubscription>& rs,
-              ClientReportControlBlock rcb, bool firstTimeConnect)
+              ClientReportControlBlock rcb, bool firstTimeConnect, MmsValue* lastEntryId)
 {
     uint32_t parametersMask = 0;
 
@@ -329,6 +331,10 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
         {
             parametersMask |= RCB_ELEMENT_PURGE_BUF;
             ClientReportControlBlock_setPurgeBuf (rcb, true);
+        }
+        else{
+            ClientReportControlBlock_setEntryId(rcb,lastEntryId);
+            parametersMask |= RCB_ELEMENT_ENTRY_ID;
         }
     }
     else
@@ -368,6 +374,8 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
         parametersMask |= RCB_ELEMENT_GI;
         ClientReportControlBlock_setGI (rcb, rs->gi);
     }
+
+    
 
     ClientReportControlBlock_setRptEna (rcb, true);
     parametersMask |= RCB_ELEMENT_RPT_ENA;
@@ -421,7 +429,7 @@ IEC61850ClientConnection::m_configRcb ()
         }
 
         uint32_t parametersMask
-            = configureRcb (rs, rcb, m_client->firstTimeConnect);
+            = configureRcb (rs, rcb, m_client->firstTimeConnect,lastEntryId);
 
         auto connDataSetPair
             = new std::pair<IEC61850ClientConnection*, LinkedList> (
@@ -585,6 +593,11 @@ IEC61850ClientConnection::cleanUp ()
         m_controlObjects.clear ();
     }
 
+    if(lastEntryId){
+        MmsValue_delete(lastEntryId);
+        lastEntryId = nullptr;
+    }
+    
     if (!m_connControlPairs.empty ())
     {
         for (auto& cc : m_connControlPairs)

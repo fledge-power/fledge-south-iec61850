@@ -150,6 +150,7 @@ class IEC61850ClientConnection
     bool m_connecting = false;
     bool m_started = false;
     bool m_useTls = false;
+    MmsValue* lastEntryId = nullptr;
 
     TLSConfiguration m_tlsConfig = nullptr;
 
