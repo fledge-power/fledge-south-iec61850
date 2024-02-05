@@ -329,6 +329,7 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
 
         if (firstTimeConnect)
         {
+            Iec61850Utility::log_debug("First time connecting set PurgeBuf to true for %s", rs->rcbRef.c_str());
             parametersMask |= RCB_ELEMENT_PURGE_BUF;
             ClientReportControlBlock_setPurgeBuf (rcb, true);
         }
@@ -406,7 +407,7 @@ IEC61850ClientConnection::m_configRcb ()
         if (error != IED_ERROR_OK)
         {
             Iec61850Utility::log_error (
-                "Reading data set directory failed!\n");
+                "Reading data set directory failed! %s", rs->datasetRef.c_str());
             continue;
         }
 
@@ -442,8 +443,12 @@ IEC61850ClientConnection::m_configRcb ()
             ClientReportControlBlock_getRptId (rcb), reportCallbackFunction,
             static_cast<void*> (connDataSetPair));
 
+
         IedConnection_setRCBValues (m_connection, &error, rcb, parametersMask,
-                                    true);
+                                true);
+
+        rcb = IedConnection_getRCBValues (m_connection, &error,
+                                          rs->rcbRef.c_str (), nullptr);
 
         if (clientDataSet)
             ClientDataSet_destroy (clientDataSet);
@@ -498,6 +503,11 @@ IEC61850ClientConnection::m_initialiseControlObjects ()
         auto co = new ControlObjectStruct;
         co->client
             = ControlObjectClient_create (def->objRef.c_str (), m_connection);
+        if(!co->client){
+          Iec61850Utility::log_warn ("Failed to create Control ObjectClient %s , %s ",
+                                    entry.first.c_str (), def->objRef.c_str ());
+          continue;  
+        }
         co->mode = ControlObjectClient_getControlModel (co->client);
         co->state = CONTROL_IDLE;
         co->label = entry.first;
@@ -568,6 +578,74 @@ IEC61850ClientConnection::cleanUp ()
         }
         m_connDataSetDirectoryPairs.clear ();
     }
+
+    for(const auto &dataset: m_config->getDatasets()){
+        if(dataset.second->dynamic){
+            for(const auto &rcb : m_config->getReportSubscriptions()){
+                if(rcb.second->datasetRef == dataset.second->datasetRef){
+                    IedClientError error = IED_ERROR_OK;
+                    if(m_connection && IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
+
+                        ClientReportControlBlock block = IedConnection_getRCBValues (m_connection, &error,
+                                            rcb.second->rcbRef.c_str (), nullptr);
+                        
+                        if(!block){
+                            Iec61850Utility::log_debug("RCB %s not found, continue", rcb.second->rcbRef.c_str());
+                            m_client->logIedClientError(error, "Get RCB in clean up");
+                            continue;
+                        }
+
+                        ClientReportControlBlock_setRptEna(block,false);
+                        ClientReportControlBlock_setDataSetReference(block, "");
+
+                        IedConnection_setRCBValues(m_connection,&error,block, RCB_ELEMENT_RPT_ENA | RCB_ELEMENT_DATSET, true);
+                        
+                        if(error!=IED_ERROR_OK){
+                            m_client->logIedClientError(error,"Remove dynamic dataset " + dataset.second->datasetRef + " from RCB " + rcb.second->rcbRef);
+                        }
+                        else{
+                            Iec61850Utility::log_debug("Update RCB %s", rcb.second->rcbRef.c_str());
+                        }
+                        ClientReportControlBlock_destroy(block);
+
+                        std::string modifiedDatasetRef = dataset.second->datasetRef;
+
+                        if(!IedConnection_deleteDataSet(m_connection,&error,modifiedDatasetRef.c_str())){
+                            m_client->logIedClientError(error, "Delete dynamic dataset " + modifiedDatasetRef);
+                        }
+                    }   
+                }
+            }
+        
+        }
+    }
+
+    for(const auto &rcb : m_config->getReportSubscriptions()){
+        IedClientError error = IED_ERROR_OK;
+        if(m_connection && IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
+
+            ClientReportControlBlock block = IedConnection_getRCBValues (m_connection, &error,
+                                rcb.second->rcbRef.c_str (), nullptr);
+            
+            if(!block){
+                Iec61850Utility::log_debug("RCB %s not found, continue", rcb.second->rcbRef.c_str());
+                m_client->logIedClientError(error, "Get RCB in clean up");
+                continue;
+            }
+
+            ClientReportControlBlock_setRptEna(block,false);
+
+            IedConnection_setRCBValues(m_connection,&error,block, RCB_ELEMENT_RPT_ENA | RCB_ELEMENT_DATSET, true);
+            
+            if(error!=IED_ERROR_OK){
+                m_client->logIedClientError(error,"Disable RCB " + rcb.second->rcbRef);
+            }
+            else{
+                Iec61850Utility::log_debug("Disabled RCB %s", rcb.second->rcbRef.c_str());
+            }
+            ClientReportControlBlock_destroy(block);
+        }
+    }   
 
     if (!m_controlObjects.empty ())
     {

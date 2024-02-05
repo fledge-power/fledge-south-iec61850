@@ -219,7 +219,7 @@ const std::map<PIVOTROOT, std::string> rootToStrMap
 
 IEC61850Client::IEC61850Client (IEC61850* iec61850,
                                 IEC61850ClientConfig* iec61850_client_config)
-    : m_config (iec61850_client_config), m_iec61850 (iec61850)
+    : m_config (iec61850_client_config), m_iec61850 (iec61850), firstTimeConnect(true)
 {
 }
 
