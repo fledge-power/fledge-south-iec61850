@@ -41,23 +41,6 @@ void
 IEC61850::start ()
 {
     Iec61850Utility::log_info ("Starting iec61850");
-    // LCOV_EXCL_START
-    switch (m_config->LogLevel ())
-    {
-    case 1:
-        Logger::getLogger ()->setMinLevel ("debug");
-        break;
-    case 2:
-        Logger::getLogger ()->setMinLevel ("info");
-        break;
-    case 3:
-        Logger::getLogger ()->setMinLevel ("warning");
-        break;
-    default:
-        Logger::getLogger ()->setMinLevel ("error");
-        break;
-    }
-    // LCOV_EXCL_STOP
 
     m_client = new IEC61850Client (this, m_config);
 
