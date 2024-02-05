@@ -536,45 +536,6 @@ IEC61850ClientConnection::cleanUp ()
         }
     }
 
-    for(const auto &dataset: m_config->getDatasets()){
-        if(dataset.second->dynamic){
-            for(const auto &rcb : m_config->getReportSubscriptions()){
-                if(rcb.second->datasetRef == dataset.second->datasetRef){
-                    IedClientError error = IED_ERROR_OK;
-                    if(m_connection && IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
-                        ClientReportControlBlock block = IedConnection_getRCBValues (m_connection, &error,
-                                            rcb.second->rcbRef.c_str (), nullptr);
-                        
-                        if(!block){
-                            Iec61850Utility::log_debug("RCB %s not found, continue", rcb.second->rcbRef.c_str());
-                            m_client->logIedClientError(error, "Get RCB in clean up");
-                            continue;
-                        }
-
-                        ClientReportControlBlock_setDataSetReference(block, "");
-                        uint32_t parametersMask = 0;
-                        if(ClientReportControlBlock_hasResvTms(block)){
-                            parametersMask |= ClientReportControlBlock_getResvTms(block);
-                        }
-                        else{
-                            parametersMask |= ClientReportControlBlock_getResv(block);
-                        }
-                        parametersMask |= ClientReportControlBlock_getTrgOps(block);
-                        parametersMask |= ClientReportControlBlock_getBufTm(block);
-                        parametersMask |= ClientReportControlBlock_getIntgPd(block);
-                        parametersMask |= ClientReportControlBlock_getGI(block);
-                        parametersMask |= ClientReportControlBlock_getRptEna(block);
-
-                        IedConnection_setRCBValues(m_connection,&error,block, parametersMask, true);
-                        Iec61850Utility::log_debug("Update RCB %s", rcb.second->rcbRef.c_str());
-
-                        ClientReportControlBlock_destroy(block);
-                    }   
-                }
-            }
-        }
-    }
-
     if (!m_connDataSetDirectoryPairs.empty ())
     {
         for (const auto& entry : m_connDataSetDirectoryPairs)
@@ -584,6 +545,47 @@ IEC61850ClientConnection::cleanUp ()
             delete entry;
         }
         m_connDataSetDirectoryPairs.clear ();
+    }
+
+    for(const auto &dataset: m_config->getDatasets()){
+        if(dataset.second->dynamic){
+            for(const auto &rcb : m_config->getReportSubscriptions()){
+                if(rcb.second->datasetRef == dataset.second->datasetRef){
+                    IedClientError error = IED_ERROR_OK;
+                    if(m_connection && IedConnection_getState(m_connection) == IED_STATE_CONNECTED){
+
+                        ClientReportControlBlock block = IedConnection_getRCBValues (m_connection, &error,
+                                            rcb.second->rcbRef.c_str (), nullptr);
+                        
+                        if(!block){
+                            Iec61850Utility::log_debug("RCB %s not found, continue", rcb.second->rcbRef.c_str());
+                            m_client->logIedClientError(error, "Get RCB in clean up");
+                            continue;
+                        }
+
+                        ClientReportControlBlock_setRptEna(block,false);
+                        ClientReportControlBlock_setDataSetReference(block, "");
+
+                        IedConnection_setRCBValues(m_connection,&error,block, RCB_ELEMENT_RPT_ENA | RCB_ELEMENT_DATSET, true);
+                        
+                        if(error!=IED_ERROR_OK){
+                            m_client->logIedClientError(error,"Remove dynamic dataset " + dataset.second->datasetRef + " from RCB " + rcb.second->rcbRef);
+                        }
+                        else{
+                            Iec61850Utility::log_debug("Update RCB %s", rcb.second->rcbRef.c_str());
+                        }
+                        ClientReportControlBlock_destroy(block);
+
+                        std::string modifiedDatasetRef = dataset.second->datasetRef;
+
+                        if(!IedConnection_deleteDataSet(m_connection,&error,modifiedDatasetRef.c_str())){
+                            m_client->logIedClientError(error, "Delete dynamic dataset " + modifiedDatasetRef);
+                        }
+                    }   
+                }
+            }
+        
+        }
     }
 
     if (!m_controlObjects.empty ())

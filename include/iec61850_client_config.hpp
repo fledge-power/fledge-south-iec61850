@@ -26,6 +26,7 @@
     FRIEND_TEST (ReportingTest, ReportingUpdateQuality);                      \
     FRIEND_TEST (ReportingTest, ReportingGI);                                 \
     FRIEND_TEST (ReportingTest, ReportingSetpointCommand);                    \
+    FRIEND_TEST (ReportingTest, ReconfigureDynamicDataset);                   \
     FRIEND_TEST (ReportingTest, ReportingChangeValueMultipleTimes);           \
     FRIEND_TEST (SpontDataTest, Polling);                                     \
     FRIEND_TEST (SpontDataTest, PollingAllCDC);                               \
