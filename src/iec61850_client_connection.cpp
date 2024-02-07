@@ -505,7 +505,8 @@ IEC61850ClientConnection::m_initialiseControlObjects ()
             continue;
         IedClientError err;
         MmsValue* temp = IedConnection_readObject (
-            m_connection, &err, def->objRef.c_str (), IEC61850_FC_ST);
+            m_connection, &err, (def->objRef+".ctlModel").c_str(), IEC61850_FC_ST);
+        ControlModel model = (ControlModel) MmsValue_toInt32(temp);   
         if (err != IED_ERROR_OK)
         {
             m_client->logIedClientError (err, "Initialise control object");
@@ -513,11 +514,13 @@ IEC61850ClientConnection::m_initialiseControlObjects ()
         }
         MmsValue_delete (temp);
         auto co = new ControlObjectStruct;
-        co->client
-            = ControlObjectClient_create (def->objRef.c_str (), m_connection);
+        co->client = ControlObjectClient_create (def->objRef.c_str (), m_connection);
         if(!co->client){
-          Iec61850Utility::log_warn ("Failed to create Control ObjectClient %s , %s ",
+          if(model != CONTROL_MODEL_STATUS_ONLY){
+            Iec61850Utility::log_warn ("Failed to create Control ObjectClient %s , %s ",
                                     entry.first.c_str (), def->objRef.c_str ());
+          }
+          delete co;                           
           continue;  
         }
         co->mode = ControlObjectClient_getControlModel (co->client);
