@@ -271,13 +271,23 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
 
     MmsValue const* dataSetValues = ClientReport_getDataSetValues (report);
 
-    Iec61850Utility::log_debug ("received report for %s with rptId %s\n",
+    char buf[1024];
+    if(ClientReport_getEntryId(report) != nullptr){
+        if(con->m_client->lastEntryId !=nullptr){
+            MmsValue_delete(con->m_client->lastEntryId);
+        }
+        con->m_client->lastEntryId = MmsValue_clone(ClientReport_getEntryId(report));
+        if(con->m_client->lastEntryId!=nullptr){
+            MmsValue_printToBuffer(con->m_client->lastEntryId,buf,1024);
+        }
+    }
+
+    Iec61850Utility::log_debug ("received report for %s with rptId %s entryId %s",
                                 ClientReport_getRcbReference (report),
-                                ClientReport_getRptId (report));
+                                ClientReport_getRptId (report),
+                                con->m_client->lastEntryId ? buf : "NULL");
 
     time_t unixTime = 0;
-
-    con->lastEntryId = ClientReport_getEntryId(report);
 
     if (ClientReport_hasTimestamp (report))
     {
@@ -324,17 +334,24 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
 
     if (isBuffered)
     {
+        parametersMask |= RCB_ELEMENT_OPT_FLDS;
+        ClientReportControlBlock_setOptFlds(rcb,RPT_OPT_REASON_FOR_INCLUSION | RPT_OPT_ENTRY_ID | RPT_OPT_TIME_STAMP| RPT_OPT_DATA_SET);
         parametersMask |= RCB_ELEMENT_RESV_TMS;
         ClientReportControlBlock_setResvTms (rcb, 1000);
 
         if (firstTimeConnect)
         {
-            Iec61850Utility::log_debug("First time connecting set PurgeBuf to true for %s", rs->rcbRef.c_str());
             parametersMask |= RCB_ELEMENT_PURGE_BUF;
             ClientReportControlBlock_setPurgeBuf (rcb, true);
         }
         else{
+            char buf[1024];
+            if(lastEntryId!=nullptr){
+                MmsValue_printToBuffer(lastEntryId,buf,1024);
+            }
+            Iec61850Utility::log_debug("Reconnecting, send Entry ID %s for RCB %s", lastEntryId != nullptr ? buf : "NULL",  rs->rcbRef.c_str());
             ClientReportControlBlock_setEntryId(rcb,lastEntryId);
+
             parametersMask |= RCB_ELEMENT_ENTRY_ID;
         }
     }
@@ -375,8 +392,6 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
         parametersMask |= RCB_ELEMENT_GI;
         ClientReportControlBlock_setGI (rcb, rs->gi);
     }
-
-    
 
     ClientReportControlBlock_setRptEna (rcb, true);
     parametersMask |= RCB_ELEMENT_RPT_ENA;
@@ -430,7 +445,7 @@ IEC61850ClientConnection::m_configRcb ()
         }
 
         uint32_t parametersMask
-            = configureRcb (rs, rcb, m_client->firstTimeConnect,lastEntryId);
+            = configureRcb (rs, rcb, m_client->firstTimeConnect,m_client->lastEntryId);
 
         auto connDataSetPair
             = new std::pair<IEC61850ClientConnection*, LinkedList> (
@@ -446,9 +461,6 @@ IEC61850ClientConnection::m_configRcb ()
 
         IedConnection_setRCBValues (m_connection, &error, rcb, parametersMask,
                                 true);
-
-        rcb = IedConnection_getRCBValues (m_connection, &error,
-                                          rs->rcbRef.c_str (), nullptr);
 
         if (clientDataSet)
             ClientDataSet_destroy (clientDataSet);
@@ -635,7 +647,7 @@ IEC61850ClientConnection::cleanUp ()
 
             ClientReportControlBlock_setRptEna(block,false);
 
-            IedConnection_setRCBValues(m_connection,&error,block, RCB_ELEMENT_RPT_ENA | RCB_ELEMENT_DATSET, true);
+            IedConnection_setRCBValues(m_connection,&error,block, RCB_ELEMENT_RPT_ENA, true);
             
             if(error!=IED_ERROR_OK){
                 m_client->logIedClientError(error,"Disable RCB " + rcb.second->rcbRef);
@@ -671,10 +683,6 @@ IEC61850ClientConnection::cleanUp ()
         m_controlObjects.clear ();
     }
 
-    if(lastEntryId){
-        MmsValue_delete(lastEntryId);
-        lastEntryId = nullptr;
-    }
     
     if (!m_connControlPairs.empty ())
     {

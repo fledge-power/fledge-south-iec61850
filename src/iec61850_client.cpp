@@ -241,6 +241,11 @@ IEC61850Client::stop ()
         delete m_monitoringThread;
         m_monitoringThread = nullptr;
     }
+
+    if(lastEntryId){
+        MmsValue_delete(lastEntryId);
+        lastEntryId = nullptr;
+    }
 }
 
 int

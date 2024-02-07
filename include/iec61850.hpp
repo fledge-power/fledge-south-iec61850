@@ -146,7 +146,8 @@ class IEC61850Client
                          bool terminated);
 
     bool firstTimeConnect = true;                     
-    
+    MmsValue* lastEntryId = nullptr;
+
   private:
     std::shared_ptr<std::vector<IEC61850ClientConnection*> > m_connections
         = nullptr;
