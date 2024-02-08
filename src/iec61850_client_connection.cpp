@@ -287,6 +287,12 @@ IEC61850ClientConnection::reportCallbackFunction (void* parameter,
                                 ClientReport_getRptId (report),
                                 con->m_client->lastEntryId ? buf : "NULL");
 
+    if(ClientReport_hasBufOvfl(report) && ClientReport_getBufOvfl(report)){
+        Iec61850Utility::log_warn("Buffer overflow bit set for report with rptId %s and entryId %s",
+                                ClientReport_getRptId (report),
+                                con->m_client->lastEntryId ? buf : "NULL");
+    }                            
+
     time_t unixTime = 0;
 
     if (ClientReport_hasTimestamp (report))

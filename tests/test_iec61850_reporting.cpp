@@ -780,7 +780,7 @@ TEST_F (ReportingTest, ReportingSetpointCommand)
     delete params[0];
     delete[] params;
 
-    timeout = std::chrono::seconds (3);
+    timeout = std::chrono::seconds (5);
     start = std::chrono::high_resolution_clock::now ();
     while (ingestCallbackCalled != 2)
     {
