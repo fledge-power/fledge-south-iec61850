@@ -132,10 +132,10 @@ static string osi_protocol_config = QUOTE({
                         "remote_ap_title":"1,2,1200,15,3",
                         "remote_ae_qualifier":1,
                         "local_psel":"0x12,0x34,0x56,0x78",
-                        "local_ssel":"0,1,2,3,4",
+                        "local_ssel":"0x04,0x01,0x02,0x03,0x04",
                         "local_tsel":"0x00,0x01,0x02",
                         "remote_psel":"0x87,0x65,0x43,0x21",
-                        "remote_ssel":"0,1",
+                        "remote_ssel":"0x00,0x01",
                         "remote_tsel":"0x00,0x01"
                     }
                 }
@@ -1105,4 +1105,126 @@ TEST_F(ConfigTest, ProtocolConfigBuftmIntgpd) {
     config->importProtocolConfig(wrong_protocol_config_17);
 
     ASSERT_TRUE(config->m_protocolConfigComplete);
+}
+
+TEST_F(ConfigTest, TestOSISelector) {
+    IEC61850ClientConfig* config = new IEC61850ClientConfig();
+
+    std::string testStr = "0x00,0x01,0x02,0x03"; 
+    uint8_t selectorValue[10]; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 4); 
+        for(int i = 0; i < parsedBytes; i++) {
+            ASSERT_EQ(selectorValue[i], i); 
+        }
+    });
+
+    testStr = "0x03"; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 1); 
+        ASSERT_EQ(selectorValue[0], 3); 
+    });
+
+    testStr = "0x05,0x02"; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 2); 
+        ASSERT_EQ(selectorValue[0], 5);
+        ASSERT_EQ(selectorValue[1], 2);
+    });
+
+    testStr = "f143125c"; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 4);
+        ASSERT_EQ(selectorValue[0],241);
+        ASSERT_EQ(selectorValue[1],67);
+        ASSERT_EQ(selectorValue[2],18);
+        ASSERT_EQ(selectorValue[3],92);
+    });
+
+    testStr = "00000001"; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 4);
+        ASSERT_EQ(selectorValue[0],0);
+        ASSERT_EQ(selectorValue[1],0);
+        ASSERT_EQ(selectorValue[2],0);
+        ASSERT_EQ(selectorValue[3],1);
+    });
+
+    testStr = "123";
+    ASSERT_THROW(config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue)), ConfigurationException);
+
+    testStr = "0x00,0x01,0x02,0x0Z";
+    ASSERT_THROW(config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue)), ConfigurationException);
+
+    testStr = "0a0b0c0d";
+
+    ASSERT_NO_THROW({
+            uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+    ASSERT_EQ(parsedBytes, 4);
+    ASSERT_EQ(selectorValue[0], 10);
+    ASSERT_EQ(selectorValue[1], 11);
+    ASSERT_EQ(selectorValue[2], 12);
+    ASSERT_EQ(selectorValue[3], 13);
+    });
+
+    testStr = "ff";
+
+    ASSERT_NO_THROW({
+            uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+    ASSERT_EQ(parsedBytes, 1);
+    ASSERT_EQ(selectorValue[0], 255);
+    });
+
+    testStr = "AaBfC112";
+
+    ASSERT_NO_THROW({
+            uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+    ASSERT_EQ(parsedBytes, 4);
+    ASSERT_EQ(selectorValue[0], 170);
+    ASSERT_EQ(selectorValue[1], 191);
+    ASSERT_EQ(selectorValue[2], 193);
+    ASSERT_EQ(selectorValue[3], 18);
+    });
+
+    testStr = "01A609C605CC"; 
+
+    ASSERT_THROW({
+            config->parseOsiSelector(testStr, selectorValue, 4 );
+    }, ConfigurationException);
+
+    testStr = "123G56";
+
+    ASSERT_THROW({
+            config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+    }, ConfigurationException);
+
+}
+
+TEST_F(ConfigTest, TestCommaSeparatedBytes) {
+    IEC61850ClientConfig* config = new IEC61850ClientConfig();
+   
+    std::string testStr = "0x00,0x01,0x02,0x03"; 
+    uint8_t selectorValue[4]; 
+
+    ASSERT_NO_THROW({
+        uint8_t parsedBytes = config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue));
+        ASSERT_EQ(parsedBytes, 4); 
+        for(int i = 0; i < parsedBytes; i++) {
+            ASSERT_EQ(selectorValue[i], i); 
+        }
+    });
+
+
+    testStr = "0x00,0x01,0xG2,0x03"; 
+    ASSERT_THROW(config->parseOsiSelector(testStr, selectorValue, sizeof(selectorValue)), ConfigurationException);
 }
