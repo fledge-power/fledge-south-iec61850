@@ -51,13 +51,13 @@ static string protocol_config = QUOTE ({
                 {
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "trgops" : [ "data_changed", "quality_changed", "gi" ],
+                    "trgops" : [ "dchg", "qchg", "gi" ],
                     "gi" : false
                 },
                 {
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "trgops" : [ "data_changed", "quality_changed", "gi" ],
+                    "trgops" : [ "dchg", "qchg", "gi" ],
                     "gi" : false
                 }
             ]
@@ -106,14 +106,50 @@ static string protocol_config_2 = QUOTE ({
                 {
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
-                    "trgops" : [ "data_changed", "quality_changed", "gi" ],
+                    "trgops" : [ "dchg", "qchg", "gi" ],
                     "gi" : true
                 },
                 {
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed01",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
-                    "trgops" : [ "data_changed", "quality_changed", "gi" ],
+                    "trgops" : [ "dchg", "qchg", "gi" ],
                     "gi" : true
+                }
+            ]
+        }
+    }
+});
+
+// PLUGIN DEFAULT PROTOCOL STACK CONF
+static string protocol_config_3 = QUOTE ({
+    "protocol_stack" : {
+        "name" : "iec61850client",
+        "version" : "0.0.1",
+        "transport_layer" : {
+            "ied_name" : "IED1",
+            "connections" : [ { "ip_addr" : "127.0.0.1", "port" : 10002 } ]
+        },
+        "application_layer" : {
+            "polling_interval" : 0,
+            "datasets" : [
+                {
+                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
+                    "entries" : [
+                        "simpleIOGenericIO/GGIO1.AnIn1[MX]",
+                        "simpleIOGenericIO/GGIO1.AnIn2[MX]",
+                        "simpleIOGenericIO/GGIO1.AnIn3[MX]",
+                        "simpleIOGenericIO/GGIO1.AnIn4[MX]",
+                        "simpleIOGenericIO/GGIO1.SPCSO1[ST]"
+                    ],
+                    "dynamic" : true
+                }
+            ],
+            "report_subscriptions" : [
+                {
+                    "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB01",
+                    "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
+                    "trgops" : [ "dchg", "qchg", "gi" ],
+                    "gi" : false
                 }
             ]
         }
@@ -247,14 +283,6 @@ class ReportingTest : public testing::Test
     void
     TearDown () override
     {
-        iec61850->stop ();
-        delete iec61850;
-
-        for (auto reading : storedReadings)
-        {
-            delete reading;
-        }
-        storedReadings.clear ();
     }
 
     static bool
@@ -518,9 +546,18 @@ TEST_F (ReportingTest, ReportingWithStaticDataset)
     double expectedMagVal = 1.2;
     verifyDatapoint (mag, "f", &expectedMagVal);
 
-    IedServer_stop (server);
-    IedServer_destroy (server);
-    IedModel_destroy (model);
+     iec61850->stop ();
+     delete iec61850;
+
+     for (auto reading : storedReadings)
+     {
+         delete reading;
+     }
+     storedReadings.clear ();
+
+     IedServer_stop (server);
+     IedServer_destroy (server);
+     IedModel_destroy (model);
 }
 
 TEST_F (ReportingTest, ReportingWithDynamicDataset)
@@ -596,6 +633,15 @@ TEST_F (ReportingTest, ReportingWithDynamicDataset)
 
     verifyDatapoint (qDp, "Validity", &expectedValidity);
 
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
     IedServer_stop (server);
     IedServer_destroy (server);
     IedModel_destroy (model);
@@ -661,6 +707,15 @@ TEST_F (ReportingTest, ReportingGI)
     int expectedStVal = false;
     verifyDatapoint (SPC, "stVal", &expectedStVal);
 
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
     IedServer_stop (server);
     IedServer_destroy (server);
     IedModel_destroy (model);
@@ -725,7 +780,7 @@ TEST_F (ReportingTest, ReportingSetpointCommand)
     delete params[0];
     delete[] params;
 
-    timeout = std::chrono::seconds (3);
+    timeout = std::chrono::seconds (5);
     start = std::chrono::high_resolution_clock::now ();
     while (ingestCallbackCalled != 2)
     {
@@ -753,6 +808,16 @@ TEST_F (ReportingTest, ReportingSetpointCommand)
     verifyDatapoint (SPC, "stVal", &expectedStVal);
 
     delete pair;
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
     IedServer_stop (server);
     IedServer_destroy (server);
     IedModel_destroy (model);
@@ -839,6 +904,15 @@ TEST_F (ReportingTest, ReportingUpdateQuality)
 
     verifyDatapoint (qDp, "Source");
     verifyDatapoint (qDp, "operatorBlocked");
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
 
     IedServer_stop (server);
     IedServer_destroy (server);
@@ -966,6 +1040,156 @@ TEST_F (ReportingTest, ReportingChangeValueMultipleTimes)
 
     expectedMagVal = 1.5;
     verifyDatapoint (mag, "f", &expectedMagVal);
+
+    iec61850->stop ();
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
+
+    IedServer_stop (server);
+    IedServer_destroy (server);
+    IedModel_destroy (model);
+}
+
+TEST_F (ReportingTest, ReconfigureDynamicDataset)
+{
+    iec61850->setJsonConfig (protocol_config, exchanged_data, tls_config);
+
+    IedModel* model = ConfigFileParser_createModelFromConfigFileEx (
+        "../tests/data/simpleIO_direct_control.cfg");
+
+    IedServer server = IedServer_create (model);
+
+    IedServer_start (server, 10002);
+    iec61850->start ();
+
+    Thread_sleep (1000);
+
+    auto start = std::chrono::high_resolution_clock::now ();
+    auto timeout = std::chrono::seconds (5);
+    while (!iec61850->m_client->m_active_connection
+           || !iec61850->m_client->m_active_connection->m_connection
+           || IedConnection_getState (
+                  iec61850->m_client->m_active_connection->m_connection)
+                  != IED_STATE_CONNECTED)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Connection not established within timeout";
+        }
+        Thread_sleep (10);
+    }
+
+    Quality q = 0;
+    Quality_setValidity (&q, QUALITY_VALIDITY_INVALID);
+
+    IedServer_updateQuality (
+        server,
+        (DataAttribute*)IedModel_getModelNodeByObjectReference (
+            model, "simpleIOGenericIO/GGIO1.AnIn1.q"),
+        q);
+
+    timeout = std::chrono::seconds (3);
+    start = std::chrono::high_resolution_clock::now ();
+    while (ingestCallbackCalled != 1)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Callback not called within timeout";
+        }
+        Thread_sleep (10);
+    }
+
+    ASSERT_FALSE (storedReadings.empty ());
+    ASSERT_EQ (storedReadings.size (), 1);
+    Datapoint* commandResponse = storedReadings[0]->getReadingData ()[0];
+    verifyDatapoint (commandResponse, "GTIM");
+    Datapoint* gtim = getChild (*commandResponse, "GTIM");
+
+    verifyDatapoint (gtim, "MvTyp");
+    Datapoint* MV = getChild (*gtim, "MvTyp");
+
+    verifyDatapoint (MV, "q");
+    Datapoint* qDp = getChild (*MV, "q");
+
+    std::string expectedValidity = "invalid";
+
+    verifyDatapoint (qDp, "Validity", &expectedValidity);
+
+    iec61850->stop ();
+
+    iec61850->setJsonConfig (protocol_config_3, exchanged_data, tls_config);
+
+    iec61850->start();
+
+    Thread_sleep (1000);
+
+    start = std::chrono::high_resolution_clock::now ();
+    timeout = std::chrono::seconds (5);
+    while (!iec61850->m_client->m_active_connection
+           || !iec61850->m_client->m_active_connection->m_connection
+           || IedConnection_getState (
+                  iec61850->m_client->m_active_connection->m_connection)
+                  != IED_STATE_CONNECTED)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Connection not established within timeout";
+        }
+        Thread_sleep (10);
+    }
+
+    q = 0;
+    Quality_setValidity (&q, QUALITY_VALIDITY_INVALID);
+
+    IedServer_updateQuality (
+        server,
+        (DataAttribute*)IedModel_getModelNodeByObjectReference (
+            model, "simpleIOGenericIO/GGIO1.SPCSO1.q"),
+        q);
+    
+    timeout = std::chrono::seconds (3);
+    start = std::chrono::high_resolution_clock::now ();
+    while (ingestCallbackCalled != 2)
+    {
+        auto now = std::chrono::high_resolution_clock::now ();
+        if (now - start > timeout)
+        {
+            IedServer_stop (server);
+            IedServer_destroy (server);
+            IedModel_destroy (model);
+            FAIL () << "Callback not called within timeout";
+        }
+        Thread_sleep (10);
+    }
+
+    ASSERT_EQ (storedReadings.size (), 2);
+
+    iec61850->stop ();
+
+    delete iec61850;
+
+    for (auto reading : storedReadings)
+    {
+        delete reading;
+    }
+    storedReadings.clear ();
 
     IedServer_stop (server);
     IedServer_destroy (server);

@@ -50,20 +50,6 @@ isCommandCdcType (CDCTYPE type)
     return type >= SPC && type < SPG;
 }
 
-static uint64_t
-getMonotonicTimeInMs ()
-{
-    uint64_t timeVal = 0;
-
-    struct timespec ts;
-
-    if (clock_gettime (CLOCK_MONOTONIC, &ts) == 0)
-    {
-        timeVal = ((uint64_t)ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
-    }
-
-    return timeVal;
-}
 
 static long
 getValueInt (Datapoint* dp)
@@ -233,7 +219,7 @@ const std::map<PIVOTROOT, std::string> rootToStrMap
 
 IEC61850Client::IEC61850Client (IEC61850* iec61850,
                                 IEC61850ClientConfig* iec61850_client_config)
-    : m_config (iec61850_client_config), m_iec61850 (iec61850)
+    : m_config (iec61850_client_config), m_iec61850 (iec61850), firstTimeConnect(true)
 {
 }
 
@@ -254,6 +240,11 @@ IEC61850Client::stop ()
         m_monitoringThread->join ();
         delete m_monitoringThread;
         m_monitoringThread = nullptr;
+    }
+
+    if(lastEntryId){
+        MmsValue_delete(lastEntryId);
+        lastEntryId = nullptr;
     }
 }
 
