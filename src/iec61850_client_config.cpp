@@ -321,6 +321,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
+                Iec61850Utility::log_error("Report subscription has no RCB ref , skipping");
                 continue;
             }
 
@@ -331,7 +332,8 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                report->datasetRef = "";
+                Iec61850Utility::log_error("Report subscription %s has no Dataset ref , skipping", report->rcbRef.c_str());
+                continue;
             }
 
             if (reportVal.HasMember (JSON_TRGOPS)
@@ -377,7 +379,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                Iec61850Utility::log_error (
+                Iec61850Utility::log_warn (
                     "Report %s has no gi value, defaulting to disabled",
                     report->rcbRef.c_str ());
                 report->gi = false;

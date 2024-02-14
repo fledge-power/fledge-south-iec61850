@@ -800,7 +800,7 @@ IEC61850Client::m_handleMonitoringData (
 
     Quality quality = extractQuality (mmsvalue, def->spec, attribute);
     uint64_t ts;
-
+    
     if (!mmsVal)
         ts = extractTimestamp (mmsvalue, def->spec, attribute);
     else
@@ -825,7 +825,7 @@ IEC61850Client::extractQuality (MmsValue* mmsvalue,
         = MmsValue_getSubElement (mmsvalue, varSpec, (char*)"q");
     return (!qualityMms && attribute != "q")
                ? QUALITY_VALIDITY_GOOD
-               : Quality_fromMmsValue (qualityMms);
+               : Quality_fromMmsValue ( attribute == "q" ? mmsvalue : qualityMms);
 }
 
 uint64_t

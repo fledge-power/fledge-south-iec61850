@@ -446,7 +446,7 @@ IEC61850ClientConnection::m_configRcb ()
 
         if (error != IED_ERROR_OK)
         {
-            Iec61850Utility::log_error ("GetRCBValues service error!\n");
+            m_client->logIedClientError(error,"GetRCBValues " + rs->rcbRef);
             continue;
         }
 

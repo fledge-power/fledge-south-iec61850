@@ -84,7 +84,7 @@ static string protocol_config_2 = QUOTE ({
                         "simpleIOGenericIO/GGIO1.AnIn2[MX]",
                         "simpleIOGenericIO/GGIO1.AnIn3[MX]",
                         "simpleIOGenericIO/GGIO1.AnIn4[MX]",
-                        "simpleIOGenericIO/GGIO1.SPCSO1[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO1.stVal[ST]",
                         "simpleIOGenericIO/GGIO1.SPCSO2[ST]",
                         "simpleIOGenericIO/GGIO1.SPCSO3[ST]",
                         "simpleIOGenericIO/GGIO1.SPCSO4[ST]"
