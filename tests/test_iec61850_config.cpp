@@ -293,8 +293,8 @@ static string wrong_protocol_config_13 = QUOTE({
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "trgops" : [
-                        "data_changed",
-                        "quality_changed",
+                        "dchg",
+                        "qchg",
                         "gi"
                     ],
                     "gi" : false
@@ -325,8 +325,8 @@ static string wrong_protocol_config_14 = QUOTE({
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "trgops" : [
-                        "data_changed",
-                        "quality_changed",
+                        "dchg",
+                        "qchg",
                         "gi"
                     ],
                     "gi" : false
@@ -356,8 +356,8 @@ static string wrong_protocol_config_15 = QUOTE({
                 {
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
                     "trgops" : [
-                        "data_changed",
-                        "quality_changed",
+                        "dchg",
+                        "qchg",
                         "gi"
                     ],
                     "gi" : false
@@ -448,8 +448,8 @@ static string wrong_protocol_config_17 = QUOTE({
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsRCB",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Mags",
                     "trgops" : [
-                        "data_changed",
-                        "quality_changed"
+                        "dchg",
+                        "qchg"
                     ],
                     "buftm": 1,
                     "intgpd": 2
@@ -458,8 +458,8 @@ static string wrong_protocol_config_17 = QUOTE({
                     "rcb_ref" : "simpleIOGenericIO/LLN0.RP.EventsIndexed",
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "trgops" : [
-                        "data_changed",
-                        "quality_changed"
+                        "dchg",
+                        "qchg"
                     ],
                     "buftm": 1,
                     "intgpd": 2

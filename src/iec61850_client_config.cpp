@@ -34,12 +34,11 @@
 using namespace rapidjson;
 
 static const std::unordered_map<std::string, int> trgOptions
-    = { { "data_changed", TRG_OPT_DATA_CHANGED },
-        { "quality_changed", TRG_OPT_QUALITY_CHANGED },
-        { "data_update", TRG_OPT_DATA_UPDATE },
-        { "integrity", TRG_OPT_INTEGRITY },
-        { "gi", TRG_OPT_GI },
-        { "transient", TRG_OPT_TRANSIENT } };
+    = { { "dchg", TRG_OPT_DATA_CHANGED },
+        { "qchg", TRG_OPT_QUALITY_CHANGED },
+        { "dupd", TRG_OPT_DATA_UPDATE },
+        { "period", TRG_OPT_INTEGRITY },
+        { "gi", TRG_OPT_GI } };
 
 static const std::unordered_map<std::string, CDCTYPE> cdcMap
     = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
