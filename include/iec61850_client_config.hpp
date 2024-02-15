@@ -28,6 +28,7 @@
     FRIEND_TEST (ReportingTest, ReportingSetpointCommand);                    \
     FRIEND_TEST (ReportingTest, ReconfigureDynamicDataset);                   \
     FRIEND_TEST (ReportingTest, ReportingChangeValueMultipleTimes);           \
+    FRIEND_TEST (ReportingTest, ReportingIndividualAttributes);               \
     FRIEND_TEST (SpontDataTest, Polling);                                     \
     FRIEND_TEST (SpontDataTest, PollingAllCDC);                               \
     FRIEND_TEST (ControlTest, AnalogueCommandDirectNormal);                   \
@@ -116,6 +117,12 @@ struct DataExchangeDefinition
     std::string label;
     std::string id;
     MmsVariableSpecification* spec;
+    bool hasIntValue = true;
+    union{
+     int intVal;
+     float floatVal;
+    } lastValue;
+    bool valueSet = false;
 };
 
 struct ReportSubscription

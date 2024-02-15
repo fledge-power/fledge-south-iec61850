@@ -180,7 +180,7 @@ class IEC61850Client
     template <class T>
     Datapoint* m_createDatapoint (const std::string& label,
                                   const std::string& objRef, T value,
-                                  Quality quality, uint64_t timestampMs);
+                                  Quality quality, uint64_t timestampMs, bool hasValue);
     static int getRootFromCDC (const CDCTYPE cdc);
 
     void addQualityDp (Datapoint* cdcDp, Quality quality) const;
