@@ -747,8 +747,8 @@ TEST_F (ReportingTest, ReportingGI)
     ASSERT_FALSE (storedReadings.empty ());
     ASSERT_EQ (storedReadings.size (), 12);
     Datapoint* commandResponse = storedReadings[0]->getReadingData ()[0];
-    verifyDatapoint (commandResponse, "GTIC");
-    Datapoint* gtim = getChild (*commandResponse, "GTIC");
+    verifyDatapoint (commandResponse, "GTIS");
+    Datapoint* gtim = getChild (*commandResponse, "GTIS");
 
     verifyDatapoint (gtim, "SpcTyp");
     Datapoint* SPC = getChild (*gtim, "SpcTyp");
@@ -847,8 +847,8 @@ TEST_F (ReportingTest, ReportingSetpointCommand)
     ASSERT_FALSE (storedReadings.empty ());
     ASSERT_EQ (storedReadings.size (), 2);
     Datapoint* commandResponse = storedReadings[1]->getReadingData ()[0];
-    verifyDatapoint (commandResponse, "GTIC");
-    Datapoint* gtim = getChild (*commandResponse, "GTIC");
+    verifyDatapoint (commandResponse, "GTIS");
+    Datapoint* gtim = getChild (*commandResponse, "GTIS");
 
     verifyDatapoint (gtim, "SpcTyp");
     Datapoint* SPC = getChild (*gtim, "SpcTyp");
@@ -1305,8 +1305,8 @@ TEST_F (ReportingTest, ReportingIndividualAttributes)
     ASSERT_FALSE (storedReadings.empty ());
     ASSERT_EQ (storedReadings.size (), 1);
     Datapoint* commandResponse = storedReadings[0]->getReadingData ()[0];
-    verifyDatapoint (commandResponse, "GTIC");
-    Datapoint* gtic = getChild (*commandResponse, "GTIC");
+    verifyDatapoint (commandResponse, "GTIS");
+    Datapoint* gtic = getChild (*commandResponse, "GTIS");
 
     verifyDatapoint (gtic, "SpcTyp");
     Datapoint* Spc = getChild (*gtic, "SpcTyp");
@@ -1338,8 +1338,8 @@ TEST_F (ReportingTest, ReportingIndividualAttributes)
     ASSERT_FALSE (storedReadings.empty ());
     ASSERT_EQ (storedReadings.size (), 2);
     commandResponse = storedReadings[1]->getReadingData ()[0];
-    verifyDatapoint (commandResponse, "GTIC");
-    gtic = getChild (*commandResponse, "GTIC");
+    verifyDatapoint (commandResponse, "GTIS");
+    gtic = getChild (*commandResponse, "GTIS");
 
     verifyDatapoint (gtic, "SpcTyp");
     Spc = getChild (*gtic, "SpcTyp");
@@ -1374,8 +1374,8 @@ TEST_F (ReportingTest, ReportingIndividualAttributes)
     ASSERT_FALSE (storedReadings.empty ());
     ASSERT_EQ (storedReadings.size (), 3);
     commandResponse = storedReadings[2]->getReadingData ()[0];
-    verifyDatapoint (commandResponse, "GTIC");
-    gtic = getChild (*commandResponse, "GTIC");
+    verifyDatapoint (commandResponse, "GTIS");
+    gtic = getChild (*commandResponse, "GTIS");
 
     verifyDatapoint (gtic, "SpcTyp");
     Spc = getChild (*gtic, "SpcTyp");

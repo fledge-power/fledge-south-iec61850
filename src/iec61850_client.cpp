@@ -210,9 +210,10 @@ const std::map<CDCTYPE, std::string> cdcToStrMap
         { ENS, "EnsTyp" }, { SPG, "SpgTyp" }, { ASG, "AsgTyp" },
         { ING, "IngTyp" } };
 const std::map<CDCTYPE, PIVOTROOT> rootMap
-    = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIC }, { INS, GTIS },
-        { ENS, GTIS }, { MV, GTIM },  { SPC, GTIC }, { DPC, GTIC },
-        { APC, GTIC }, { INC, GTIC } };
+    = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIS }, { INS, GTIS },
+        { ENS, GTIS }, { MV, GTIM },  { SPC, GTIS }, { DPC, GTIS },
+        { APC, GTIM }, { INC, GTIS }, { ASG, GTIM }, { SPG, GTIS },
+        { ING, GTIS} };
 
 const std::map<PIVOTROOT, std::string> rootToStrMap
     = { { GTIM, "GTIM" }, { GTIS, "GTIS" }, { GTIC, "GTIC" } };
