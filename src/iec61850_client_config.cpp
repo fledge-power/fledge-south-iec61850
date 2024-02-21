@@ -282,8 +282,11 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
                         const std::shared_ptr<DataExchangeDefinition> def
                             = getExchangeDefinitionByObjRef (extractedObjRef);
 
-                        if (def)
+                        if (def){
                             m_polledDatapoints.erase (extractedObjRef);
+                            Iec61850Utility::log_debug (
+                            "%s won't be polled", extractedObjRef.c_str());
+                        }
                     }
                 }
             }
@@ -320,6 +323,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
+                Iec61850Utility::log_error("Report subscription has no RCB ref , skipping");
                 continue;
             }
 
@@ -330,7 +334,8 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                report->datasetRef = "";
+                Iec61850Utility::log_error("Report subscription %s has no Dataset ref , skipping", report->rcbRef.c_str());
+                continue;
             }
 
             if (reportVal.HasMember (JSON_TRGOPS)
@@ -376,7 +381,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                Iec61850Utility::log_error (
+                Iec61850Utility::log_warn (
                     "Report %s has no gi value, defaulting to disabled",
                     report->rcbRef.c_str ());
                 report->gi = false;
@@ -776,6 +781,10 @@ IEC61850ClientConfig::importExchangeConfig (const std::string& exchangeConfig)
             def->cdcType = cdcType;
             def->label = label;
             def->id = pivot_id;
+
+            if(def->cdcType == MV || def->cdcType == APC || def->cdcType == ASG){
+                def->hasIntValue = false;
+            }
 
             m_exchangeDefinitions.insert ({ label, def });
             m_exchangeDefinitionsPivotId.insert ({ pivot_id, def });
