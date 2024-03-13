@@ -9,6 +9,7 @@
 #include <string>
 #include <utils.h>
 #include <vector>
+#include <unordered_set>
 
 IEC61850ClientConnection::IEC61850ClientConnection (
     IEC61850Client* client, IEC61850ClientConfig* config,
@@ -220,7 +221,7 @@ IEC61850ClientConnection::m_configDatasets ()
         {
             bool createDataset = true;
 
-            Iec61850Utility::log_debug ("Create new dataset %s",
+            Iec61850Utility::log_debug ("Create new dynamic dataset %s",
                                         dataset->datasetRef.c_str ());
 
             bool isDeletable = false;
@@ -277,6 +278,44 @@ IEC61850ClientConnection::m_configDatasets ()
 
                 LinkedList_destroyDeep (newDataSetEntries, free);
             }
+        }
+        else
+        {
+            Iec61850Utility::log_debug ("Add static dataset %s",
+                                        dataset->datasetRef.c_str ());
+            LinkedList dsDir = IedConnection_getDataSetDirectory (
+                m_connection, &error, dataset->datasetRef.c_str (), nullptr);
+
+            std::unordered_map<std::string, int> dsDirMap;
+            LinkedList dataSetMemberRef = LinkedList_getNext (dsDir);
+            while (dataSetMemberRef != NULL)
+            {
+                char* memberRef = (char*)dataSetMemberRef->data;
+                dsDirMap[std::string (memberRef)]++;
+                Iec61850Utility::log_debug ("%s", memberRef);
+                dataSetMemberRef = LinkedList_getNext (dataSetMemberRef);
+            }
+
+            std::unordered_set<std::string> dsConfigEntriesSet (
+                dataset->entries.begin (), dataset->entries.end ());
+            for (const auto& pair : dsDirMap)
+            {
+                if (dsConfigEntriesSet.find (pair.first)
+                    == dsConfigEntriesSet.end ())
+                {
+                    Iec61850Utility::log_warn (
+                        "Entry %s in static dataset %s is not mentioned in JSON configuration",
+                        pair.first.c_str (), dataset->datasetRef.c_str());
+                }
+                else if (pair.second != 1)
+                {
+                    Iec61850Utility::log_warn (
+                        "Entry %s does not exist in dataset %s",
+                        pair.first.c_str (), dataset->datasetRef.c_str());
+                }
+            }
+
+            LinkedList_destroy (dsDir);
         }
     }
 }
