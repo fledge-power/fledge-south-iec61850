@@ -370,8 +370,12 @@ configureRcb (const std::shared_ptr<ReportSubscription>& rs,
     {
         parametersMask |= RCB_ELEMENT_OPT_FLDS;
         ClientReportControlBlock_setOptFlds(rcb,RPT_OPT_REASON_FOR_INCLUSION | RPT_OPT_ENTRY_ID | RPT_OPT_TIME_STAMP| RPT_OPT_DATA_SET);
-        parametersMask |= RCB_ELEMENT_RESV_TMS;
-        ClientReportControlBlock_setResvTms (rcb, 1000);
+
+        if (ClientReportControlBlock_hasResvTms(rcb))
+        {
+            parametersMask |= RCB_ELEMENT_RESV_TMS;
+            ClientReportControlBlock_setResvTms (rcb, 1000);
+        }
 
         if (firstTimeConnect)
         {
