@@ -39,10 +39,10 @@ static string protocol_config = QUOTE ({
                 {
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
+                        "simpleIOGenericIO/GGIO1.SPCSO1[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO2[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO3[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO4[ST]"
                     ],
                     "dynamic" : false
                 }
@@ -94,10 +94,10 @@ static string protocol_config_2 = QUOTE ({
                 {
                     "dataset_ref" : "simpleIOGenericIO/LLN0.Events2",
                     "entries" : [
-                        "simpleIOGenericIO/GGIO1.AnIn1.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn2.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn3.mag.f[MX]",
-                        "simpleIOGenericIO/GGIO1.AnIn4.mag.f[MX]"
+                        "simpleIOGenericIO/GGIO1.SPCSO1[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO2[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO3[ST]",
+                        "simpleIOGenericIO/GGIO1.SPCSO4[ST]"
                     ],
                     "dynamic" : false
                 }
