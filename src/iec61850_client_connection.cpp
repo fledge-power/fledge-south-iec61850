@@ -492,7 +492,7 @@ IEC61850ClientConnection::m_configRcb ()
 
         IedConnection_installReportHandler (
             m_connection,
-            (rs->rcbRef.substr (0, rs->rcbRef.size () - 2)).c_str (),
+            (rs->rcbRef.substr (0, rs->rcbRef.size ())).c_str (),
             ClientReportControlBlock_getRptId (rcb), reportCallbackFunction,
             static_cast<void*> (connDataSetPair));
 
