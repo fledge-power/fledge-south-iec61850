@@ -50,20 +50,6 @@ isCommandCdcType (CDCTYPE type)
     return type >= SPC && type < SPG;
 }
 
-static uint64_t
-getMonotonicTimeInMs ()
-{
-    uint64_t timeVal = 0;
-
-    struct timespec ts;
-
-    if (clock_gettime (CLOCK_MONOTONIC, &ts) == 0)
-    {
-        timeVal = ((uint64_t)ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
-    }
-
-    return timeVal;
-}
 
 static long
 getValueInt (Datapoint* dp)
@@ -221,19 +207,20 @@ const std::map<CDCTYPE, std::string> cdcToStrMap
     = { { SPS, "SpsTyp" }, { DPS, "DpsTyp" }, { BSC, "BscTyp" },
         { MV, "MvTyp" },   { SPC, "SpcTyp" }, { DPC, "DpcTyp" },
         { APC, "ApcTyp" }, { INC, "IncTyp" }, { INS, "InsTyp" },
-        { ENS, "EnsTyp" }, { SPG, "SpgTyp" }, { ASG, "AsgType" },
+        { ENS, "EnsTyp" }, { SPG, "SpgTyp" }, { ASG, "AsgTyp" },
         { ING, "IngTyp" } };
 const std::map<CDCTYPE, PIVOTROOT> rootMap
-    = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIC }, { INS, GTIS },
-        { ENS, GTIS }, { MV, GTIM },  { SPC, GTIC }, { DPC, GTIC },
-        { APC, GTIC }, { INC, GTIC } };
+    = { { SPS, GTIS }, { DPS, GTIS }, { BSC, GTIS }, { INS, GTIS },
+        { ENS, GTIS }, { MV, GTIM },  { SPC, GTIS }, { DPC, GTIS },
+        { APC, GTIM }, { INC, GTIS }, { ASG, GTIM }, { SPG, GTIS },
+        { ING, GTIS} };
 
 const std::map<PIVOTROOT, std::string> rootToStrMap
     = { { GTIM, "GTIM" }, { GTIS, "GTIS" }, { GTIC, "GTIC" } };
 
 IEC61850Client::IEC61850Client (IEC61850* iec61850,
                                 IEC61850ClientConfig* iec61850_client_config)
-    : m_config (iec61850_client_config), m_iec61850 (iec61850)
+    : m_config (iec61850_client_config), m_iec61850 (iec61850), firstTimeConnect(true)
 {
 }
 
@@ -254,6 +241,11 @@ IEC61850Client::stop ()
         m_monitoringThread->join ();
         delete m_monitoringThread;
         m_monitoringThread = nullptr;
+    }
+
+    if(lastEntryId){
+        MmsValue_delete(lastEntryId);
+        lastEntryId = nullptr;
     }
 }
 
@@ -809,12 +801,25 @@ IEC61850Client::m_handleMonitoringData (
 
     Quality quality = extractQuality (mmsvalue, def->spec, attribute);
     uint64_t ts;
-
+    
     if (!mmsVal)
         ts = extractTimestamp (mmsvalue, def->spec, attribute);
     else
         ts = timestamp;
 
+    if(attribute == "q"){
+        if(!def->valueSet){
+            Iec61850Utility::log_debug("Value for %s not yet set, sending only quality", objRef.c_str());
+            datapoints.push_back (m_createDatapoint (label, objRef, 0, quality, timestamp, false));
+            cleanUpMmsValue (mmsVal, mmsvalue);
+            return;
+        }
+        else{
+            datapoints.push_back (m_createDatapoint (label, objRef, def->hasIntValue ? def->lastValue.intVal : def->lastValue.floatVal, quality, timestamp, true));
+            cleanUpMmsValue (mmsVal, mmsvalue);
+            return;
+        }
+    }
     if (!processDatapoint (type, datapoints, label, objRef, mmsvalue,
                            def->spec, quality, ts, attribute))
     {
@@ -834,7 +839,7 @@ IEC61850Client::extractQuality (MmsValue* mmsvalue,
         = MmsValue_getSubElement (mmsvalue, varSpec, (char*)"q");
     return (!qualityMms && attribute != "q")
                ? QUALITY_VALIDITY_GOOD
-               : Quality_fromMmsValue (qualityMms);
+               : Quality_fromMmsValue ( attribute == "q" ? mmsvalue : qualityMms);
 }
 
 uint64_t
@@ -855,7 +860,7 @@ IEC61850Client::processDatapoint (
     const std::string& label, const std::string& objRef, MmsValue* mmsvalue,
     MmsVariableSpecification* varSpec, Quality quality, uint64_t timestamp,
     const std::string& attribute)
-{
+{    
     switch (type)
     {
     case SPC:
@@ -916,8 +921,12 @@ IEC61850Client::processBooleanType (
         }
     }
     bool value = MmsValue_getBoolean (element);
+    auto def = m_config->getExchangeDefinitionByObjRef (objRef);
+    def->lastValue.intVal = (long)value;
+    def->valueSet = true;
+
     datapoints.push_back (
-        m_createDatapoint (label, objRef, (long)value, quality, timestamp));
+        m_createDatapoint (label, objRef, (long)value, quality, timestamp, true));
     return true;
 }
 
@@ -963,8 +972,12 @@ IEC61850Client::processBSCType (std::vector<Datapoint*>& datapoints,
     long value = MmsValue_toInt32 (posVal);
     bool transIndVal = MmsValue_getBoolean (transInd);
     long combinedValue = (value << 1) | (long)transIndVal;
+    auto def = m_config->getExchangeDefinitionByObjRef (objRef);
+    def->lastValue.intVal = (long)combinedValue;
+    def->valueSet = true;
+
     datapoints.push_back (
-        m_createDatapoint (label, objRef, combinedValue, quality, timestamp));
+        m_createDatapoint (label, objRef, combinedValue, quality, timestamp, true));
     return true;
 }
 
@@ -991,6 +1004,7 @@ IEC61850Client::processAnalogType (
         }
     }
 
+    auto def = m_config->getExchangeDefinitionByObjRef (objRef);
     varSpec = MmsVariableSpecification_getChildSpecificationByName (
         varSpec, elementName, nullptr);
     MmsValue* f = MmsValue_getSubElement (element, varSpec, (char*)"f");
@@ -998,8 +1012,11 @@ IEC61850Client::processAnalogType (
     if (f)
     {
         double value = MmsValue_toFloat (f);
+        def->lastValue.floatVal = value;
+        def->valueSet = true;
+
         datapoints.push_back (
-            m_createDatapoint (label, objRef, value, quality, timestamp));
+            m_createDatapoint (label, objRef, value, quality, timestamp, true));
         return true;
     }
 
@@ -1007,8 +1024,12 @@ IEC61850Client::processAnalogType (
     if (i)
     {
         long value = MmsValue_toInt32 (i);
+        def->hasIntValue = true;
+        def->lastValue.intVal = value;
+        def->valueSet = true;
+
         datapoints.push_back (
-            m_createDatapoint (label, objRef, value, quality, timestamp));
+            m_createDatapoint (label, objRef, value, quality, timestamp, true));
         return true;
     }
 
@@ -1039,8 +1060,13 @@ IEC61850Client::processIntegerType (
         }
     }
     long value = MmsValue_toInt32 (element);
+    auto def = m_config->getExchangeDefinitionByObjRef (objRef);
+
+    def->lastValue.intVal = (long) value;
+    def->valueSet = true;
+
     datapoints.push_back (
-        m_createDatapoint (label, objRef, value, quality, timestamp));
+        m_createDatapoint (label, objRef, value, quality, timestamp,true));
     return true;
 }
 
@@ -1048,7 +1074,7 @@ template <class T>
 Datapoint*
 IEC61850Client::m_createDatapoint (const std::string& label,
                                    const std::string& objRef, T value,
-                                   Quality quality, uint64_t timestamp)
+                                   Quality quality, uint64_t timestamp, bool hasValue)
 {
     auto def = m_config->getExchangeDefinitionByLabel (label);
 
@@ -1061,7 +1087,9 @@ IEC61850Client::m_createDatapoint (const std::string& label,
     addElementWithValue (rootDp, "Identifier", (std::string)def->label);
     Datapoint* cdcDp = addElement (rootDp, cdcToStrMap.at (def->cdcType));
 
-    addValueDp (cdcDp, def->cdcType, value);
+    if(hasValue){
+        addValueDp (cdcDp, def->cdcType, value);
+    }
     addQualityDp (cdcDp, quality);
     addTimestampDp (cdcDp, timestamp);
 

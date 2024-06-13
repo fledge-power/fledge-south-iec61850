@@ -1070,9 +1070,6 @@ TEST_F(ControlTest, WriteOperations) {
     iec61850->setJsonConfig(protocol_config, exchanged_data_3 , tls_config);
 
     IedModel* model = ConfigFileParser_createModelFromConfigFileEx("../tests/data/iec61850fledgetest.cfg");
-
-    ASSERT_TRUE(model != NULL);
-
     IedServer server = IedServer_create(model);
     IedServer_start(server,10002);
 

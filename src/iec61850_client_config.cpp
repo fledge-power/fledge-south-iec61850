@@ -34,12 +34,11 @@
 using namespace rapidjson;
 
 static const std::unordered_map<std::string, int> trgOptions
-    = { { "data_changed", TRG_OPT_DATA_CHANGED },
-        { "quality_changed", TRG_OPT_QUALITY_CHANGED },
-        { "data_update", TRG_OPT_DATA_UPDATE },
-        { "integrity", TRG_OPT_INTEGRITY },
-        { "gi", TRG_OPT_GI },
-        { "transient", TRG_OPT_TRANSIENT } };
+    = { { "dchg", TRG_OPT_DATA_CHANGED },
+        { "qchg", TRG_OPT_QUALITY_CHANGED },
+        { "dupd", TRG_OPT_DATA_UPDATE },
+        { "period", TRG_OPT_INTEGRITY },
+        { "gi", TRG_OPT_GI } };
 
 static const std::unordered_map<std::string, CDCTYPE> cdcMap
     = { { "SpsTyp", SPS }, { "DpsTyp", DPS }, { "BscTyp", BSC },
@@ -283,8 +282,11 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
                         const std::shared_ptr<DataExchangeDefinition> def
                             = getExchangeDefinitionByObjRef (extractedObjRef);
 
-                        if (def)
+                        if (def){
                             m_polledDatapoints.erase (extractedObjRef);
+                            Iec61850Utility::log_debug (
+                            "%s won't be polled", extractedObjRef.c_str());
+                        }
                     }
                 }
             }
@@ -321,6 +323,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
+                Iec61850Utility::log_error("Report subscription has no RCB ref , skipping");
                 continue;
             }
 
@@ -331,7 +334,8 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                report->datasetRef = "";
+                Iec61850Utility::log_error("Report subscription %s has no Dataset ref , skipping", report->rcbRef.c_str());
+                continue;
             }
 
             if (reportVal.HasMember (JSON_TRGOPS)
@@ -377,7 +381,7 @@ IEC61850ClientConfig::importProtocolConfig (const std::string& protocolConfig)
             }
             else
             {
-                Iec61850Utility::log_error (
+                Iec61850Utility::log_warn (
                     "Report %s has no gi value, defaulting to disabled",
                     report->rcbRef.c_str ());
                 report->gi = false;
@@ -585,59 +589,62 @@ IEC61850ClientConfig::parseOsiTSelector (std::string& inputOsiSelector,
 }
 
 OsiSelectorSize
-IEC61850ClientConfig::parseOsiSelector (std::string& inputOsiSelector,
-                                        uint8_t* selectorValue,
-                                        const uint8_t selectorSize)
+IEC61850ClientConfig::parseOsiSelector(std::string& inputOsiSelector, uint8_t* selectorValue, const uint8_t selectorSize)
 {
-    char* tokenContext = nullptr;
-    const char* nextToken
-        = strtok_r (&inputOsiSelector[0], " ,.-", &tokenContext);
-    uint8_t count = 0;
+    uint8_t i = 0;
 
-    while (nullptr != nextToken)
+    if (inputOsiSelector.find(',') == std::string::npos)
     {
-        if (count >= selectorSize)
+        std::regex hexPattern("^([0-9a-fA-F]{2})+$");
+        if(inputOsiSelector.substr(0, 2) == "0x") inputOsiSelector.erase(0, 2); 
+        if(!std::regex_match(inputOsiSelector, hexPattern))
         {
-            throw ConfigurationException (
-                "bad format for 'OSI Selector' (too many bytes)");
+            throw ConfigurationException("bad format for 'OSI Selector' (Expected hexadecimal string)");
         }
 
-        int base = 10;
-
-        if (0 == strncmp (nextToken, "0x", 2))
+        if(inputOsiSelector.size()/2 > selectorSize)
         {
-            base = 16;
+            throw ConfigurationException("bad format for 'OSI Selector' (too many bytes)");
         }
 
-        unsigned long ul = 0;
+        std::istringstream hex_chars_stream(inputOsiSelector);
+        uint8_t count = 0;
 
-        try
+        char hex_chars[2];
+     
+        while (hex_chars_stream >> hex_chars[0] >> hex_chars[1])
         {
-            ul = std::stoul (nextToken, nullptr, base);
+            char* endptr;
+            selectorValue[count] = static_cast<uint8_t>(strtol(hex_chars, &endptr, 16));
+            if (*endptr != 0)
+            {
+                throw ConfigurationException("bad format for 'OSI Selector' (not a byte)");
+            }
+            count++;
         }
-        catch (std::invalid_argument&)
-        {
-            throw ConfigurationException (
-                "bad format for 'OSI Selector' (not a byte)");
-        }
-        catch (std::out_of_range&)
-        {
-            throw ConfigurationException (
-                "bad format for 'OSI Selector (exceed an int)'");
-        }
-
-        if (ul > 255)
-        {
-            throw ConfigurationException (
-                "bad format for 'OSI Selector' (exceed a byte)");
-        }
-
-        selectorValue[count] = static_cast<uint8_t> (ul);
-        count++;
-        nextToken = strtok_r (nullptr, " ,.-", &tokenContext);
+        return count;
     }
+    else
+    {
+        std::replace(inputOsiSelector.begin(), inputOsiSelector.end(), ',', ' '); 
+        std::istringstream ss(inputOsiSelector);
+        std::string token;
 
-    return count;
+        while(std::getline(ss, token, ' ') && i < selectorSize)
+        {
+            if(token.substr(0, 2) == "0x") token.erase(0, 2); 
+            
+            std::regex hexPattern("^([0-9a-fA-F]{2})+$");
+            if(!std::regex_match(token, hexPattern))
+            {
+                throw ConfigurationException("bad format for 'OSI Selector' (Expected hexadecimal string)");
+            }
+
+            selectorValue[i] = static_cast<uint8_t>(std::stoul(token, nullptr, 16));
+            i++;
+        }
+        return i;
+    }
 }
 
 void
@@ -774,6 +781,10 @@ IEC61850ClientConfig::importExchangeConfig (const std::string& exchangeConfig)
             def->cdcType = cdcType;
             def->label = label;
             def->id = pivot_id;
+
+            if(def->cdcType == MV || def->cdcType == APC || def->cdcType == ASG){
+                def->hasIntValue = false;
+            }
 
             m_exchangeDefinitions.insert ({ label, def });
             m_exchangeDefinitionsPivotId.insert ({ pivot_id, def });
